@@ -1,0 +1,2047 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SACISC — Módulo 02 · Programas de Trabajo v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--gd:#002f2a;--gm:#1e5b4f;--gl:#2d7a6a;--ga:#11CD78;--gray:#98989a;--wh:#fff;--bg:#f4f7f6;--bd:#e0e0e0;--sh:rgba(0,47,42,0.10);--av:#10b981;--dom:#3b82f6;--exec:#1d4ed8;--mando:#7e22ce;--ok:#10b981;--warn:#f59e0b;--err:#ef4444;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:#222;min-height:100vh;display:flex;flex-direction:column;}
+header{background:var(--wh);border-bottom:3px solid var(--gm);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:74px;box-shadow:0 2px 10px var(--sh);position:sticky;top:0;z-index:300;}
+.h-logo{display:flex;align-items:center;gap:14px;}
+.h-circle{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gd),var(--gm));display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.h-circle svg{color:#fff;}
+.h-titles{border-left:2px solid var(--gm);padding-left:14px;line-height:1.2;}
+.h-main{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700;color:var(--gd);letter-spacing:0.04em;text-transform:uppercase;}
+.h-sub{font-size:0.76rem;color:var(--gray);}
+.h-right{display:flex;align-items:center;gap:8px;}
+.badge{background:var(--gm);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px;}
+.hbtn{display:inline-flex;align-items:center;gap:6px;background:#f0f9f6;color:var(--gm);border:1.5px solid #c3e0d6;border-radius:7px;padding:6px 13px;font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;transition:all .18s;}
+.hbtn:hover{background:#d8f0e8;border-color:var(--gm);}
+.hbtn.pri{background:var(--gm);color:#fff;border-color:var(--gm);}
+.hbtn.pri:hover{background:var(--gd);}
+.nav-tabs{background:var(--wh);border-bottom:2px solid var(--bd);padding:0 28px;display:flex;gap:2px;position:sticky;top:74px;z-index:200;box-shadow:0 1px 4px var(--sh);}
+.ntab{display:flex;align-items:center;gap:6px;padding:13px 18px;font-family:'Barlow Condensed',sans-serif;font-size:0.86rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--gray);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .18s;}
+.ntab:hover{color:var(--gm);}
+.ntab.active{color:var(--gd);border-bottom-color:var(--gm);}
+main{flex:1;max-width:1440px;width:100%;margin:0 auto;padding:24px 20px;}
+.tp{display:none;}.tp.active{display:block;}
+.panel{background:var(--wh);border-radius:11px;box-shadow:0 1px 5px var(--sh);margin-bottom:20px;overflow:hidden;}
+.ph{background:var(--gd);color:#fff;padding:13px 22px;display:flex;align-items:center;gap:9px;font-family:'Barlow Condensed',sans-serif;font-size:.96rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;}
+.phr{margin-left:auto;display:flex;gap:7px;align-items:center;}
+.pb{padding:20px 22px;}
+.kpi-bar{display:flex;flex-wrap:wrap;background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:11px;overflow:hidden;margin-bottom:20px;}
+.ki{flex:1;min-width:110px;padding:16px 18px;border-right:1px solid rgba(255,255,255,.1);}
+.ki:last-child{border-right:none;}
+.kl{font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.55);margin-bottom:3px;}
+.kv{font-family:'Barlow Condensed',sans-serif;font-size:1.55rem;font-weight:700;color:#fff;}
+.ks{font-size:.7rem;color:rgba(255,255,255,.6);margin-top:1px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gm);}
+.field label .req{color:var(--err);margin-left:2px;}
+.field select,.field input,.field textarea{border:1.5px solid var(--bd);border-radius:7px;padding:9px 12px;font-family:'Barlow',sans-serif;font-size:.88rem;color:#333;background:var(--wh);transition:border-color .18s,box-shadow .18s;}
+.field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%231e5b4f' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px;cursor:pointer;}
+.field select:focus,.field input:focus,.field textarea:focus{outline:none;border-color:var(--gm);box-shadow:0 0 0 3px rgba(30,91,79,.11);}
+.field select:disabled{opacity:.4;cursor:not-allowed;}
+.f-exec label{color:var(--exec);}.f-exec select,.f-exec input{border-color:#bfdbfe;background:#eff6ff;}
+.f-mando label{color:var(--mando);}.f-mando select,.f-mando input{border-color:#d8b4fe;background:#faf5ff;}
+.fg{display:grid;gap:14px;}
+.g2{grid-template-columns:1fr 1fr;}.g3{grid-template-columns:1fr 1fr 1fr;}.g4{grid-template-columns:1fr 1fr 1fr 1fr;}.g5{grid-template-columns:repeat(5,1fr);}
+.s2{grid-column:span 2;}.s3{grid-column:span 3;}.s4{grid-column:span 4;}.s5{grid-column:span 5;}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1.5px solid transparent;border-radius:7px;padding:8px 20px;font-family:'Barlow Condensed',sans-serif;font-size:.92rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .18s;}
+.bpri{background:var(--gm);color:#fff;border-color:var(--gm);box-shadow:0 2px 7px rgba(30,91,79,.25);}.bpri:hover{background:var(--gd);transform:translateY(-1px);}
+.bsec{background:transparent;color:var(--gray);border-color:var(--bd);}.bsec:hover{border-color:#aaa;color:#444;}
+.bdng{background:#fdecea;color:#9b1d1d;border-color:#f5c6c3;}.bdng:hover{background:#f5c6c3;}
+.bwarn{background:#fffbeb;color:#92400e;border-color:#fde68a;}.bwarn:hover{background:#fef3c7;}
+.bghost{background:rgba(255,255,255,.13);color:#fff;border:1px solid rgba(255,255,255,.28);}.bghost:hover{background:rgba(255,255,255,.22);}
+.btn.sm{padding:5px 13px;font-size:.76rem;}.btn.xs{padding:3px 9px;font-size:.7rem;}
+.chip{display:inline-block;padding:2px 9px;border-radius:11px;font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;}
+.cv{background:#d1fae5;color:#065f46;}.ca{background:#fef3c7;color:#92400e;}.cr{background:#fee2e2;color:#991b1b;}.cg{background:#f3f4f6;color:#6b7280;}.cb{background:#dbeafe;color:#1e40af;}.cp{background:#ede9fe;color:#5b21b6;}.co{background:#ffedd5;color:#9a3412;}
+.c-av{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;}.c-dom{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:800;flex-shrink:0;}
+.av-e{background:#bfdbfe;color:var(--exec);}.av-m{background:#d8b4fe;color:var(--mando);}.av-av{background:#a7f3d0;color:#065f46;}.av-dom{background:#bfdbfe;color:var(--exec);}
+.tw{overflow-x:auto;border-radius:9px;border:1.5px solid var(--bd);}
+table{width:100%;border-collapse:collapse;font-size:.83rem;}
+thead tr{background:var(--gd);}
+thead th{color:#fff;padding:11px 13px;font-family:'Barlow Condensed',sans-serif;font-size:.76rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;text-align:left;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--bd);transition:background .13s;}
+tbody tr:nth-child(even){background:#f7faf9;}
+tbody tr:hover{background:#eaf3f0;}
+tbody td{padding:9px 13px;color:#333;}
+.pb-wrap{display:flex;align-items:center;gap:7px;}
+.pb-track{flex:1;height:7px;background:#e8f0ed;border-radius:3px;overflow:hidden;min-width:60px;}
+.pb-fill{height:7px;border-radius:3px;transition:width .45s;}
+.pb-pct{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;min-width:32px;}
+.gt-wrap{overflow-x:auto;}
+.gt-grid{display:grid;background:var(--wh);border:1.5px solid var(--bd);border-radius:9px;overflow:hidden;font-size:.79rem;min-width:600px;}
+.gt-hcell{background:var(--gd);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:9px 11px;border-right:1px solid rgba(255,255,255,.09);}
+.gt-cell{padding:8px 11px;border-bottom:1px solid var(--bd);border-right:1px solid rgba(0,0,0,.04);display:flex;align-items:center;}
+.gt-cell:hover{background:#eaf3f0;}
+.gt-bcell{padding:5px 7px;border-bottom:1px solid var(--bd);border-right:1px solid rgba(0,0,0,.04);display:flex;align-items:center;min-height:38px;}
+.gb-prog{height:9px;border-radius:3px;background:#cbd5e1;position:relative;width:100%;}
+.gb-real{height:9px;border-radius:3px;position:absolute;top:0;left:0;transition:width .4s;}
+.gbv{background:#10b981;}.gba{background:#f59e0b;}.gbr{background:#ef4444;}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;}
+.pcard{background:var(--wh);border:1.5px solid var(--bd);border-radius:11px;overflow:hidden;box-shadow:0 1px 5px var(--sh);transition:border-color .18s,box-shadow .18s;}
+.pcard:hover{border-color:var(--gm);box-shadow:0 4px 14px var(--sh);}
+.pc-hd{padding:13px 16px;display:flex;align-items:flex-start;justify-content:space-between;}
+.pc-t{font-family:'Barlow Condensed',sans-serif;font-size:.92rem;font-weight:700;color:#fff;letter-spacing:.04em;}
+.pc-s{font-size:.7rem;color:rgba(255,255,255,.75);margin-top:1px;}
+.pc-bd{padding:13px 16px;}
+.pc-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;}
+.pck{text-align:center;padding:7px 3px;background:#f7faf9;border-radius:7px;border:1px solid #e0ede9;}
+.pkv{font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;font-weight:700;color:var(--gd);}
+.pkl{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-top:1px;}
+.pc-donut{display:flex;align-items:center;justify-content:center;margin-bottom:8px;position:relative;}
+.pc-dnum{position:absolute;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;color:var(--gd);}
+.pc-dsub{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);}
+.donut-r{transform:rotate(-90deg);}
+.pc-resp{display:flex;flex-direction:column;gap:4px;margin-top:7px;padding-top:7px;border-top:1px solid var(--bd);}
+.pc-rrow{display:flex;align-items:center;gap:6px;}
+.pc-rname{font-size:.76rem;font-weight:600;color:#333;}
+.pc-rrole{font-size:.63rem;color:var(--gray);margin-left:auto;}
+.pc-ft{border-top:1px solid var(--bd);padding:9px 16px;display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap;}
+.sbadge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.s-programado{background:#e0f2fe;color:#0369a1;}.s-en-curso{background:#fef3c7;color:#92400e;}.s-cerrado{background:#d1fae5;color:#065f46;}.s-cancelado{background:#fee2e2;color:#991b1b;}
+.dev-row{background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:10px 14px;margin-top:6px;}
+.dev-row .dt{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#c2410c;margin-bottom:5px;}
+.loc-item{background:#f8faf9;border:1.5px solid #d0ede5;border-radius:9px;padding:12px 16px;margin-bottom:10px;}
+.loc-item-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.loc-name{font-family:'Barlow Condensed',sans-serif;font-size:.92rem;font-weight:700;color:var(--gd);}
+.loc-path{font-size:.7rem;color:var(--gray);margin-top:1px;}
+.dias-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px;}
+.dia-cell{border:1.5px solid var(--bd);border-radius:7px;padding:6px 4px;text-align:center;cursor:pointer;transition:all .15s;background:var(--wh);}
+.dia-cell:hover{border-color:var(--gm);}
+.dia-label{font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray);margin-bottom:3px;}
+.dia-status{font-size:.68rem;font-weight:600;}
+.dia-cell.ejecutado{background:#d1fae5;border-color:#6ee7b7;}.dia-cell.ejecutado .dia-status{color:#065f46;}
+.dia-cell.desviacion{background:#fff7ed;border-color:#fed7aa;}.dia-cell.desviacion .dia-status{color:#c2410c;}
+.dia-cell.no-aplica{background:#f3f4f6;border-color:#d1d5db;opacity:.6;}
+.mov{display:none;position:fixed;inset:0;background:rgba(0,47,42,.62);z-index:10000;align-items:center;justify-content:center;padding:16px;}
+.mov.active{display:flex;}
+.mc{background:#fff;border-radius:14px;width:100%;max-height:93vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,47,42,.3);}
+.mc.sm{max-width:500px;}.mc.md{max-width:720px;}.mc.lg{max-width:960px;}.mc.xl{max-width:1160px;}
+.mh{background:var(--gd);color:#fff;padding:18px 26px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.mh h2{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:9px;}
+.mc-x{background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:background .18s;}
+.mc-x:hover{background:rgba(255,255,255,.25);}
+.mb{padding:24px 26px;}.mf{padding:14px 26px;border-top:1px solid var(--bd);display:flex;gap:9px;justify-content:flex-end;}
+.sd{display:flex;align-items:center;gap:9px;font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);margin:14px 0 10px;}
+.sd::before,.sd::after{content:'';flex:1;height:1px;background:var(--bd);}
+.rblock{border-radius:9px;padding:14px 18px;margin-bottom:14px;}
+.rb-e{background:#eff6ff;border:1.5px solid #bfdbfe;}.rb-e .rbt{color:var(--exec);}
+.rb-m{background:#faf5ff;border:1.5px solid #d8b4fe;}.rb-m .rbt{color:var(--mando);}
+.rbt{font-family:'Barlow Condensed',sans-serif;font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.preview-person{display:flex;align-items:center;gap:9px;padding:8px 12px;background:#fff;border-radius:8px;margin-top:8px;}
+.act-list{display:flex;flex-direction:column;gap:7px;}
+.act-row{display:grid;grid-template-columns:2fr 1fr auto;gap:9px;align-items:center;padding:9px 13px;background:#f7faf9;border:1px solid #e0ede9;border-radius:8px;}
+.ibox{background:#f0f9f6;border:1px solid #c3e0d6;border-radius:7px;padding:11px 15px;font-size:.83rem;color:var(--gm);margin-bottom:14px;}
+.wbox{background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:11px 15px;font-size:.82rem;color:#92400e;margin-bottom:12px;}
+.empty{text-align:center;padding:48px 20px;color:var(--gray);}
+.empty p{font-size:.92rem;}
+footer{background:var(--gd);color:rgba(255,255,255,.7);padding:24px 36px;margin-top:auto;}
+.fi{max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px;}
+.fi p{font-size:.78rem;line-height:1.9;}.fi p.ft{color:#fff;font-weight:600;font-size:.83rem;}
+hr.fd{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0;}
+#toast{position:fixed;bottom:22px;right:22px;z-index:99999;background:var(--gm);color:#fff;border-radius:9px;padding:11px 18px;font-family:'Barlow Condensed',sans-serif;font-size:.86rem;font-weight:700;box-shadow:0 8px 22px rgba(30,91,79,.38);display:none;align-items:center;gap:7px;max-width:380px;}
+#toast.show{display:flex;}
+#rptPrint{display:none;}
+@media print{
+  @page{size:Letter portrait;margin:13mm 15mm 13mm 15mm;}
+  body>header,.nav-tabs,body>main,body>footer,.no-print,#toast,.mov{display:none!important;}
+  body{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #rptPrint{display:block!important;}
+  .rh{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1e5b4f;padding-bottom:9px;margin-bottom:12px;}
+  .rh-logo{width:38px;height:38px;border-radius:50%;background:#1e5b4f;display:inline-flex;align-items:center;justify-content:center;}
+  .rh-title{font-size:12.5pt;font-weight:700;color:#002f2a;text-transform:uppercase;letter-spacing:.04em;}
+  .rh-sub{font-size:7.5pt;color:#666;margin-top:2px;}
+  .rh-meta{text-align:right;font-size:7pt;color:#555;line-height:1.8;}
+  .rfolio{display:inline-block;background:#1e5b4f;color:#fff;font-size:6.5pt;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:9px;margin-bottom:2px;}
+  .rsec{margin-bottom:12px;break-inside:avoid;}
+  .rsect{background:#002f2a;color:#fff;font-size:7.5pt;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:4px 9px;border-radius:3px;margin-bottom:7px;}
+  .rstat{display:flex;gap:5px;margin-bottom:9px;}
+  .rstat-box{flex:1;border:1.5px solid #d0e8e3;border-radius:4px;padding:6px;text-align:center;}
+  .rstat-lbl{font-size:6pt;font-weight:700;text-transform:uppercase;color:#777;margin-bottom:2px;}
+  .rstat-val{font-size:12pt;font-weight:700;color:#002f2a;}
+  .rtable{width:100%;border-collapse:collapse;font-size:7pt;}
+  .rtable thead tr{background:#002f2a!important;}
+  .rtable thead th{color:#fff;padding:4px 6px;font-size:6pt;font-weight:700;text-transform:uppercase;text-align:left;}
+  .rtable tbody tr:nth-child(even){background:#f4f9f7!important;}
+  .rtable tbody td{padding:4px 6px;border-bottom:1px solid #e0ede9;vertical-align:top;}
+  .rbar-w{width:100%;height:5px;background:#e0ede9;border-radius:2px;overflow:hidden;}
+  .rbar-f{height:5px;border-radius:2px;}
+  .rsign-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:18px;}
+  .rsign-block{padding:0 6px;}
+  .rsign-role{font-size:7pt;font-weight:700;color:#002f2a;text-transform:uppercase;letter-spacing:.06em;text-align:center;margin-bottom:10px;}
+  .rsign-line{width:100%;border:none;border-bottom:1.5px solid #333;display:block;height:26px;margin-bottom:2px;}
+  .rsign-lbl{font-size:6pt;color:#555;font-weight:600;text-transform:uppercase;}
+  .rfoot{border-top:2px solid #1e5b4f;padding-top:7px;margin-top:14px;display:flex;justify-content:space-between;font-size:6pt;color:#555;}
+}
+@media(max-width:768px){.g4,.g3,.g2,.g5{grid-template-columns:1fr;}.s2,.s3,.s4,.s5{grid-column:span 1;}.card-grid{grid-template-columns:1fr;}.ntab span{display:none;}}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="h-logo">
+    <div class="h-circle"><svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/></svg></div>
+    <div class="h-titles">
+      <div class="h-main">SACISC — Programas de Trabajo</div>
+      <div class="h-sub">URCS Sur · PEMEX · DAS-SSAB-GSG · Áreas Verdes &amp; Servicios Domésticos</div>
+    </div>
+  </div>
+  <div class="h-right">
+    <span class="badge">Módulo 02 · v3</span>
+    <button class="hbtn" onclick="recargarDesdeSB()" title="Sincronizar datos"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Sincronizar</button>
+    <button class="hbtn" onclick="abrirNuevoPrograma()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo Programa</button>
+  </div>
+</header>
+<nav class="nav-tabs">
+  <button class="ntab active" onclick="switchTab('tablero')" id="tab-tablero"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Tablero</span></button>
+  <button class="ntab" onclick="switchTab('programas')" id="tab-programas"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Programas</span></button>
+  <button class="ntab" onclick="switchTab('ejecucion')" id="tab-ejecucion"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Ejecución Diaria</span></button>
+  <button class="ntab" onclick="switchTab('catalogo')" id="tab-catalogo"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Catálogos</span></button>
+  <button class="ntab" onclick="switchTab('tendencia')" id="tab-tendencia"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Tendencia</span></button>
+  <button class="ntab" onclick="switchTab('apertura')" id="tab-apertura" style="color:#c2410c;"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span>Imprimir Apertura</span></button>
+</nav>
+<main>
+
+<!-- TAB TABLERO -->
+<div class="tp active" id="pane-tablero">
+  <div class="panel">
+    <div class="ph"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Filtros de Consulta</div>
+    <div class="pb">
+      <div class="fg g5">
+        <div class="field"><label>Año</label><select id="fAnio" onchange="aplicarFiltros()"></select></div>
+        <div class="field"><label>Semana</label><select id="fSemana" onchange="aplicarFiltros()"><option value="">— Todas —</option></select></div>
+        <div class="field"><label>Servicio</label><select id="fServicio" onchange="aplicarFiltros()"><option value="">— Todos —</option><option value="AV">🌿 Áreas Verdes</option><option value="DOM">🏢 Domésticos</option></select></div>
+        <div class="field"><label>Área Usuaria</label><select id="fArea" onchange="aplicarFiltros()"><option value="">— Todas —</option><option value="SCAD">SCAD</option><option value="SCEP">SCEP</option><option value="SCUI">SCUI</option><option value="SCCO">SCCO</option></select></div>
+        <div class="field"><label>Estado</label><select id="fEstado" onchange="aplicarFiltros()"><option value="">— Todos —</option><option value="PROGRAMADO">Programado</option><option value="EN_CURSO">En Curso</option><option value="CERRADO">Cerrado</option><option value="CANCELADO">Cancelado</option></select></div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-bar">
+    <div class="ki"><div class="kl">Programas</div><div class="kv" id="kpiTotal">0</div><div class="ks">registrados</div></div>
+    <div class="ki"><div class="kl">Cumplimiento</div><div class="kv" id="kpiCump">—</div><div class="ks">promedio global</div></div>
+    <div class="ki"><div class="kl">Cerrados</div><div class="kv" id="kpiCerr">0</div><div class="ks">100% validados</div></div>
+    <div class="ki"><div class="kl">En Curso</div><div class="kv" id="kpiCurso">0</div><div class="ks">semana activa</div></div>
+    <div class="ki"><div class="kl">Desviaciones</div><div class="kv" id="kpiDesv">0</div><div class="ks">registradas</div></div>
+    <div class="ki"><div class="kl">Áreas Verdes</div><div class="kv" id="kpiAV">0</div><div class="ks">programas</div></div>
+    <div class="ki"><div class="kl">Domésticos</div><div class="kv" id="kpiDOM">0</div><div class="ks">programas</div></div>
+  </div>
+  <div id="cardGrid" class="card-grid"></div>
+  <div id="emptyTab" class="empty" style="display:none"><p>No hay programas. Use <strong>Nuevo Programa</strong> para comenzar.</p></div>
+</div>
+
+<!-- TAB PROGRAMAS -->
+<div class="tp" id="pane-programas">
+  <div class="panel">
+    <div class="ph"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg> Listado de Programas
+      <div class="phr">
+        <select id="gAnio" onchange="renderProgramasTab()" class="bghost" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;"></select>
+        <select id="gServicio" onchange="renderProgramasTab()" class="bghost" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;"><option value="">Ambos</option><option value="AV">Áreas Verdes</option><option value="DOM">Domésticos</option></select>
+      </div>
+    </div>
+    <div class="pb">
+      <div class="tw"><table><thead><tr><th>Semana</th><th>Servicio</th><th>Área</th><th>Cabo</th><th>Mando Medio</th><th>Locs.</th><th>Cumplimiento</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tbProgramas"></tbody></table></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph">Gantt Semanal — Programado vs Real</div>
+    <div class="pb">
+      <div id="ganttCont"></div>
+      <div id="emptyGantt" class="empty" style="display:none;padding:24px 0;"><p style="font-size:.85rem;">Sin datos.</p></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.74rem;color:var(--gray);">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:20px;height:7px;background:#cbd5e1;border-radius:3px;display:inline-block;"></span>Programado</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:20px;height:7px;background:#10b981;border-radius:3px;display:inline-block;"></span>Cumplido ≥80%</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:20px;height:7px;background:#f59e0b;border-radius:3px;display:inline-block;"></span>Parcial 50–79%</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:20px;height:7px;background:#ef4444;border-radius:3px;display:inline-block;"></span>Desviación &lt;50%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB EJECUCIÓN -->
+<div class="tp" id="pane-ejecucion">
+  <div class="panel">
+    <div class="ph"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/></svg> Registro de Ejecución Diaria</div>
+    <div class="pb">
+      <div class="fg g3" style="margin-bottom:16px;">
+        <div class="field"><label>Año</label><select id="eAnio" onchange="cargarProgramasEjec()"></select></div>
+        <div class="field"><label>Semana</label><select id="eSemana" onchange="cargarProgramasEjec()"><option value="">— Todas —</option></select></div>
+        <div class="field"><label>Servicio</label><select id="eServicio" onchange="cargarProgramasEjec()"><option value="">— Todos —</option><option value="AV">Áreas Verdes</option><option value="DOM">Domésticos</option></select></div>
+      </div>
+      <div id="listaProgEjec"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB CATÁLOGOS -->
+<div class="tp" id="pane-catalogo">
+  <div class="panel">
+    <div class="ph"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Catálogo de Personas
+      <div class="phr"><button class="btn sm bghost" onclick="abrirModalPersona()">+ Nueva Persona</button></div>
+    </div>
+    <div class="pb">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+        <div><div class="sd"><span style="display:flex;align-items:center;gap:5px;"><span style="width:11px;height:11px;border-radius:50%;background:#a7f3d0;display:inline-block;"></span>Cabos Áreas Verdes</span></div><div id="listaCabosAV" style="display:flex;flex-direction:column;gap:7px;"></div></div>
+        <div><div class="sd"><span style="display:flex;align-items:center;gap:5px;"><span style="width:11px;height:11px;border-radius:50%;background:#bfdbfe;display:inline-block;"></span>Cabos Domésticos</span></div><div id="listaCabosDOM" style="display:flex;flex-direction:column;gap:7px;"></div></div>
+        <div><div class="sd"><span style="display:flex;align-items:center;gap:5px;"><span style="width:11px;height:11px;border-radius:50%;background:#d8b4fe;display:inline-block;"></span>Mandos Medios</span></div><div id="listaMandos" style="display:flex;flex-direction:column;gap:7px;"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="4" rx="1"/><rect x="1" y="18" width="6" height="4" rx="1"/><rect x="9" y="18" width="6" height="4" rx="1"/><rect x="17" y="18" width="6" height="4" rx="1"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="4" y1="20" x2="12" y2="12"/><line x1="12" y1="12" x2="12" y2="20"/><line x1="20" y1="20" x2="12" y2="12"/></svg> Estructura: Áreas → Subáreas → Localizaciones
+      <div class="phr"><button class="btn sm bghost" onclick="abrirModalSubarea()">+ Subárea</button><button class="btn sm bghost" onclick="abrirModalLocalizacion()">+ Localización</button></div>
+    </div>
+    <div class="pb"><div id="orgTree"></div></div>
+  </div>
+  <div class="panel">
+    <div class="ph">Catálogo de Actividades Base<div class="phr"><button class="btn sm bghost" onclick="abrirModalActividad()">+ Actividad</button></div></div>
+    <div class="pb"><div class="tw"><table><thead><tr><th>Actividad</th><th>Servicio</th><th>Descripción</th><th></th></tr></thead><tbody id="tbActBase"></tbody></table></div></div>
+  </div>
+</div>
+
+<!-- TAB TENDENCIA -->
+<div class="tp" id="pane-tendencia">
+  <div class="panel">
+    <div class="ph"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Tendencia de Cumplimiento Semanal
+      <div class="phr">
+        <select id="tAnio" onchange="renderTendencia()" class="bghost" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;"></select>
+        <select id="tArea" onchange="renderTendencia()" class="bghost" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;"><option value="">Todas las áreas</option><option value="SCAD">SCAD</option><option value="SCEP">SCEP</option><option value="SCUI">SCUI</option><option value="SCCO">SCCO</option></select>
+      </div>
+    </div>
+    <div class="pb"><canvas id="chartTend" height="110"></canvas></div>
+  </div>
+</div>
+<!-- TAB APERTURA -->
+<div class="tp" id="pane-apertura">
+  <div class="panel">
+    <div class="ph">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Generar Documento de Apertura
+    </div>
+    <div class="pb">
+      <div class="ibox">Seleccione un programa para generar su documento de apertura. El documento se abre en una pestaña nueva lista para imprimir.</div>
+      <div class="fg g3" style="margin-bottom:18px;">
+        <div class="field"><label>Año</label><select id="apAnio" onchange="cargarListaApertura()"></select></div>
+        <div class="field"><label>Semana</label><select id="apSemana" onchange="cargarListaApertura()"><option value="">— Todas —</option></select></div>
+        <div class="field"><label>Servicio</label>
+          <select id="apServ" onchange="cargarListaApertura()">
+            <option value="">— Todos —</option>
+            <option value="AV">🌿 Áreas Verdes</option>
+            <option value="DOM">🏢 Domésticos</option>
+          </select>
+        </div>
+      </div>
+      <div id="listaApertura"></div>
+    </div>
+  </div>
+</div>
+</main>
+
+<footer>
+  <div class="fi"><div><p class="ft">PEMEX · URCS Sur · DAS-SSAB-GSG</p><p>Subdirección de Servicios al Capital Humano</p><p>Zona Coatzacoalcos / Zona Agua Dulce · Veracruz, México</p></div><div style="text-align:right;"><p class="ft">SACISC — Módulo 02 · v3.0</p><p>Seguimiento de Programas de Trabajo</p><p>Áreas Verdes &amp; Servicios Domésticos</p></div></div>
+  <hr class="fd">
+  <div class="fi" style="padding-top:0;"><p style="font-size:.7rem;">Datos almacenados localmente · Uso interno PEMEX</p><p style="font-size:.7rem;">© 2025 PEMEX · Personal autorizado</p></div>
+</footer>
+<div id="rptPrint"></div>
+<div id="toast"></div>
+
+<!-- MODAL PROGRAMA -->
+<div class="mov" id="movPrograma"><div class="mc xl">
+  <div class="mh"><h2><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span id="mpTit">Nuevo Programa Semanal</span></h2><button class="mc-x" onclick="cerrarMovPrograma()">✕</button></div>
+  <div class="mb">
+    <input type="hidden" id="editId">
+    <div class="sd">Identificación</div>
+    <div class="fg g4" style="margin-bottom:16px;">
+      <div class="field"><label>Servicio <span class="req">*</span></label><select id="pServ" onchange="onServChange()"><option value="">— Seleccionar —</option><option value="AV">🌿 Áreas Verdes</option><option value="DOM">🏢 Domésticos</option></select></div>
+      <div class="field"><label>Área Usuaria <span class="req">*</span></label><select id="pArea" onchange="onAreaChange()"><option value="">— Seleccionar —</option><option value="SCAD">SCAD</option><option value="SCEP">SCEP</option><option value="SCUI">SCUI</option><option value="SCCO">SCCO</option></select></div>
+      <div class="field"><label>Año <span class="req">*</span></label><select id="pAnio" onchange="poblarSemanasM(this.value)"></select></div>
+      <div class="field"><label>Semana <span class="req">*</span></label><select id="pSemana"><option value="">— Seleccionar —</option></select></div>
+      <div class="field s4"><label>Observaciones generales</label><textarea id="pObs" rows="2" placeholder="Observaciones del programa..."></textarea></div>
+    </div>
+    <div class="sd">Responsables</div>
+    <div class="fg g2" style="margin-bottom:18px;">
+      <div class="rblock rb-e">
+        <div class="rbt"><span style="width:14px;height:14px;border-radius:50%;background:#bfdbfe;display:inline-flex;align-items:center;justify-content:center;"><svg width="9" height="9" fill="none" stroke="#1d4ed8" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><span id="lbCabo">Cabo <span class="req">*</span></span></div>
+        <div class="field f-exec"><label>Seleccionar</label><select id="pCabo" onchange="previewPersona('cabo',this.value)"><option value="">— Seleccionar —</option></select></div>
+        <div id="pvCabo" style="display:none;" class="preview-person"></div>
+      </div>
+      <div class="rblock rb-m">
+        <div class="rbt"><span style="width:14px;height:14px;border-radius:50%;background:#d8b4fe;display:inline-flex;align-items:center;justify-content:center;"><svg width="9" height="9" fill="none" stroke="#7e22ce" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Mando Medio del Área <span class="req">*</span></div>
+        <div class="field f-mando"><label>Seleccionar</label><select id="pMando" onchange="previewPersona('mando',this.value)"><option value="">— Seleccionar —</option></select></div>
+        <div id="pvMando" style="display:none;" class="preview-person"></div>
+      </div>
+    </div>
+    <div class="sd">Localizaciones Programadas por Día</div>
+    <div id="warnLocs" class="wbox">Seleccione Área Usuaria, Servicio y Semana para programar localizaciones.</div>
+    <div id="locProgramadorWrap" style="display:none;margin-bottom:14px;">
+      <div style="background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gm);margin-bottom:10px;">+ Agregar localización al programa</div>
+        <div class="fg g4">
+          <div class="field">
+            <label>Localización <span class="req">*</span></label>
+            <select id="lpLoc"><option value="">— Seleccionar —</option></select>
+          </div>
+          <div class="field">
+            <label>Día programado <span class="req">*</span></label>
+            <select id="lpDia"><option value="">— Seleccionar —</option></select>
+          </div>
+          <div class="field" id="lpDomWrap" style="display:none;">
+            <label>Doméstico asignado</label>
+            <input type="text" id="lpDomestico" placeholder="Nombre del doméstico" list="dlDomesticos" autocomplete="off">
+            <datalist id="dlDomesticos"></datalist>
+          </div>
+          <div class="field" style="justify-content:flex-end;">
+            <label style="visibility:hidden;">.</label>
+            <button class="btn bpri" onclick="agregarLocPrograma()" style="width:100%;">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="locTablaWrap">
+        <div class="empty" style="padding:14px 0;"><p style="font-size:.82rem;">Agregue localizaciones con el formulario anterior.</p></div>
+      </div>
+    </div>
+    <div class="sd">Actividades del Programa</div>
+    <div style="display:flex;gap:9px;margin-bottom:12px;flex-wrap:wrap;">
+      <button class="btn sm bpri" onclick="agregarActBase()">+ Del catálogo base</button>
+      <button class="btn sm bsec" onclick="agregarActExtra()">+ Actividad extra</button>
+    </div>
+    <div id="listaActEdit" class="act-list"><div class="empty" style="padding:18px 0;"><p style="font-size:.82rem;">Agregue actividades con los botones anteriores</p></div></div>
+  </div>
+  <div class="mf"><button class="btn bsec" onclick="cerrarMovPrograma()">Cancelar</button><button class="btn bpri" onclick="guardarPrograma()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar Programa</button></div>
+</div></div>
+
+<!-- MODAL EJECUCION -->
+<div class="mov" id="movEjecucion"><div class="mc xl">
+  <div class="mh"><h2><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/></svg><span id="mejTit">Registro de Ejecución</span></h2><button class="mc-x" onclick="cerrarMovEjec()">✕</button></div>
+  <div class="mb"><div class="ibox" id="mejInfo"></div><div id="mejContent"></div></div>
+  <div class="mf"><button class="btn bsec" onclick="cerrarMovEjec()">Cerrar</button><button class="btn bpri" onclick="cerrarMovEjec()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/></svg> Guardar y Cerrar</button></div>
+</div></div>
+
+<!-- MODAL CIERRE -->
+<div class="mov" id="movCierre"><div class="mc lg">
+  <div class="mh"><h2><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Cierre y Validación Semanal</h2><button class="mc-x" onclick="cerrarMovCierre()">✕</button></div>
+  <div class="mb">
+    <div class="ibox" id="mciInfo"></div>
+    <div id="mciContent"></div>
+    <div class="sd">Firmas de Validación</div>
+    <div class="fg g2">
+      <div class="rblock rb-e">
+        <div class="rbt">Cabo — Elaboró y Ejecutó</div>
+        <div class="field"><label>Nombre (confirmación)</label><input type="text" id="firmaCabo" placeholder="Nombre del cabo"></div>
+        <div class="field" style="margin-top:8px;"><label>Fecha de cierre</label><input type="date" id="fechaCierre"></div>
+      </div>
+      <div class="rblock rb-m">
+        <div class="rbt">Mando Medio — Vo.Bo.</div>
+        <div class="field"><label>Nombre (confirmación)</label><input type="text" id="firmaMando" placeholder="Nombre del mando medio"></div>
+        <div class="field" style="margin-top:8px;"><label>Observaciones de cierre</label><textarea id="obsCierre" rows="2" placeholder="Observaciones finales..."></textarea></div>
+      </div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bsec" onclick="cerrarMovCierre()">Cancelar</button><button class="btn bwarn" onclick="abrirDocCierre(_cierreId)">🖨️ Abrir Reporte de Cierre</button><button class="btn bpri" onclick="guardarCierre()"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Cerrar y Validar</button></div>
+</div></div>
+
+<!-- MODAL PERSONA -->
+<div class="mov" id="movPersona"><div class="mc sm">
+  <div class="mh"><h2>Nueva Persona</h2><button class="mc-x" onclick="cerrarMovPersona()">✕</button></div>
+  <div class="mb">
+    <div class="fg g2">
+      <div class="field s2"><label>Nombre Completo <span class="req">*</span></label><input type="text" id="pNombre" placeholder="Nombre completo"></div>
+      <div class="field s2"><label>Cargo / Puesto <span class="req">*</span></label><input type="text" id="pCargo" placeholder="Cargo"></div>
+      <div class="field"><label>Rol <span class="req">*</span></label><select id="pRol"><option value="">— Seleccionar —</option><option value="CABO_AV">🌿 Cabo Áreas Verdes</option><option value="CABO_DOM">🏢 Cabo Domésticos</option><option value="MANDO">🟣 Mando Medio</option></select></div>
+      <div class="field"><label>Área Usuaria</label><select id="pArea2"><option value="">— General —</option><option value="SCAD">SCAD</option><option value="SCEP">SCEP</option><option value="SCUI">SCUI</option><option value="SCCO">SCCO</option></select></div>
+      <div class="field s2"><label>Ficha / No. Empleado</label><input type="text" id="pFicha" placeholder="Opcional"></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bsec" onclick="cerrarMovPersona()">Cancelar</button><button class="btn bpri" onclick="guardarPersona()">Guardar</button></div>
+</div></div>
+
+<!-- MODAL SUBÁREA -->
+<div class="mov" id="movSubarea"><div class="mc sm">
+  <div class="mh"><h2>Nueva Subárea</h2><button class="mc-x" onclick="cerrarMovSubarea()">✕</button></div>
+  <div class="mb">
+    <div class="fg g2">
+      <div class="field"><label>Área Usuaria <span class="req">*</span></label><select id="saArea"><option value="">— Seleccionar —</option><option value="SCAD">SCAD</option><option value="SCEP">SCEP</option><option value="SCUI">SCUI</option><option value="SCCO">SCCO</option></select></div>
+      <div class="field"><label>Nombre <span class="req">*</span></label><input type="text" id="saNombre" placeholder="Ej: Zona Industrial Norte"></div>
+      <div class="field s2"><label>Descripción</label><input type="text" id="saDesc" placeholder="Opcional"></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bsec" onclick="cerrarMovSubarea()">Cancelar</button><button class="btn bpri" onclick="guardarSubarea()">Guardar</button></div>
+</div></div>
+
+<!-- MODAL LOCALIZACIÓN -->
+<div class="mov" id="movLoc"><div class="mc sm">
+  <div class="mh"><h2>Nueva Localización</h2><button class="mc-x" onclick="cerrarMovLoc()">✕</button></div>
+  <div class="mb">
+    <div class="fg g2">
+      <div class="field"><label>Área Usuaria <span class="req">*</span></label><select id="locArea" onchange="poblarSubsEnLoc()"><option value="">— Seleccionar —</option><option value="SCAD">SCAD</option><option value="SCEP">SCEP</option><option value="SCUI">SCUI</option><option value="SCCO">SCCO</option></select></div>
+      <div class="field"><label>Subárea (opcional)</label><select id="locSub"><option value="">— Sin subárea —</option></select></div>
+      <div class="field s2"><label>Nombre <span class="req">*</span></label><input type="text" id="locNombre" placeholder="Ej: Edificio Admin. A, Patio Central, Camellón Sur"></div>
+      <div class="field"><label>Tipo</label><select id="locTipo"><option value="OFICINA">Oficina / Edificio Admin.</option><option value="TALLER">Taller</option><option value="PATIO">Patio</option><option value="CAMELLÓN">Camellón</option><option value="ÁREA_VERDE">Área Verde</option><option value="COMEDOR">Comedor</option><option value="OTRO">Otro</option></select></div>
+      <div class="field"><label>Servicios aplicables</label><div style="display:flex;gap:10px;margin-top:6px;"><label style="display:flex;align-items:center;gap:5px;font-size:.84rem;font-weight:500;text-transform:none;letter-spacing:0;color:#333;cursor:pointer;"><input type="checkbox" id="locAV" checked> 🌿 Áreas Verdes</label><label style="display:flex;align-items:center;gap:5px;font-size:.84rem;font-weight:500;text-transform:none;letter-spacing:0;color:#333;cursor:pointer;"><input type="checkbox" id="locDOM"> 🏢 Domésticos</label></div></div>
+      <div class="field s2"><label>Descripción</label><input type="text" id="locDesc" placeholder="Opcional"></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bsec" onclick="cerrarMovLoc()">Cancelar</button><button class="btn bpri" onclick="guardarLocalizacion()">Guardar</button></div>
+</div></div>
+
+<!-- MODAL ACTIVIDAD BASE (catálogo) -->
+<div class="mov" id="movActividad"><div class="mc sm">
+  <div class="mh"><h2>Nueva Actividad Base</h2><button class="mc-x" onclick="cerrarMovActividad()">✕</button></div>
+  <div class="mb">
+    <div class="fg g2">
+      <div class="field s2"><label>Nombre <span class="req">*</span></label><input type="text" id="abNombre" placeholder="Ej: Corte de césped general"></div>
+      <div class="field"><label>Servicio <span class="req">*</span></label><select id="abServicio"><option value="">— Seleccionar —</option><option value="AV">🌿 Áreas Verdes</option><option value="DOM">🏢 Domésticos</option></select></div>
+      <div class="field"><label>Descripción</label><input type="text" id="abDesc" placeholder="Descripción corta"></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bsec" onclick="cerrarMovActividad()">Cancelar</button><button class="btn bpri" onclick="guardarActividadBase()">Guardar</button></div>
+</div></div>
+
+<!-- MODAL AGREGAR ACTIVIDAD AL PROGRAMA -->
+<div class="mov" id="movAgregarAct"><div class="mc md">
+  <div class="mh"><h2>Agregar Actividades al Programa</h2><button class="mc-x" onclick="document.getElementById('movAgregarAct').classList.remove('active')">✕</button></div>
+  <div class="mb">
+    <div class="sd">Del catálogo base</div>
+    <div id="listaBaseParaAgregar" style="display:flex;flex-direction:column;gap:7px;max-height:280px;overflow-y:auto;"></div>
+    <div class="sd">Actividad extra (no está en catálogo)</div>
+    <div class="fg g2">
+      <div class="field s2"><label>Nombre <span class="req">*</span></label><input type="text" id="actExtraNombre" placeholder="Nombre de la actividad extra"></div>
+      <div class="field s2"><label>Descripción</label><input type="text" id="actExtraDesc" placeholder="Descripción corta (opcional)"></div>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn bpri" onclick="confirmarActExtra()">+ Agregar actividad extra</button>
+    </div>
+  </div>
+  <div class="mf"><button class="btn bsec" onclick="document.getElementById('movAgregarAct').classList.remove('active')">Cerrar</button></div>
+</div></div>
+
+<!-- MODAL CONFIRMAR -->
+<div class="mov" id="movConfirm"><div class="mc sm">
+  <div class="mh"><h2>⚠️ Confirmar</h2><button class="mc-x" onclick="cerrarConfirm()">✕</button></div>
+  <div class="mb"><p style="font-size:.9rem;color:#444;line-height:1.6;" id="confirmMsg"></p></div>
+  <div class="mf"><button class="btn bsec" onclick="cerrarConfirm()">Cancelar</button><button class="btn bdng" id="btnConfirmOk">Confirmar</button></div>
+</div></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// SUPABASE CONFIG
+// ══════════════════════════════════════════════════════════════
+const SB_URL='https://epqyabsdgsthbtuluarq.supabase.co';
+const SB_KEY='sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0';
+const SB_HDR={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+
+async function sbGet(tabla){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+tabla+'?select=*',{headers:SB_HDR});
+    if(!r.ok)throw new Error(await r.text());
+    return await r.json();
+  }catch(e){console.error('sbGet',tabla,e);return [];}
+}
+async function sbUpsert(tabla,obj){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+tabla,{method:'POST',headers:{...SB_HDR,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(obj)});
+    if(!r.ok)throw new Error(await r.text());
+    return await r.json();
+  }catch(e){console.error('sbUpsert',tabla,e);return null;}
+}
+async function sbDelete(tabla,id){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+tabla+'?id=eq.'+id,{method:'DELETE',headers:SB_HDR});
+    if(!r.ok)throw new Error(await r.text());
+  }catch(e){console.error('sbDelete',tabla,e);}
+}
+
+// ── Mapeo tabla → variable local ──
+const LS={P:'s3_programas',AB:'s3_actbase',SA:'s3_subareas',LC:'s3_locs',PE:'s3_personas'};
+const LS_TBL={[LS.P]:'programas',[LS.AB]:'actividades_base',[LS.SA]:'subareas',[LS.LC]:'localizaciones',[LS.PE]:'personas'};
+
+// localStorage como caché local (fallback offline)
+const loadLocal=(k,d=[])=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
+const saveLocal=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+let PROG=loadLocal(LS.P), AB=loadLocal(LS.AB), SA=loadLocal(LS.SA), LC=loadLocal(LS.LC), PE=loadLocal(LS.PE);
+let _sbListo=false;
+
+// ── Convertir snake_case (Supabase) ↔ camelCase (app) ──
+function prog2sb(p){return{id:p.id,serv:p.serv,area:p.area,anio:p.anio,semana:p.semana,cabo_id:p.caboId,mando_id:p.mandoId,obs:p.obs||'',localizaciones:p.localizaciones||[],actividades:p.actividades||[],ejecucion:p.ejecucion||{},estado:p.estado||'PROGRAMADO',cierre_data:p.cierreData||null};}
+function sb2prog(r){return{id:r.id,serv:r.serv,area:r.area,anio:r.anio,semana:r.semana,caboId:r.cabo_id,mandoId:r.mando_id,obs:r.obs||'',localizaciones:r.localizaciones||[],actividades:r.actividades||[],ejecucion:r.ejecucion||{},estado:r.estado||'PROGRAMADO',cierreData:r.cierre_data||null};}
+function per2sb(p){return{id:p.id,nombre:p.nombre,cargo:p.cargo,rol:p.rol,area:p.area||'',ficha:p.ficha||''};}
+function sub2sb(s){return{id:s.id,area:s.area,nombre:s.nombre,descripcion:s.desc||''};}
+function loc2sb(l){return{id:l.id,area:l.area,subarea:l.subarea||'',nombre:l.nombre,tipo:l.tipo,servs:l.servs||[],descripcion:l.desc||''};}
+function sb2loc(r){return{id:r.id,area:r.area,subarea:r.subarea||'',nombre:r.nombre,tipo:r.tipo,servs:r.servs||[],desc:r.descripcion||''};}
+function ab2sb(a){return{id:a.id,nombre:a.nombre,serv:a.serv,descripcion:a.desc||''};}
+function sb2ab(r){return{id:r.id,nombre:r.nombre,serv:r.serv,desc:r.descripcion||''};}
+
+// ── save() reemplaza localStorage + sincroniza Supabase ──
+function save(key,arr){
+  saveLocal(key,arr);
+  if(!_sbListo)return;
+  const tabla=LS_TBL[key];if(!tabla)return;
+  // Upsert todos los registros del arreglo
+  if(!arr||!arr.length)return;
+  let mapped=arr;
+  if(key===LS.P)mapped=arr.map(prog2sb);
+  else if(key===LS.PE)mapped=arr.map(per2sb);
+  else if(key===LS.SA)mapped=arr.map(sub2sb);
+  else if(key===LS.LC)mapped=arr.map(loc2sb);
+  else if(key===LS.AB)mapped=arr.map(ab2sb);
+  sbUpsert(tabla,mapped).catch(e=>console.error('save sync',e));
+}
+
+// ── Carga inicial desde Supabase ──
+async function cargarDesdeSB(){
+  mostrarSyncBanner('Conectando a la base de datos...',true);
+  try{
+    const [progs,pers,subs,locs,acts]=await Promise.all([
+      sbGet('programas'),sbGet('personas'),sbGet('subareas'),sbGet('localizaciones'),sbGet('actividades_base')
+    ]);
+    PROG=progs.map(sb2prog);
+    PE=pers.map(r=>({id:r.id,nombre:r.nombre,cargo:r.cargo,rol:r.rol,area:r.area||'',ficha:r.ficha||''}));
+    SA=subs.map(r=>({id:r.id,area:r.area,nombre:r.nombre,desc:r.descripcion||''}));
+    LC=locs.map(sb2loc);
+    AB=acts.map(sb2ab);
+    saveLocal(LS.P,PROG);saveLocal(LS.PE,PE);saveLocal(LS.SA,SA);saveLocal(LS.LC,LC);saveLocal(LS.AB,AB);
+    _sbListo=true;
+    mostrarSyncBanner('✅ Conectado — datos sincronizados',false);
+    setTimeout(()=>ocultarSyncBanner(),3000);
+  }catch(e){
+    mostrarSyncBanner('⚠️ Sin conexión — modo local',false);
+    _sbListo=false;
+    console.error('cargarDesdeSB',e);
+  }
+}
+
+// ── Banner de estado de sincronización ──
+function mostrarSyncBanner(msg,loading){
+  let b=document.getElementById('syncBanner');
+  if(!b){b=document.createElement('div');b.id='syncBanner';
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#1e5b4f;color:#fff;font-family:Barlow Condensed,sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.05em;text-align:center;padding:7px 16px;transition:opacity .4s;';
+    document.body.prepend(b);}
+  b.innerHTML=(loading?'<span style="margin-right:7px;">⏳</span>':'')+msg;
+  b.style.opacity='1';b.style.display='block';
+}
+function ocultarSyncBanner(){
+  const b=document.getElementById('syncBanner');
+  if(b){b.style.opacity='0';setTimeout(()=>b.style.display='none',400);}
+}
+
+// ── Eliminar de Supabase cuando se borra un registro ──
+async function sbEliminar(tabla,id){
+  if(!_sbListo)return;
+  await sbDelete(tabla,id);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SEMANAS ISO
+// ══════════════════════════════════════════════════════════════
+const AÑO=new Date().getFullYear();
+function semISO(f){const d=new Date(Date.UTC(f.getFullYear(),f.getMonth(),f.getDate())),dy=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-dy);const y=d.getUTCFullYear(),s=Math.ceil(((d-new Date(Date.UTC(y,0,1)))/86400000+1)/7);return s;}
+const SEM=semISO(new Date());
+function semDates(a,s){const j4=new Date(Date.UTC(a,0,4)),dj=j4.getUTCDay()||7,l=new Date(j4);l.setUTCDate(j4.getUTCDate()-dj+1+(s-1)*7);const v=new Date(l);v.setUTCDate(l.getUTCDate()+4);const fmt=d=>`${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;return{l,v,label:`Sem. ${s} — ${fmt(l)} al ${fmt(v)}`,ini:fmt(l),fin:fmt(v)};}
+function semsAnio(a){const r=[];for(let s=1;s<=53;s++){try{const f=semDates(a,s);if(f.l.getUTCFullYear()===a||f.v.getUTCFullYear()===a)r.push(s);}catch{}}return r;}
+const DIAS=['LUN','MAR','MIÉ','JUE','VIE'];
+const SVCL={AV:'🌿 Áreas Verdes',DOM:'🏢 Domésticos'};
+const SVCC={AV:'#10b981',DOM:'#3b82f6'};
+const TIPODEV={CAMBIO_LOC:'Cambio de localización',SUSPENSION:'Suspensión temporal',CANCELACION:'Cancelación'};
+const EST_LABEL={PROGRAMADO:'Programado',EN_CURSO:'En Curso',CERRADO:'Cerrado',CANCELADO:'Cancelado'};
+const EST_CLS={PROGRAMADO:'s-programado',EN_CURSO:'s-en-curso',CERRADO:'s-cerrado',CANCELADO:'s-cancelado'};
+function getPer(id){return PE.find(p=>p.id===id)||null;}
+function initials(n){return(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();}
+function semColor(p){return p>=80?'#10b981':p>=50?'#f59e0b':'#ef4444';}
+function fmtF(x){return`${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;}
+
+// ══════════════════════════════════════════════════════════════
+// CUMPLIMIENTO
+// ══════════════════════════════════════════════════════════════
+function calcCump(prog){
+  const locs=prog.localizaciones||[];if(!locs.length)return 0;
+  let total=locs.length,ejecutado=0;
+  locs.forEach(loc=>{
+    const key=`${loc.locId}_${loc.dia}`;
+    const reg=(prog.ejecucion||{})[key];
+    if(reg&&reg.status==='EJECUTADO')ejecutado++;
+  });
+  return total?Math.round((ejecutado/total)*100):0;
+}
+function countDesv(prog){
+  const locs=prog.localizaciones||[];
+  return locs.filter(loc=>{const r=(prog.ejecucion||{})[`${loc.locId}_${loc.dia}`];return r&&r.status==='DESVIACION';}).length;
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',async ()=>{
+  poblarAnios();
+  mostrarSyncBanner('Conectando a la base de datos...',true);
+  await cargarDesdeSB();
+  initDefaults();
+  aplicarFiltros();renderProgramasTab();
+  renderCatalogos();renderOrgTree();renderPersonas();renderTendencia();cargarProgramasEjec();
+  refrescarDatalistDom();
+});
+
+function initDefaults(){
+  if(!AB.length){
+    AB=[
+      {id:uid(),nombre:'Corte de césped',serv:'AV',desc:'Corte de gramilla y zonas verdes'},
+      {id:uid(),nombre:'Poda de árboles y arbustos',serv:'AV',desc:'Poda preventiva y formativa'},
+      {id:uid(),nombre:'Retiro de maleza',serv:'AV',desc:'Control manual o con herbicida'},
+      {id:uid(),nombre:'Riego y fertilización',serv:'AV',desc:'Aplicación de agua y nutrientes'},
+      {id:uid(),nombre:'Retiro de residuos exteriores',serv:'AV',desc:'Hojarasca y basura de áreas verdes'},
+      {id:uid(),nombre:'Limpieza general de oficinas',serv:'DOM',desc:'Pisos, escritorios y mobiliario'},
+      {id:uid(),nombre:'Limpieza de sanitarios',serv:'DOM',desc:'Desinfección completa de baños'},
+      {id:uid(),nombre:'Reposición de insumos',serv:'DOM',desc:'Jabón, papel sanitario, desinfectante'},
+      {id:uid(),nombre:'Limpieza de áreas comunes',serv:'DOM',desc:'Pasillos, salas y comedores'},
+      {id:uid(),nombre:'Limpieza de ventanas y cristales',serv:'DOM',desc:'Interior y exterior accesible'},
+    ];save(LS.AB,AB);
+  }
+  if(!PE.length){
+    PE=[
+      {id:uid(),nombre:'Cabo AV (Ejemplo)',cargo:'Cabo de Áreas Verdes',rol:'CABO_AV',area:'',ficha:''},
+      {id:uid(),nombre:'Cabo DOM (Ejemplo)',cargo:'Cabo de Servicios Domésticos',rol:'CABO_DOM',area:'',ficha:''},
+      {id:uid(),nombre:'Jefe GSG (Ejemplo)',cargo:'Jefe de Servicios Generales',rol:'MANDO',area:'',ficha:''},
+    ];save(LS.PE,PE);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// POBLAR SELECTORES
+// ══════════════════════════════════════════════════════════════
+function poblarAnios(){
+  const anios=[AÑO-1,AÑO,AÑO+1];
+  ['fAnio','pAnio','gAnio','tAnio','eAnio','apAnio'].forEach(id=>{
+    const s=document.getElementById(id);if(!s)return;
+    const hasAll=['fAnio'].includes(id);
+    s.innerHTML=hasAll?'<option value="">— Todos —</option>':'';
+    anios.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===AÑO)o.selected=true;s.appendChild(o);});
+  });
+  poblarSemanasM(AÑO);poblarSemanasE(AÑO);poblarSemanasF(AÑO,'fSemana');
+}
+// Hook: when pSemana changes, update loc programador
+document.addEventListener('change',function(e){if(e.target&&e.target.id==='pSemana')actualizarLocProgramador();});
+function poblarSemanasM(a){
+  a=parseInt(a)||AÑO;const s=document.getElementById('pSemana');if(!s)return;
+  s.innerHTML='<option value="">— Seleccionar —</option>';
+  semsAnio(a).forEach(n=>{const f=semDates(a,n);const o=document.createElement('option');o.value=n;o.textContent=f.label;if(n===SEM&&a===AÑO)o.selected=true;s.appendChild(o);});
+}
+function poblarSemanasE(a){
+  a=parseInt(a)||AÑO;const s=document.getElementById('eSemana');if(!s)return;
+  s.innerHTML='<option value="">— Todas —</option>';
+  semsAnio(a).forEach(n=>{const f=semDates(a,n);const o=document.createElement('option');o.value=n;o.textContent=f.label;if(n===SEM&&a===AÑO)o.selected=true;s.appendChild(o);});
+}
+function poblarSemanasF(a,id){
+  a=parseInt(a)||AÑO;const s=document.getElementById(id);if(!s)return;
+  const v=s.value;s.innerHTML='<option value="">— Todas —</option>';
+  semsAnio(a).forEach(n=>{const f=semDates(a,n);const o=document.createElement('option');o.value=n;o.textContent=f.label;s.appendChild(o);});
+  s.value=v;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════
+function switchTab(tab){
+  document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('pane-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='programas')renderProgramasTab();
+  if(tab==='tendencia')renderTendencia();
+  if(tab==='catalogo'){renderCatalogos();renderOrgTree();renderPersonas();}
+  if(tab==='ejecucion')cargarProgramasEjec();
+  if(tab==='apertura'){cargarListaApertura();}
+}
+
+// ══════════════════════════════════════════════════════════════
+// TABLERO — FILTROS + KPIs + CARDS
+// ══════════════════════════════════════════════════════════════
+function aplicarFiltros(){
+  const fA=document.getElementById('fAnio').value;
+  poblarSemanasF(fA||AÑO,'fSemana');
+  const fS=document.getElementById('fSemana').value;
+  const fSv=document.getElementById('fServicio').value;
+  const fAr=document.getElementById('fArea').value;
+  const fEs=document.getElementById('fEstado').value;
+  let d=PROG;
+  if(fA)d=d.filter(p=>String(p.anio)===fA);
+  if(fS)d=d.filter(p=>String(p.semana)===fS);
+  if(fSv)d=d.filter(p=>p.serv===fSv);
+  if(fAr)d=d.filter(p=>p.area===fAr);
+  if(fEs)d=d.filter(p=>p.estado===fEs);
+  renderKPIs(d);renderCards(d);
+}
+function renderKPIs(d){
+  const t=d.length,cs=d.reduce((s,p)=>s+calcCump(p),0);
+  document.getElementById('kpiTotal').textContent=t;
+  document.getElementById('kpiCump').textContent=t?Math.round(cs/t)+'%':'—';
+  document.getElementById('kpiCerr').textContent=d.filter(p=>p.estado==='CERRADO').length;
+  document.getElementById('kpiCurso').textContent=d.filter(p=>p.estado==='EN_CURSO').length;
+  document.getElementById('kpiDesv').textContent=d.reduce((s,p)=>s+countDesv(p),0);
+  document.getElementById('kpiAV').textContent=d.filter(p=>p.serv==='AV').length;
+  document.getElementById('kpiDOM').textContent=d.filter(p=>p.serv==='DOM').length;
+}
+function renderCards(datos){
+  const g=document.getElementById('cardGrid'),e=document.getElementById('emptyTab');
+  if(!datos.length){g.innerHTML='';e.style.display='block';return;}
+  e.style.display='none';
+  g.innerHTML=datos.map(p=>{
+    const pct=calcCump(p),sc=semColor(pct);
+    const R=78,cx=88,cy=88,circ=2*Math.PI*R,dash=circ*(pct/100);
+    const locs=(p.localizaciones||[]).length,desv=countDesv(p);
+    const cab=getPer(p.caboId),mnd=getPer(p.mandoId);
+    const fe=semDates(p.anio,p.semana);
+    const svcC=SVCC[p.serv]||'#1e5b4f';
+    const esCls=EST_CLS[p.estado]||'cg';
+    return `<div class="pcard">
+      <div class="pc-hd" style="background:linear-gradient(135deg,${svcC}ee,${svcC});">
+        <div><div class="pc-t">${SVCL[p.serv]||p.serv}</div><div class="pc-s">${p.area} · ${fe.label}</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span class="chip" style="color:#fff;background:rgba(255,255,255,.22);">${pct}%</span>
+          <span class="sbadge ${esCls}" style="font-size:.62rem;">${EST_LABEL[p.estado]||p.estado}</span>
+        </div>
+      </div>
+      <div class="pc-bd">
+        <div class="pc-donut">
+          <svg width="94" height="94" viewBox="0 0 176 176">
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#e8f0ed" stroke-width="17"/>
+            <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${sc}" stroke-width="17"
+              stroke-dasharray="${dash} ${circ}" style="transform:rotate(-90deg);transform-origin:center;"/>
+          </svg>
+          <div class="pc-dnum">${pct}<span style="font-size:.72rem">%</span><br><span class="pc-dsub">cumpl.</span></div>
+        </div>
+        <div class="pc-kpis">
+          <div class="pck"><div class="pkv">${locs}</div><div class="pkl">Locs.</div></div>
+          <div class="pck" style="background:${pct>=80?'#d1fae5':'#f3f4f6'};border-color:${pct>=80?'#a7f3d0':'#e0ede9'};"><div class="pkv" style="color:${pct>=80?'#065f46':'var(--gd)'};">${pct}%</div><div class="pkl">Avance</div></div>
+          <div class="pck" style="${desv>0?'background:#fff7ed;border-color:#fed7aa;':''}"><div class="pkv" style="${desv>0?'color:#c2410c;':''}">${desv}</div><div class="pkl">Desv.</div></div>
+          <div class="pck"><div class="pkv">${p.semana}</div><div class="pkl">Semana</div></div>
+        </div>
+        <div class="pc-resp">
+          ${cab?`<div class="pc-rrow"><div class="av ${p.serv==='AV'?'av-av':'av-dom'}" style="width:24px;height:24px;font-size:.68rem;">${initials(cab.nombre)}</div><div class="pc-rname">${cab.nombre}</div><div class="pc-rrole">${p.serv==='AV'?'Cabo AV':'Cabo DOM'}</div></div>`:'<div style="font-size:.73rem;color:var(--err);">⚠ Sin cabo asignado</div>'}
+          ${mnd?`<div class="pc-rrow"><div class="av av-m" style="width:24px;height:24px;font-size:.68rem;">${initials(mnd.nombre)}</div><div class="pc-rname">${mnd.nombre}</div><div class="pc-rrole">Mando Medio</div></div>`:'<div style="font-size:.73rem;color:var(--err);">⚠ Sin mando asignado</div>'}
+        </div>
+      </div>
+      <div class="pc-ft">
+        <button class="btn xs bsec" onclick="editarPrograma('${p.id}')">✏️ Editar</button>
+        <button class="btn xs bpri" onclick="abrirEjecucion('${p.id}')">📋 Ejecutar</button>
+        ${p.estado!=='CERRADO'&&p.estado!=='CANCELADO'?`<button class="btn xs bwarn" onclick="abrirCierre('${p.id}')">✅ Cerrar</button>`:''}${p.estado==='CERRADO'?`<button class="btn xs" style="background:#f0fdf4;color:#065f46;border:1.5px solid #a7f3d0;" onclick="abrirDocCierre('${p.id}')">🖨️ Cierre</button>`:''}
+        <button class="btn xs" style="background:#f0f9f6;color:var(--gm);border:1.5px solid #c3e0d6;" onclick="imprimirApertura('${p.id}')">🖨️ Apertura</button>
+        <button class="btn xs bdng" onclick="confirmarElim('${p.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB PROGRAMAS — TABLA + GANTT
+// ══════════════════════════════════════════════════════════════
+function renderProgramasTab(){
+  const anio=parseInt(document.getElementById('gAnio').value)||AÑO;
+  const fsv=document.getElementById('gServicio').value;
+  let d=PROG.filter(p=>p.anio===anio);
+  if(fsv)d=d.filter(p=>p.serv===fsv);
+  d.sort((a,b)=>a.semana-b.semana||(a.area.localeCompare(b.area)));
+  const tb=document.getElementById('tbProgramas');
+  if(!d.length){
+    tb.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--gray);padding:22px;">Sin programas para los filtros seleccionados.</td></tr>`;
+  } else {
+    tb.innerHTML=d.map(p=>{
+      const pct=calcCump(p),sc=semColor(pct);
+      const cab=getPer(p.caboId),mnd=getPer(p.mandoId);
+      const fe=semDates(p.anio,p.semana);
+      return `<tr>
+        <td><strong>Sem. ${p.semana}</strong><div style="font-size:.7rem;color:var(--gray);">${fe.ini}</div></td>
+        <td><span class="chip ${p.serv==='AV'?'cv':'cb'}">${SVCL[p.serv]}</span></td>
+        <td><strong>${p.area}</strong></td>
+        <td style="font-size:.8rem;">${cab?cab.nombre:'<span style="color:var(--err);">—</span>'}</td>
+        <td style="font-size:.8rem;">${mnd?mnd.nombre:'<span style="color:var(--err);">—</span>'}</td>
+        <td style="text-align:center;">${(p.localizaciones||[]).length}</td>
+        <td><div class="pb-wrap"><div class="pb-track"><div class="pb-fill" style="width:${pct}%;background:${sc};"></div></div><span class="pb-pct" style="color:${sc};">${pct}%</span></div></td>
+        <td><span class="sbadge ${EST_CLS[p.estado]||'cg'}">${EST_LABEL[p.estado]||p.estado}</span></td>
+        <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="btn xs bsec" onclick="editarPrograma('${p.id}')">Editar</button>
+          <button class="btn xs bpri" onclick="abrirEjecucion('${p.id}')">Ejecutar</button>
+          ${p.estado!=='CERRADO'&&p.estado!=='CANCELADO'?`<button class="btn xs bwarn" onclick="abrirCierre('${p.id}')">Cerrar</button>`:''}
+          <button class="btn xs" style="background:#f0f9f6;color:var(--gm);border:1.5px solid #c3e0d6;" onclick="imprimirApertura('${p.id}')">Apertura</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+  // GANTT
+  const gc=document.getElementById('ganttCont'),eg=document.getElementById('emptyGantt');
+  if(!d.length){gc.innerHTML='';eg.style.display='block';return;}
+  eg.style.display='none';
+  const sems=[...new Set(d.map(p=>p.semana))].sort((a,b)=>a-b);
+  const cols=`150px 90px 80px ${sems.map(()=>'1fr').join(' ')}`;
+  let h=`<div class="gt-wrap"><div class="gt-grid" style="grid-template-columns:${cols};">`;
+  h+=`<div class="gt-hcell">Programa</div><div class="gt-hcell">Servicio</div><div class="gt-hcell">Avance</div>`;
+  sems.forEach(s=>{const f=semDates(anio,s);h+=`<div class="gt-hcell" style="text-align:center;">Sem. ${s}<br><span style="font-size:.62rem;opacity:.75;font-weight:400;">${f.ini}</span></div>`;});
+  d.forEach(p=>{
+    const pct=calcCump(p),gc2=pct>=80?'gbv':pct>=50?'gba':'gbr';
+    h+=`<div class="gt-cell"><strong style="font-size:.82rem;">${p.area}</strong></div>`;
+    h+=`<div class="gt-cell"><span class="chip ${p.serv==='AV'?'cv':'cb'}" style="font-size:.65rem;">${p.serv}</span></div>`;
+    h+=`<div class="gt-cell"><span style="font-family:Barlow Condensed,sans-serif;font-size:.92rem;font-weight:700;color:${semColor(pct)};">${pct}%</span></div>`;
+    sems.forEach(s=>{
+      if(s===p.semana)h+=`<div class="gt-bcell"><div style="width:100%;position:relative;padding-top:4px;"><div class="gb-prog"><div class="gb-real ${gc2}" style="width:${pct}%;"></div></div><span style="position:absolute;right:0;top:-11px;font-family:Barlow Condensed,sans-serif;font-size:.66rem;font-weight:700;color:#555;">${pct}%</span></div></div>`;
+      else h+=`<div class="gt-bcell"></div>`;
+    });
+  });
+  h+=`</div></div>`;
+  gc.innerHTML=h;
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODAL NUEVO / EDITAR PROGRAMA
+// ══════════════════════════════════════════════════════════════
+let _actsTemp=[], _locsTemp=[];
+
+function abrirNuevoPrograma(){
+  _actsTemp=[];_locsTemp=[];
+  document.getElementById('editId').value='';
+  document.getElementById('mpTit').textContent='Nuevo Programa Semanal';
+  document.getElementById('pServ').value='';
+  document.getElementById('pArea').value='';
+  document.getElementById('pAnio').value=AÑO;poblarSemanasM(AÑO);
+  setTimeout(()=>{document.getElementById('pSemana').value=SEM;actualizarLocProgramador();},80);
+  document.getElementById('pObs').value='';
+  document.getElementById('lbCabo').innerHTML='Cabo <span class="req">*</span>';
+  poblarCabosM('');poblarMandosM('');
+  document.getElementById('pCabo').value='';document.getElementById('pMando').value='';
+  document.getElementById('pvCabo').style.display='none';document.getElementById('pvMando').style.display='none';
+  document.getElementById('warnLocs').style.display='block';
+  document.getElementById('locProgramadorWrap').style.display='none';
+  renderLocTabla();renderActEdit();
+  document.getElementById('movPrograma').classList.add('active');
+}
+function editarPrograma(id){
+  const p=PROG.find(x=>x.id===id);if(!p)return;
+  _actsTemp=JSON.parse(JSON.stringify(p.actividades||[]));
+  _locsTemp=JSON.parse(JSON.stringify(p.localizaciones||[]));
+  document.getElementById('editId').value=id;
+  document.getElementById('mpTit').textContent='Editar Programa Semanal';
+  document.getElementById('pServ').value=p.serv;
+  document.getElementById('pArea').value=p.area;
+  document.getElementById('pAnio').value=p.anio;poblarSemanasM(p.anio);
+  setTimeout(()=>{document.getElementById('pSemana').value=p.semana;actualizarLocProgramador();},120);
+  document.getElementById('pObs').value=p.obs||'';
+  document.getElementById('lbCabo').innerHTML=`Cabo ${p.serv==='AV'?'Áreas Verdes':'Domésticos'} <span class="req">*</span>`;
+  poblarCabosM(p.serv);poblarMandosM(p.area);
+  setTimeout(()=>{
+    document.getElementById('pCabo').value=p.caboId||'';
+    document.getElementById('pMando').value=p.mandoId||'';
+    previewPersona('cabo',p.caboId);previewPersona('mando',p.mandoId);
+  },100);
+  document.getElementById('warnLocs').style.display='none';
+  document.getElementById('locProgramadorWrap').style.display='block';
+  renderLocTabla();renderActEdit();
+  document.getElementById('movPrograma').classList.add('active');
+}
+function cerrarMovPrograma(){document.getElementById('movPrograma').classList.remove('active');}
+
+function onServChange(){
+  const sv=document.getElementById('pServ').value;
+  document.getElementById('lbCabo').innerHTML=`Cabo ${sv==='AV'?'Áreas Verdes':sv==='DOM'?'Domésticos':''} <span class="req">*</span>`;
+  document.getElementById('lpDomWrap').style.display=sv==='DOM'?'block':'none';
+  poblarCabosM(sv);actualizarLocProgramador();
+}
+function onAreaChange(){
+  const ar=document.getElementById('pArea').value;
+  poblarMandosM(ar);actualizarLocProgramador();
+  document.getElementById('warnLocs').style.display=ar?'none':'block';
+}
+function poblarCabosM(sv){
+  const s=document.getElementById('pCabo');s.innerHTML='<option value="">— Seleccionar —</option>';
+  const rol=sv==='AV'?'CABO_AV':sv==='DOM'?'CABO_DOM':'';
+  PE.filter(p=>!rol||p.rol===rol).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=`${p.nombre} — ${p.cargo}`;s.appendChild(o);});
+}
+function poblarMandosM(area){
+  const s=document.getElementById('pMando');s.innerHTML='<option value="">— Seleccionar —</option>';
+  PE.filter(p=>p.rol==='MANDO'&&(!area||!p.area||p.area===area)).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=`${p.nombre} — ${p.cargo}`;s.appendChild(o);});
+}
+function actualizarLocProgramador(){
+  const sv=document.getElementById('pServ').value;
+  const ar=document.getElementById('pArea').value;
+  const anio=parseInt(document.getElementById('pAnio').value)||AÑO;
+  const sem=parseInt(document.getElementById('pSemana').value)||0;
+  const wrap=document.getElementById('locProgramadorWrap');
+  const warn=document.getElementById('warnLocs');
+  if(!sv||!ar||!sem){
+    wrap.style.display='none';
+    warn.style.display='block';
+    warn.textContent='Seleccione Servicio, Área Usuaria y Semana para programar localizaciones.';
+    return;
+  }
+  warn.style.display='none';
+  wrap.style.display='block';
+  // Show/hide doméstico field
+  document.getElementById('lpDomWrap').style.display=sv==='DOM'?'block':'none';
+  // Populate loc selector
+  const lFilt=LC.filter(l=>l.area===ar&&(l.servs||[]).includes(sv));
+  const sel=document.getElementById('lpLoc');
+  sel.innerHTML='<option value="">— Seleccionar localización —</option>';
+  lFilt.forEach(l=>{const sub=SA.find(s=>s.id===l.subarea);const o=document.createElement('option');o.value=l.id;o.textContent=l.nombre+(sub?' ('+sub.nombre+')':'');sel.appendChild(o);});
+  if(!lFilt.length) sel.innerHTML='<option value="">Sin localizaciones para este servicio/área</option>';
+  // Populate days with actual dates
+  const dias=document.getElementById('lpDia');
+  dias.innerHTML='<option value="">— Seleccionar día —</option>';
+  if(sem&&anio){
+    const sd=semDates(anio,sem);
+    const base=new Date(sd.l);
+    DIAS.forEach((d,i)=>{const f=new Date(base);f.setUTCDate(base.getUTCDate()+i);const dd=String(f.getUTCDate()).padStart(2,'0');const mm=String(f.getUTCMonth()+1).padStart(2,'0');const o=document.createElement('option');o.value=d+'|'+dd+'/'+mm+'/'+f.getUTCFullYear();o.textContent=`${d} ${dd}/${mm}`;dias.appendChild(o);});
+  }
+  renderLocTabla();
+  refrescarDatalistDom();
+}
+function refrescarDatalistDom(){
+  // Collect all domestico names from current program's locs + from PE catalog
+  const nombres=new Set();
+  _locsTemp.forEach(l=>{if(l.domestico&&l.domestico.trim())nombres.add(l.domestico.trim());});
+  // Also from saved programs (memory across programs)
+  PROG.forEach(p=>{
+    (p.localizaciones||[]).forEach(l=>{if(l.domestico&&l.domestico.trim())nombres.add(l.domestico.trim());});
+    Object.values(p.ejecucion||{}).forEach(r=>{if(r&&r.domEjec&&r.domEjec.trim())nombres.add(r.domEjec.trim());});
+  });
+  ['dlDomesticos','dlDomesticosEjec'].forEach(id=>{
+    const dl=document.getElementById(id);if(!dl)return;
+    dl.innerHTML=[...nombres].sort().map(n=>`<option value="${n}">`).join('');
+  });
+}
+function agregarLocPrograma(){
+  const locId=document.getElementById('lpLoc').value;
+  const diaVal=document.getElementById('lpDia').value;
+  const sv=document.getElementById('pServ').value;
+  if(!locId){toast('⚠️ Seleccione una localización.');return;}
+  if(!diaVal){toast('⚠️ Seleccione el día programado.');return;}
+  const [dia,fecha]=diaVal.split('|');
+  const loc=LC.find(l=>l.id===locId);
+  if(!loc)return;
+  const sub=SA.find(s=>s.id===loc.subarea);
+  const dom=sv==='DOM'?document.getElementById('lpDomestico').value.trim():'';
+  _locsTemp.push({locId,nombre:loc.nombre,tipo:loc.tipo,area:loc.area,subarea:loc.subarea,subarNombre:sub?sub.nombre:'',dia,fecha,domestico:dom});
+  // Clear fields
+  document.getElementById('lpLoc').value='';
+  document.getElementById('lpDia').value='';
+  if(sv==='DOM') document.getElementById('lpDomestico').value='';
+  renderLocTabla();
+  refrescarDatalistDom();
+  toast('✅ Localización agregada.');
+}
+function quitarLocProg(i){_locsTemp.splice(i,1);renderLocTabla();}
+function renderLocTabla(){
+  const wrap=document.getElementById('locTablaWrap');if(!wrap)return;
+  const sv=document.getElementById('pServ').value||'';
+  if(!_locsTemp.length){
+    wrap.innerHTML='<div class="empty" style="padding:14px 0;"><p style="font-size:.82rem;">Agregue localizaciones con el formulario anterior.</p></div>';return;
+  }
+  // Group by dia for visual clarity
+  const byDia={};
+  _locsTemp.forEach((l,i)=>{if(!byDia[l.dia])byDia[l.dia]=[];byDia[l.dia].push({...l,idx:i});});
+  let h='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.83rem;"><thead><tr style="background:var(--gd);">';
+  h+='<th style="color:#fff;padding:9px 12px;text-align:left;font-family:Barlow Condensed,sans-serif;font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Día / Fecha</th>';
+  h+='<th style="color:#fff;padding:9px 12px;text-align:left;font-family:Barlow Condensed,sans-serif;font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Localización</th>';
+  h+='<th style="color:#fff;padding:9px 12px;text-align:left;font-family:Barlow Condensed,sans-serif;font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Tipo / Subárea</th>';
+  if(sv==='DOM') h+='<th style="color:#fff;padding:9px 12px;text-align:left;font-family:Barlow Condensed,sans-serif;font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Doméstico asignado</th>';
+  h+='<th style="color:#fff;padding:9px 12px;width:40px;"></th>';
+  h+='</tr></thead><tbody>';
+  _locsTemp.forEach((l,i)=>{
+    h+=`<tr style="border-bottom:1px solid var(--bd);${i%2===0?'':'background:#f7faf9;}'}">
+      <td style="padding:8px 12px;"><span style="font-family:Barlow Condensed,sans-serif;font-weight:700;color:var(--gd);">${l.dia}</span><br><span style="font-size:.72rem;color:var(--gray);">${l.fecha}</span></td>
+      <td style="padding:8px 12px;font-weight:600;">📍 ${l.nombre}</td>
+      <td style="padding:8px 12px;font-size:.78rem;color:var(--gray);">${l.tipo}${l.subarNombre?' · '+l.subarNombre:''}</td>
+      ${sv==='DOM'?`<td style="padding:8px 12px;font-size:.82rem;">${l.domestico||'<span style="color:var(--gray);">—</span>'}</td>`:''}
+      <td style="padding:8px 12px;text-align:center;"><button class="btn xs bdng" onclick="quitarLocProg(${i})">✕</button></td>
+    </tr>`;
+  });
+  h+='</tbody></table></div>';
+  wrap.innerHTML=h;
+}
+function previewPersona(tipo,id){
+  const elId=`pv${tipo.charAt(0).toUpperCase()+tipo.slice(1)}`;
+  const el=document.getElementById(elId);if(!el)return;
+  const p=getPer(id);if(!p){el.style.display='none';return;}
+  const isMando=tipo==='mando',avCls=isMando?'av-m':'av-av';
+  const tc=isMando?'#7e22ce':'var(--gm)';
+  el.style.display='flex';
+  el.innerHTML=`<div class="av ${avCls}">${initials(p.nombre)}</div>
+    <div><div style="font-size:.84rem;font-weight:700;color:${tc};">${p.nombre}</div>
+    <div style="font-size:.7rem;color:var(--gray);">${p.cargo}${p.area?' · '+p.area:''}</div></div>`;
+}
+function renderActEdit(){
+  const l=document.getElementById('listaActEdit');
+  if(!_actsTemp.length){l.innerHTML=`<div class="empty" style="padding:16px 0;"><p style="font-size:.82rem;">Agregue actividades con los botones anteriores.</p></div>`;return;}
+  l.innerHTML=_actsTemp.map((a,i)=>`<div class="act-row">
+    <div><div style="font-size:.85rem;font-weight:600;">${a.nombre}</div>
+    <span class="chip ${a.tipo==='base'?'cv':'cb'}" style="font-size:.62rem;margin-top:3px;">${a.tipo==='base'?'Base':'Extra'}</span></div>
+    <div style="font-size:.72rem;color:var(--gray);">${a.desc||''}</div>
+    <button class="btn xs bdng" onclick="quitarAct(${i})">✕</button>
+  </div>`).join('');
+}
+function agregarActBase(){
+  const sv=document.getElementById('pServ').value;
+  const base=AB.filter(a=>!sv||a.serv===sv);
+  const disp=base.filter(b=>!_actsTemp.find(a=>a.refId===b.id));
+  // Populate the modal list
+  const cont=document.getElementById('listaBaseParaAgregar');
+  if(!disp.length){
+    cont.innerHTML=`<div class="ibox">Todas las actividades base ya están en este programa, o no hay actividades en el catálogo para el servicio seleccionado.<br>Puede agregar más en la pestaña <strong>Catálogos</strong>.</div>`;
+  } else {
+    cont.innerHTML=disp.map(b=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:#f8faf9;border:1.5px solid #d0ede5;border-radius:8px;gap:10px;">
+      <div><div style="font-size:.88rem;font-weight:700;color:var(--gd);">${b.nombre}</div><div style="font-size:.72rem;color:var(--gray);">${b.desc||''} &nbsp;<span class="chip ${b.serv==='AV'?'cv':'cb'}" style="font-size:.6rem;">${b.serv}</span></div></div>
+      <button class="btn sm bpri" onclick="agregarActBaseById('${b.id}')">+ Agregar</button>
+    </div>`).join('');
+  }
+  document.getElementById('actExtraNombre').value='';
+  document.getElementById('actExtraDesc').value='';
+  document.getElementById('movAgregarAct').classList.add('active');
+}
+function agregarActBaseById(bid){
+  const b=AB.find(x=>x.id===bid);if(!b)return;
+  if(_actsTemp.find(a=>a.refId===bid)){toast('Esta actividad ya está en el programa.');return;}
+  _actsTemp.push({id:uid(),refId:b.id,nombre:b.nombre,desc:b.desc,serv:b.serv,tipo:'base'});
+  renderActEdit();toast('✅ Actividad agregada.');
+  // Refresh the list in modal
+  agregarActBase();
+}
+function agregarActExtra(){
+  // Just open the same modal — user fills the extra section
+  document.getElementById('listaBaseParaAgregar').innerHTML='';
+  document.getElementById('actExtraNombre').value='';
+  document.getElementById('actExtraDesc').value='';
+  document.getElementById('movAgregarAct').classList.add('active');
+  // Focus on extra input
+  setTimeout(()=>document.getElementById('actExtraNombre').focus(),200);
+}
+function confirmarActExtra(){
+  const n=document.getElementById('actExtraNombre').value.trim();
+  if(!n){toast('⚠️ Escriba el nombre de la actividad extra.');document.getElementById('actExtraNombre').focus();return;}
+  const desc=document.getElementById('actExtraDesc').value.trim();
+  const sv=document.getElementById('pServ').value;
+  _actsTemp.push({id:uid(),nombre:n,desc,serv:sv,tipo:'extra'});
+  renderActEdit();
+  document.getElementById('actExtraNombre').value='';
+  document.getElementById('actExtraDesc').value='';
+  toast('✅ Actividad extra agregada.');
+}
+function quitarAct(i){_actsTemp.splice(i,1);renderActEdit();}
+
+function guardarPrograma(){
+  const serv=document.getElementById('pServ').value,area=document.getElementById('pArea').value;
+  const anio=parseInt(document.getElementById('pAnio').value),semana=parseInt(document.getElementById('pSemana').value);
+  const caboId=document.getElementById('pCabo').value,mandoId=document.getElementById('pMando').value;
+  if(!serv||!area||!anio||!semana){toast('⚠️ Complete Servicio, Área, Año y Semana.');return;}
+  if(!caboId||!mandoId){toast('⚠️ Asigne Cabo y Mando Medio (ambos obligatorios).');return;}
+  if(_locsTemp.length===0){toast('⚠️ Agregue al menos una localización al programa.');return;}
+  const locsList=_locsTemp;
+  const ei=document.getElementById('editId').value;
+  const obj={
+    id:ei||uid(),serv,area,anio,semana,caboId,mandoId,
+    obs:document.getElementById('pObs').value.trim(),
+    localizaciones:locsList,actividades:_actsTemp,
+    ejecucion:ei?((PROG.find(p=>p.id===ei)||{}).ejecucion||{}):{},
+    estado:ei?((PROG.find(p=>p.id===ei)||{}).estado||'PROGRAMADO'):'PROGRAMADO',
+    cierreData:ei?((PROG.find(p=>p.id===ei)||{}).cierreData||null):null,
+    creadoEn:ei?((PROG.find(p=>p.id===ei)||{}).creadoEn||new Date().toISOString()):new Date().toISOString(),
+  };
+  if(ei){const idx=PROG.findIndex(p=>p.id===ei);if(idx>=0)PROG[idx]=obj;else PROG.push(obj);}
+  else PROG.push(obj);
+  save(LS.P,PROG);cerrarMovPrograma();aplicarFiltros();renderProgramasTab();renderTendencia();
+  toast('✅ Programa guardado correctamente.');
+}
+
+// ══════════════════════════════════════════════════════════════
+// EJECUCIÓN DIARIA
+// ══════════════════════════════════════════════════════════════
+function cargarProgramasEjec(){
+  const anio=parseInt(document.getElementById('eAnio').value)||AÑO;
+  poblarSemanasE(anio);
+  const sem=document.getElementById('eSemana').value?parseInt(document.getElementById('eSemana').value):0;
+  const sv=document.getElementById('eServicio').value;
+  let d=PROG.filter(p=>p.anio===anio);
+  if(sem)d=d.filter(p=>p.semana===sem);
+  if(sv)d=d.filter(p=>p.serv===sv);
+  const c=document.getElementById('listaProgEjec');
+  if(!d.length){c.innerHTML=`<div class="ibox">No hay programas con los filtros seleccionados. Cree uno con <strong>Nuevo Programa</strong>.</div>`;return;}
+  c.innerHTML=d.map(p=>{
+    const pct=calcCump(p),sc=semColor(pct);
+    const fe=semDates(p.anio,p.semana);
+    const cab=getPer(p.caboId),mnd=getPer(p.mandoId);
+    return `<div style="border:1.5px solid var(--bd);border-radius:9px;padding:13px 18px;background:#fff;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;transition:border-color .15s;" onmouseenter="this.style.borderColor='var(--gm)'" onmouseleave="this.style.borderColor='var(--bd)'">
+      <div>
+        <div style="font-family:Barlow Condensed,sans-serif;font-size:.98rem;font-weight:700;color:var(--gd);">${SVCL[p.serv]} — <strong>${p.area}</strong></div>
+        <div style="font-size:.76rem;color:var(--gray);margin-top:2px;">${fe.label} &nbsp;·&nbsp; ${cab?'Cabo: '+cab.nombre:'Sin cabo'} &nbsp;·&nbsp; ${mnd?'Mando: '+mnd.nombre:'Sin mando'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="sbadge ${EST_CLS[p.estado]||'cg'}">${EST_LABEL[p.estado]||p.estado}</span>
+        <div class="pb-wrap" style="min-width:110px;"><div class="pb-track"><div class="pb-fill" style="width:${pct}%;background:${sc};"></div></div><span class="pb-pct" style="color:${sc};">${pct}%</span></div>
+        <button class="btn sm bpri" onclick="abrirEjecucion('${p.id}')">📋 Registrar Ejecución</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirEjecucion(id){
+  const p=PROG.find(x=>x.id===id);if(!p)return;
+  const fe=semDates(p.anio,p.semana);
+  const cab=getPer(p.caboId),mnd=getPer(p.mandoId);
+  document.getElementById('mejTit').textContent=`Ejecución — ${SVCL[p.serv]} · ${p.area}`;
+  document.getElementById('mejInfo').innerHTML=`<strong>${SVCL[p.serv]}</strong> · Área: <strong>${p.area}</strong> · ${fe.label}<br>
+    <span style="font-size:.78rem;">👷 Cabo: <strong>${cab?cab.nombre:'—'}</strong> &nbsp;|&nbsp; 🔷 Mando: <strong>${mnd?mnd.nombre:'—'}</strong></span>`;
+  const locs=p.localizaciones||[];
+  if(!locs.length){
+    document.getElementById('mejContent').innerHTML=`<div class="wbox">Este programa no tiene localizaciones asignadas. Edítelo para agregar.</div>`;
+    document.getElementById('movEjecucion').classList.add('active');return;
+  }
+  // Group by dia for display
+  const byDia={};
+  locs.forEach((loc,i)=>{if(!byDia[loc.dia])byDia[loc.dia]=[];byDia[loc.dia].push({...loc,_idx:i});});
+  let html='';
+  Object.entries(byDia).sort((a,b)=>DIAS.indexOf(a[0])-DIAS.indexOf(b[0])).forEach(([dia,entries])=>{
+    const sd=semDates(p.anio,p.semana);
+    const diaFecha=entries[0]?.fecha||dia;
+    html+=`<div style="margin-bottom:16px;">
+      <div style="font-family:Barlow Condensed,sans-serif;font-size:.88rem;font-weight:700;color:var(--gd);background:#f0f9f6;border-left:3px solid var(--gm);padding:7px 12px;border-radius:0 7px 7px 0;margin-bottom:8px;">
+        📅 ${dia} — ${diaFecha}
+      </div>`;
+    entries.forEach(loc=>{
+      const sub=SA.find(s=>s.id===loc.subarea);
+      const key=`${loc.locId}_${loc.dia}`;
+      const reg=(p.ejecucion||{})[key]||{status:'PENDIENTE'};
+      const stCls=reg.status==='EJECUTADO'?'ejecutado':reg.status==='DESVIACION'?'desviacion':reg.status==='NO_APLICA'?'no-aplica':'';
+      const stLabel=reg.status==='EJECUTADO'?'✅ Ejecutado':reg.status==='DESVIACION'?'⚠️ Desviación':reg.status==='NO_APLICA'?'N/A — No aplica':'⏳ Pendiente';
+      const stBg=reg.status==='EJECUTADO'?'#d1fae5':reg.status==='DESVIACION'?'#fff7ed':reg.status==='NO_APLICA'?'#f3f4f6':'#fff';
+      const stBd=reg.status==='EJECUTADO'?'#6ee7b7':reg.status==='DESVIACION'?'#fed7aa':reg.status==='NO_APLICA'?'#d1d5db':'var(--bd)';
+      html+=`<div style="background:#fff;border:1.5px solid ${stBd};border-radius:9px;padding:11px 15px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:${stBg};">
+        <div>
+          <div style="font-weight:700;font-size:.9rem;color:var(--gd);">📍 ${loc.nombre}</div>
+          <div style="font-size:.72rem;color:var(--gray);margin-top:2px;">${loc.tipo}${sub?' · '+sub.nombre:''} · ${p.area}</div>
+          ${p.serv==='DOM'&&loc.domestico?`<div style="font-size:.76rem;color:var(--exec);margin-top:3px;">👤 Prog: <strong>${loc.domestico}</strong></div>`:''}
+          ${reg.status==='DESVIACION'&&reg.tipo?`<div style="font-size:.73rem;color:#c2410c;margin-top:2px;">⚠️ ${TIPODEV[reg.tipo]||reg.tipo}: ${reg.motivo}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:.76rem;font-weight:700;color:${reg.status==='EJECUTADO'?'#065f46':reg.status==='DESVIACION'?'#c2410c':reg.status==='NO_APLICA'?'#6b7280':'var(--gray)'};">${stLabel}</span>
+          <button class="btn sm bpri" onclick="abrirRegDia('${id}','${loc.locId}','${loc.dia}','${loc.fecha||''}','${loc.domestico||''}')">Registrar</button>
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+  });
+  document.getElementById('mejContent').innerHTML=html;
+  if(p.estado==='PROGRAMADO'){p.estado='EN_CURSO';save(LS.P,PROG);}
+  document.getElementById('movEjecucion').classList.add('active');
+}
+function cerrarMovEjec(){document.getElementById('movEjecucion').classList.remove('active');aplicarFiltros();renderProgramasTab();}
+
+function abrirRegDia(progId,locId,dia,fecha,domProg){
+  const p=PROG.find(x=>x.id===progId);if(!p)return;
+  const key=`${locId}_${dia}`;
+  const reg=(p.ejecucion||{})[key]||{status:'PENDIENTE',tipo:'',motivo:'',obs:''};
+  const loc=p.localizaciones.find(l=>l.locId===locId);
+  const optsHTML=['EJECUTADO','DESVIACION','NO_APLICA','PENDIENTE'].map(v=>{
+    const labels={EJECUTADO:'✅ Ejecutado',DESVIACION:'⚠️ Desviación',NO_APLICA:'N/A — No aplica',PENDIENTE:'— Pendiente'};
+    return `<option value="${v}" ${reg.status===v?'selected':''}>${labels[v]}</option>`;
+  }).join('');
+  const tipoOpts=Object.entries(TIPODEV).map(([k,v])=>`<option value="${k}" ${reg.tipo===k?'selected':''}>${v}</option>`).join('');
+  const modal=document.createElement('div');
+  modal.className='mov active';modal.style.zIndex='20000';modal.id='movRegDia';
+  modal.innerHTML=`<div class="mc sm">
+    <div class="mh"><h2>📅 ${dia} — ${loc?loc.nombre:'Localización'}</h2><button class="mc-x" onclick="document.getElementById('movRegDia').remove()">✕</button></div>
+    <div class="mb">
+      <div class="fg g2">
+        <div class="field s2"><label>📅 ${dia}${fecha?' — '+fecha:''}</label><div style="font-size:.85rem;font-weight:600;color:var(--gd);margin-top:4px;">📍 ${loc?loc.nombre:'Localización'}</div></div>
+        <div class="field s2"><label>Estado del día <span class="req">*</span></label>
+          <select id="rdStatus" onchange="document.getElementById('rdDevWrap').style.display=this.value==='DESVIACION'?'block':'none';">${optsHTML}</select>
+        </div>
+        ${p.serv==='DOM'?`<div class="field s2"><label>Doméstico que realizó la limpieza</label><input type="text" id="rdDomEjec" list="dlDomesticosEjec" autocomplete="off" placeholder="Nombre del doméstico que ejecutó" value="${reg.domEjec||domProg||''}"></div>`:''}
+        <div id="rdDevWrap" class="s2" style="display:${reg.status==='DESVIACION'?'block':'none'};">
+          <div class="dev-row">
+            <div class="dt">⚠️ Datos de la Desviación</div>
+            <div class="fg g2">
+              <div class="field s2"><label>Tipo <span class="req">*</span></label><select id="rdTipo"><option value="">— Seleccionar —</option>${tipoOpts}</select></div>
+              <div class="field s2"><label>Motivo / Justificación <span class="req">*</span></label><textarea id="rdMotivo" rows="3" placeholder="Describa el motivo...">${reg.motivo||''}</textarea></div>
+            </div>
+          </div>
+        </div>
+        <div class="field s2"><label>Observaciones adicionales</label><textarea id="rdObs" rows="2" placeholder="Notas adicionales...">${reg.obs||''}</textarea></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn bsec" onclick="document.getElementById('movRegDia').remove()">Cancelar</button><button class="btn bpri" onclick="guardarRegDia('${progId}','${locId}','${dia}')">Guardar</button></div>
+  </div>`;
+  document.body.appendChild(modal);
+  const _dl2=document.createElement('datalist');_dl2.id='dlDomesticosEjec';document.body.appendChild(_dl2);
+  refrescarDatalistDom();
+}
+function guardarRegDia(progId,locId,dia){
+  const p=PROG.find(x=>x.id===progId);if(!p)return;
+  const status=document.getElementById('rdStatus').value;
+  const tipo=document.getElementById('rdTipo')?.value||'';
+  const motivo=document.getElementById('rdMotivo')?.value||'';
+  const obs=document.getElementById('rdObs')?.value||'';
+  if(status==='DESVIACION'&&(!tipo||!motivo.trim())){toast('⚠️ Indique tipo y motivo de la desviación.');return;}
+  if(!p.ejecucion)p.ejecucion={};
+  const domEjec=document.getElementById('rdDomEjec')?.value?.trim()||'';
+  p.ejecucion[`${locId}_${dia}`]={status,tipo,motivo:motivo.trim(),obs:obs.trim(),domEjec,registradoEn:new Date().toISOString()};
+  save(LS.P,PROG);
+  refrescarDatalistDom();
+  document.getElementById('movRegDia')?.remove();
+  document.getElementById('dlDomesticosEjec')?.remove();
+  abrirEjecucion(progId);
+  toast('✅ Registro guardado.');
+}
+
+// ══════════════════════════════════════════════════════════════
+// CIERRE SEMANAL
+// ══════════════════════════════════════════════════════════════
+let _cierreId=null;
+function abrirCierre(id){
+  _cierreId=id;const p=PROG.find(x=>x.id===id);if(!p)return;
+  const fe=semDates(p.anio,p.semana),pct=calcCump(p),sc=semColor(pct);
+  const cab=getPer(p.caboId),mnd=getPer(p.mandoId);
+  document.getElementById('mciInfo').innerHTML=`<strong>${SVCL[p.serv]}</strong> · ${p.area} · ${fe.label} &nbsp;|&nbsp; Cumplimiento actual: <strong style="color:${sc};">${pct}%</strong>`;
+  if(cab)document.getElementById('firmaCabo').value=cab.nombre;
+  if(mnd)document.getElementById('firmaMando').value=mnd.nombre;
+  document.getElementById('fechaCierre').value=new Date().toISOString().split('T')[0];
+  document.getElementById('obsCierre').value='';
+  const locs=p.localizaciones||[];
+  let html='<div class="sd">Resumen por Localización</div>';
+  locs.forEach(loc=>{
+    let ej=0,desv=0,pend=0,desvNotes='';
+    const r=(p.ejecucion||{})[`${loc.locId}_${loc.dia}`];
+    if(!r||r.status==='PENDIENTE')pend=1;
+    else if(r.status==='EJECUTADO')ej=1;
+    else if(r.status==='DESVIACION'){desv=1;desvNotes=`${loc.dia}/${loc.fecha}: ${TIPODEV[r.tipo]||r.tipo}${r.motivo?' — '+r.motivo:''}. `;}
+    const lpct=ej?100:0;
+    html+=`<div style="border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-bottom:7px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+        <strong style="font-size:.86rem;">📍 ${loc.nombre}</strong>
+        <span style="font-family:Barlow Condensed,sans-serif;font-size:.9rem;font-weight:700;color:${semColor(lpct)};">${lpct}%</span>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <span class="chip cv">✅ ${ej}</span>${desv?`<span class="chip ca">⚠️ ${desv}</span>`:''} ${pend?`<span class="chip cr">⏳ ${pend}</span>`:''}
+      </div>
+      ${desvNotes?`<div style="font-size:.73rem;color:#c2410c;margin-top:5px;padding:5px 7px;background:#fff7ed;border-radius:5px;">${desvNotes}</div>`:''}
+    </div>`;
+  });
+  document.getElementById('mciContent').innerHTML=html;
+  document.getElementById('movCierre').classList.add('active');
+}
+function cerrarMovCierre(){document.getElementById('movCierre').classList.remove('active');_cierreId=null;}
+function guardarCierre(){
+  const p=PROG.find(x=>x.id===_cierreId);if(!p)return;
+  const fc=document.getElementById('firmaCabo').value.trim(),fm=document.getElementById('firmaMando').value.trim();
+  if(!fc||!fm){toast('⚠️ Ingrese los nombres de ambas firmas.');return;}
+  p.estado='CERRADO';
+  p.cierreData={firmaCabo:fc,firmaMando:fm,fecha:document.getElementById('fechaCierre').value,obs:document.getElementById('obsCierre').value.trim(),cerradoEn:new Date().toISOString()};
+  save(LS.P,PROG);cerrarMovCierre();aplicarFiltros();renderProgramasTab();
+  toast('✅ Programa cerrado y validado.');
+}
+
+// ══════════════════════════════════════════════════════════════
+// CATÁLOGOS
+// ══════════════════════════════════════════════════════════════
+function renderPersonas(){
+  const cav=PE.filter(p=>p.rol==='CABO_AV'),cdom=PE.filter(p=>p.rol==='CABO_DOM'),mnd=PE.filter(p=>p.rol==='MANDO');
+  const card=(p,avCls)=>`<div style="background:var(--wh);border:1.5px solid var(--bd);border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:10px;">
+    <div class="av ${avCls}">${initials(p.nombre)}</div>
+    <div style="flex:1;"><div style="font-size:.88rem;font-weight:700;color:var(--gd);">${p.nombre}</div><div style="font-size:.72rem;color:var(--gray);">${p.cargo}${p.area?' · '+p.area:''}${p.ficha?' · '+p.ficha:''}</div></div>
+    <button class="btn xs bdng" onclick="eliminarPersona('${p.id}')"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+  </div>`;
+  document.getElementById('listaCabosAV').innerHTML=cav.length?cav.map(p=>card(p,'av-av')).join(''):`<p style="font-size:.78rem;color:var(--gray);padding:6px 0;">Sin registros.</p>`;
+  document.getElementById('listaCabosDOM').innerHTML=cdom.length?cdom.map(p=>card(p,'av-dom')).join(''):`<p style="font-size:.78rem;color:var(--gray);padding:6px 0;">Sin registros.</p>`;
+  document.getElementById('listaMandos').innerHTML=mnd.length?mnd.map(p=>card(p,'av-m')).join(''):`<p style="font-size:.78rem;color:var(--gray);padding:6px 0;">Sin registros.</p>`;
+}
+function renderOrgTree(){
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">';
+  ['SCAD','SCEP','SCUI','SCCO'].forEach(ar=>{
+    const subs=SA.filter(s=>s.area===ar);
+    const locsDir=LC.filter(l=>l.area===ar&&!l.subarea);
+    h+=`<div style="border:1.5px solid var(--bd);border-radius:10px;overflow:hidden;">
+      <div style="background:var(--gd);color:#fff;padding:9px 14px;font-family:Barlow Condensed,sans-serif;font-size:.86rem;font-weight:700;letter-spacing:.06em;">DAS · SSAB · GSG · ${ar}</div>
+      <div style="padding:10px 12px;">`;
+    locsDir.forEach(l=>{h+=locRow(l);});
+    subs.forEach(s=>{
+      const slocs=LC.filter(l=>l.subarea===s.id);
+      h+=`<div style="margin-top:6px;padding:8px 10px;background:#f7faf9;border-radius:7px;border:1px solid #e0ede9;">
+        <div style="font-family:Barlow Condensed,sans-serif;font-size:.8rem;font-weight:700;color:var(--gm);margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
+          📂 ${s.nombre}<button class="btn xs bdng" onclick="eliminarSubarea('${s.id}')">✕</button>
+        </div>`;
+      slocs.forEach(l=>{h+=locRow(l);});
+      if(!slocs.length)h+=`<p style="font-size:.72rem;color:var(--gray);">Sin localizaciones.</p>`;
+      h+=`</div>`;
+    });
+    if(!subs.length&&!locsDir.length)h+=`<p style="font-size:.76rem;color:var(--gray);text-align:center;padding:10px 0;">Sin subáreas ni localizaciones.</p>`;
+    h+=`</div></div>`;
+  });
+  h+='</div>';
+  document.getElementById('orgTree').innerHTML=h;
+}
+function locRow(l){
+  const svBadges=(l.servs||[]).map(s=>`<span class="chip ${s==='AV'?'c-av':'c-dom'}" style="font-size:.59rem;">${s}</span>`).join(' ');
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 6px;border-radius:5px;margin-bottom:4px;background:#fff;border:1px solid #e8f0ed;">
+    <div><div style="font-size:.79rem;font-weight:600;">📍 ${l.nombre}</div><div style="font-size:.66rem;color:var(--gray);">${l.tipo} ${svBadges}</div></div>
+    <button class="btn xs bdng" onclick="eliminarLoc('${l.id}')">✕</button>
+  </div>`;
+}
+function renderCatalogos(){
+  const tb=document.getElementById('tbActBase');
+  if(!AB.length){tb.innerHTML=`<tr><td colspan="4" style="text-align:center;color:var(--gray);padding:18px;">Sin actividades base.</td></tr>`;return;}
+  tb.innerHTML=AB.map(a=>`<tr>
+    <td><strong>${a.nombre}</strong></td>
+    <td><span class="chip ${a.serv==='AV'?'cv':'cb'}">${SVCL[a.serv]}</span></td>
+    <td style="color:var(--gray);font-size:.8rem;">${a.desc||'—'}</td>
+    <td><button class="btn xs bdng" onclick="eliminarActBase('${a.id}')"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></td>
+  </tr>`).join('');
+}
+
+function abrirModalPersona(){document.getElementById('movPersona').classList.add('active');}
+function cerrarMovPersona(){document.getElementById('movPersona').classList.remove('active');}
+function guardarPersona(){
+  const n=document.getElementById('pNombre').value.trim(),c=document.getElementById('pCargo').value.trim(),r=document.getElementById('pRol').value;
+  if(!n||!c||!r){toast('⚠️ Nombre, cargo y rol son obligatorios.');return;}
+  PE.push({id:uid(),nombre:n,cargo:c,rol:r,area:document.getElementById('pArea2').value,ficha:document.getElementById('pFicha').value.trim()});
+  save(LS.PE,PE);cerrarMovPersona();renderPersonas();
+  ['pNombre','pCargo','pFicha'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('pRol').value='';document.getElementById('pArea2').value='';
+  toast('✅ Persona agregada al catálogo.');
+}
+function eliminarPersona(id){
+  document.getElementById('confirmMsg').textContent='¿Eliminar esta persona del catálogo?';
+  document.getElementById('btnConfirmOk').onclick=()=>{PE=PE.filter(x=>x.id!==id);save(LS.PE,PE);sbEliminar('personas',id);renderPersonas();cerrarConfirm();toast('Persona eliminada.');};
+  document.getElementById('movConfirm').classList.add('active');
+}
+
+function abrirModalSubarea(){document.getElementById('movSubarea').classList.add('active');}
+function cerrarMovSubarea(){document.getElementById('movSubarea').classList.remove('active');}
+function guardarSubarea(){
+  const area=document.getElementById('saArea').value,nombre=document.getElementById('saNombre').value.trim();
+  if(!area||!nombre){toast('⚠️ Área y nombre son obligatorios.');return;}
+  SA.push({id:uid(),area,nombre,desc:document.getElementById('saDesc').value.trim()});
+  save(LS.SA,SA);cerrarMovSubarea();renderOrgTree();
+  ['saArea','saNombre','saDesc'].forEach(i=>document.getElementById(i).value='');
+  toast('✅ Subárea agregada.');
+}
+function eliminarSubarea(id){
+  SA=SA.filter(x=>x.id!==id);
+  LC.filter(l=>l.subarea===id).forEach(l=>{l.subarea='';});
+  save(LS.SA,SA);save(LS.LC,LC);sbEliminar('subareas',id);renderOrgTree();toast('Subárea eliminada.');
+}
+
+function abrirModalLocalizacion(){document.getElementById('movLoc').classList.add('active');}
+function cerrarMovLoc(){document.getElementById('movLoc').classList.remove('active');}
+function poblarSubsEnLoc(){
+  const ar=document.getElementById('locArea').value;
+  const s=document.getElementById('locSub');s.innerHTML='<option value="">— Sin subárea —</option>';
+  SA.filter(x=>x.area===ar).forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.nombre;s.appendChild(o);});
+}
+function guardarLocalizacion(){
+  const area=document.getElementById('locArea').value,nombre=document.getElementById('locNombre').value.trim();
+  if(!area||!nombre){toast('⚠️ Área y nombre son obligatorios.');return;}
+  const servs=[];
+  if(document.getElementById('locAV').checked)servs.push('AV');
+  if(document.getElementById('locDOM').checked)servs.push('DOM');
+  if(!servs.length){toast('⚠️ Seleccione al menos un servicio aplicable.');return;}
+  LC.push({id:uid(),area,subarea:document.getElementById('locSub').value,nombre,tipo:document.getElementById('locTipo').value,servs,desc:document.getElementById('locDesc').value.trim()});
+  save(LS.LC,LC);cerrarMovLoc();renderOrgTree();
+  ['locArea','locSub','locNombre','locDesc'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('locAV').checked=true;document.getElementById('locDOM').checked=false;
+  toast('✅ Localización agregada.');
+}
+function eliminarLoc(id){
+  document.getElementById('confirmMsg').textContent='¿Eliminar esta localización? Se quitará de los programas que la usen.';
+  document.getElementById('btnConfirmOk').onclick=()=>{
+    LC=LC.filter(x=>x.id!==id);save(LS.LC,LC);sbEliminar('localizaciones',id);
+    PROG.forEach(p=>{p.localizaciones=(p.localizaciones||[]).filter(l=>l.locId!==id);});
+    save(LS.P,PROG);renderOrgTree();cerrarConfirm();toast('Localización eliminada.');
+  };
+  document.getElementById('movConfirm').classList.add('active');
+}
+
+function abrirModalActividad(){document.getElementById('movActividad').classList.add('active');}
+function cerrarMovActividad(){document.getElementById('movActividad').classList.remove('active');}
+function guardarActividadBase(){
+  const n=document.getElementById('abNombre').value.trim(),s=document.getElementById('abServicio').value;
+  if(!n||!s){toast('⚠️ Nombre y servicio son obligatorios.');return;}
+  AB.push({id:uid(),nombre:n,serv:s,desc:document.getElementById('abDesc').value.trim()});
+  save(LS.AB,AB);cerrarMovActividad();renderCatalogos();
+  ['abNombre','abServicio','abDesc'].forEach(i=>document.getElementById(i).value='');
+  toast('✅ Actividad base agregada.');
+}
+function eliminarActBase(id){AB=AB.filter(x=>x.id!==id);save(LS.AB,AB);sbEliminar('actividades_base',id);renderCatalogos();toast('Actividad eliminada.');}
+
+// ══════════════════════════════════════════════════════════════
+// TENDENCIA
+// ══════════════════════════════════════════════════════════════
+let chartT=null;
+function renderTendencia(){
+  const anio=parseInt(document.getElementById('tAnio').value)||AÑO;
+  const area=document.getElementById('tArea').value;
+  let d=PROG.filter(p=>p.anio===anio);if(area)d=d.filter(p=>p.area===area);
+  const sems=[...new Set(d.map(p=>p.semana))].sort((a,b)=>a-b);
+  const av=sems.map(s=>{const r=d.filter(p=>p.semana===s&&p.serv==='AV');return r.length?Math.round(r.reduce((t,p)=>t+calcCump(p),0)/r.length):null;});
+  const dom=sems.map(s=>{const r=d.filter(p=>p.semana===s&&p.serv==='DOM');return r.length?Math.round(r.reduce((t,p)=>t+calcCump(p),0)/r.length):null;});
+  const ctx=document.getElementById('chartTend').getContext('2d');
+  if(chartT)chartT.destroy();
+  chartT=new Chart(ctx,{type:'line',data:{labels:sems.map(s=>`Sem. ${s}`),datasets:[
+    {label:'Áreas Verdes',data:av,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',borderWidth:2.5,tension:.35,fill:true,pointBackgroundColor:'#10b981',pointRadius:5,spanGaps:true},
+    {label:'Domésticos',data:dom,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',borderWidth:2.5,tension:.35,fill:true,pointBackgroundColor:'#3b82f6',pointRadius:5,spanGaps:true},
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'top',labels:{color:'#444',font:{family:"Barlow,sans-serif",size:12},usePointStyle:true}},
+      tooltip:{backgroundColor:'rgba(0,47,42,.92)',titleColor:'#fff',bodyColor:'rgba(255,255,255,.85)',padding:12,cornerRadius:8,titleFont:{family:"Barlow Condensed,sans-serif",size:13,weight:'700'}}},
+    scales:{x:{grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#555',font:{family:"Barlow Condensed,sans-serif",size:11}}},
+      y:{min:0,max:100,grid:{color:'rgba(0,0,0,.06)'},ticks:{color:'#1e5b4f',callback:v=>v+'%'},title:{display:true,text:'% Cumplimiento',color:'#1e5b4f',font:{family:"Barlow Condensed,sans-serif",size:11,weight:'600'}}}}}});
+}
+
+// ══════════════════════════════════════════════════════════════
+// IMPRESIÓN — APERTURA
+// ══════════════════════════════════════════════════════════════
+function imprimirApertura(id){
+  const p=PROG.find(x=>x.id===id);if(!p)return;
+  const fe=semDates(p.anio,p.semana);
+  const cab=getPer(p.caboId),mnd=getPer(p.mandoId);
+  const folio=`APT-${p.serv}-${p.anio}-S${String(p.semana).padStart(2,'0')}-${String(Date.now()).slice(-4)}`;
+  const hoy=new Date();
+  const acts=(p.actividades||[]);
+  const locs=p.localizaciones||[];
+
+  const actRows=acts.map(a=>`<tr><td>✔ ${a.nombre}</td><td>${a.desc||'—'}</td></tr>`).join('');
+
+  const locRows=locs.map((loc,i)=>{
+    const sub=SA.find(s=>s.id===loc.subarea);
+    const reg=(p.ejecucion||{})[`${loc.locId}_${loc.dia}`];
+    const stSym=!reg||reg.status==='PENDIENTE'?'—':reg.status==='EJECUTADO'?'✅':reg.status==='DESVIACION'?'⚠️':'N/A';
+    const domCell=p.serv==='DOM'?`<td style="padding:6px 8px;font-size:7pt;">${loc.domestico||'—'}</td>`:'';
+    const signCell=p.serv==='DOM'?`<td style="padding:10px 8px;vertical-align:bottom;border-right:1px solid #dde8e4;"><div style="border-bottom:1px solid #444;height:18px;margin-bottom:1px;"></div><div style="font-size:5pt;color:#777;">Nombre/Firma Rep.</div></td>`:'';
+    return `<tr style="border-bottom:1.5px solid #d0e8e3;${i%2?'background:#f8fcfa;':''}">
+      <td style="padding:6px 8px;font-weight:700;font-size:7.5pt;text-align:center;">${loc.dia}<br><span style="font-size:6pt;font-weight:400;color:#555;">${loc.fecha||''}</span></td>
+      <td style="padding:6px 8px;font-weight:700;font-size:7.5pt;">📍 ${loc.nombre}</td>
+      <td style="padding:6px 8px;font-size:7pt;color:#555;">${loc.tipo}${sub?' · '+sub.nombre:''}</td>
+      ${domCell}
+      <td style="padding:6px 8px;text-align:center;font-size:9pt;">${stSym}</td>
+      ${signCell}
+    </tr>`;
+  }).join('');
+
+  document.getElementById('rptPrint').innerHTML=`
+    <div class="rh">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="rh-logo"><svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div><div class="rh-title">URCS Sur · PEMEX</div><div class="rh-sub">Programa Semanal de Trabajo — ${SVCL[p.serv]} · Área: ${p.area} · DAS-SSAB-GSG</div></div>
+      </div>
+      <div class="rh-meta"><div><span class="rfolio">${folio}</span></div><div><strong>Semana ${p.semana}:</strong> ${fe.ini} al ${fe.fin}</div><div><strong>Emisión:</strong> ${fmtF(hoy)}</div></div>
+    </div>
+    <div class="rsec">
+      <div class="rsect">Datos del Programa</div>
+      <table style="width:100%;font-size:7.5pt;border-collapse:collapse;">
+        <tr><td style="padding:3px 7px;width:50%;"><strong>Área Usuaria:</strong> ${p.area}</td><td style="padding:3px 7px;"><strong>Servicio:</strong> ${SVCL[p.serv]}</td></tr>
+        <tr><td style="padding:3px 7px;"><strong>${p.serv==='AV'?'Cabo AV':'Cabo DOM'}:</strong> ${cab?cab.nombre+' — '+cab.cargo:'—'}</td>
+            <td style="padding:3px 7px;"><strong>Mando Medio:</strong> ${mnd?mnd.nombre+' — '+mnd.cargo:'—'}</td></tr>
+        <tr><td style="padding:3px 7px;" colspan="2"><strong>Observaciones:</strong> ${p.obs||'Ninguna'}</td></tr>
+      </table>
+    </div>
+    ${acts.length?`<div class="rsec"><div class="rsect">Actividades Programadas</div><table class="rtable"><thead><tr><th>Actividad</th><th>Descripción</th></tr></thead><tbody>${actRows}</tbody></table></div>`:''}
+    <div class="rsec">
+      <div class="rsect">Programa de Localizaciones — Semana ${p.semana}${p.serv==='DOM'?' · Incluye conformidad diaria del representante':''}</div>
+      <table class="rtable"><thead><tr>
+        <th style="text-align:center;">Día / Fecha</th>
+        <th>Localización</th>
+        <th>Tipo / Subárea</th>
+        ${p.serv==='DOM'?'<th>Doméstico Asignado</th>':''}
+        <th style="text-align:center;">Estatus</th>
+        ${p.serv==='DOM'?'<th>Firma de Conformidad del Representante</th>':''}
+      </tr></thead><tbody>${locRows}</tbody></table>
+      ${p.serv==='DOM'?`<p style="font-size:5.5pt;color:#888;margin-top:5px;border-left:2px solid #1e5b4f;padding-left:5px;">Las filas sombreadas recogen la firma de conformidad del representante de la localización (persona que recibe el servicio) por cada día. Estas firmas acreditan la conformidad del servicio diario de Domésticos.</p>`:''}
+    </div>
+    <div class="rsec">
+      <div class="rsect">Firmas de Apertura</div>
+      <p style="font-size:7.5pt;line-height:1.7;background:#f4f9f7;border-left:2px solid #1e5b4f;padding:6px 10px;border-radius:3px;margin-bottom:12px;">
+        El presente programa de trabajo ampara las actividades de <strong>${SVCL[p.serv]}</strong> durante la <strong>Semana ${p.semana} (${fe.ini} — ${fe.fin})</strong> en instalaciones del área <strong>${p.area}</strong>. Al firmar, el Cabo se compromete a ejecutar y dar seguimiento. El Mando Medio autoriza para su ejecución. Folio: <strong>${folio}</strong>.
+      </p>
+      <div class="rsign-grid">
+        <div class="rsign-block">
+          <div class="rsign-role">${p.serv==='AV'?'Cabo de Áreas Verdes':'Cabo de Domésticos'} — Elaboró</div>
+          <div style="margin-bottom:6px;"><div class="rsign-line"></div><div class="rsign-lbl">Nombre y Firma${cab?' — '+cab.nombre:''}</div></div>
+          <div style="margin-bottom:6px;"><div class="rsign-line"></div><div class="rsign-lbl">Cargo</div></div>
+          <div><div class="rsign-line"></div><div class="rsign-lbl">Fecha</div></div>
+        </div>
+        <div class="rsign-block">
+          <div class="rsign-role">Mando Medio — Autorizó</div>
+          <div style="margin-bottom:6px;"><div class="rsign-line"></div><div class="rsign-lbl">Nombre y Firma${mnd?' — '+mnd.nombre:''}</div></div>
+          <div style="margin-bottom:6px;"><div class="rsign-line"></div><div class="rsign-lbl">Cargo</div></div>
+          <div><div class="rsign-line"></div><div class="rsign-lbl">Fecha</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="rfoot"><div>PEMEX · URCS Sur · DAS-SSAB-GSG · Subdirección de Servicios al Capital Humano · Zona Coatzacoalcos</div><div>SACISC Módulo 02 · v3.0 · Uso interno</div></div>`;
+  // Generate standalone HTML document and open in new tab
+  const html=generarHtmlApertura(p,fe,cab,mnd,folio,hoy,acts,locs,locRows,actRows);
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  window.open(url,'_blank');
+}
+
+function generarHtmlApertura(p,fe,cab,mnd,folio,hoy,acts,locs,locRows,actRows){
+  const sc=p.serv==='AV'?'#1a7a52':'#1a527a';
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>${folio}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#222;padding:14mm 15mm;}
+.rh{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1e5b4f;padding-bottom:10px;margin-bottom:14px;}
+.logo{width:42px;height:42px;border-radius:50%;background:#1e5b4f;display:inline-flex;align-items:center;justify-content:center;}
+.logo svg{display:block;}
+.rh-t{font-size:13pt;font-weight:700;color:#002f2a;text-transform:uppercase;letter-spacing:.04em;}
+.rh-s{font-size:7pt;color:#666;margin-top:2px;}
+.rh-meta{text-align:right;font-size:7pt;color:#444;line-height:1.9;}
+.folio{display:inline-block;background:#1e5b4f;color:#fff;font-size:6.5pt;font-weight:700;letter-spacing:.08em;padding:2px 9px;border-radius:9px;margin-bottom:2px;}
+.sec{margin-bottom:13px;}
+.sect{background:#002f2a;color:#fff;font-size:7pt;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:4px 10px;border-radius:3px;margin-bottom:8px;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:#002f2a;}
+thead th{color:#fff;padding:5px 7px;font-size:6.5pt;font-weight:700;text-transform:uppercase;text-align:left;}
+tbody tr:nth-child(even){background:#f4f9f7;}
+tbody td{padding:5px 7px;border-bottom:1px solid #e0ede9;vertical-align:top;font-size:7.5pt;}
+.sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px;}
+.sign-block{padding:0 8px;}
+.sign-role{font-size:7pt;font-weight:700;color:#002f2a;text-transform:uppercase;letter-spacing:.06em;text-align:center;margin-bottom:12px;}
+.sign-line{width:100%;border:none;border-bottom:1.5px solid #333;display:block;height:28px;margin-bottom:3px;}
+.sign-lbl{font-size:5.5pt;color:#555;font-weight:600;text-transform:uppercase;}
+.foot{border-top:2px solid #1e5b4f;padding-top:8px;margin-top:16px;display:flex;justify-content:space-between;font-size:6pt;color:#555;}
+.info-box{background:#f0f9f6;border:1px solid #c3e0d6;border-radius:4px;padding:7px 10px;font-size:7pt;color:#1e5b4f;margin-bottom:12px;line-height:1.7;}
+@media print{body{padding:10mm 12mm;}}
+</style>
+</head>
+<body>
+<div class="rh">
+  <div style="display:flex;align-items:center;gap:13px;">
+    <div class="logo"><svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+    <div><div class="rh-t">URCS Sur · PEMEX</div><div class="rh-s">Programa Semanal de Trabajo — ${p.serv==='AV'?'Áreas Verdes':'Servicios Domésticos'} · Área: ${p.area} · DAS-SSAB-GSG</div></div>
+  </div>
+  <div class="rh-meta"><div><span class="folio">${folio}</span></div><div><strong>Semana ${p.semana}:</strong> ${fe.ini} al ${fe.fin}</div><div><strong>Emisión:</strong> ${fmtF(hoy)}</div></div>
+</div>
+
+<div class="sec">
+  <div class="sect">Datos del Programa</div>
+  <table><tbody>
+    <tr><td style="width:50%;"><strong>Área Usuaria:</strong> ${p.area}</td><td><strong>Servicio:</strong> ${p.serv==='AV'?'Áreas Verdes':'Servicios Domésticos'}</td></tr>
+    <tr><td><strong>${p.serv==='AV'?'Cabo AV':'Cabo DOM'}:</strong> ${cab?cab.nombre+' — '+cab.cargo:'—'}</td><td><strong>Mando Medio:</strong> ${mnd?mnd.nombre+' — '+mnd.cargo:'—'}</td></tr>
+    <tr><td colspan="2"><strong>Observaciones:</strong> ${p.obs||'Ninguna'}</td></tr>
+  </tbody></table>
+</div>
+
+${acts.length?`<div class="sec">
+  <div class="sect">Actividades Programadas</div>
+  <table><thead><tr><th>Actividad</th><th>Descripción</th></tr></thead><tbody>${actRows}</tbody></table>
+</div>`:''}
+
+<div class="sec">
+  <div class="sect">Programa de Localizaciones — Semana ${p.semana}${p.serv==='DOM'?' · Incluye conformidad diaria del representante':''}</div>
+  <table>
+    <thead><tr>
+      <th style="text-align:center;width:80px;">Día / Fecha</th>
+      <th>Localización</th>
+      <th>Tipo / Subárea</th>
+      ${p.serv==='DOM'?'<th>Doméstico Asignado</th>':''}
+      <th style="text-align:center;width:50px;">Estatus</th>
+      ${p.serv==='DOM'?'<th style="width:160px;">Firma de Conformidad del Representante</th>':''}
+    </tr></thead>
+    <tbody>${locRows}</tbody>
+  </table>
+  ${p.serv==='DOM'?'<p style="font-size:5.5pt;color:#888;margin-top:6px;border-left:2px solid #1e5b4f;padding-left:6px;">Las columnas de firma recogen la conformidad del representante de la localización (persona que recibe el servicio) por cada día. Estas firmas acreditan la conformidad del servicio diario de Domésticos.</p>':''}
+</div>
+
+<div class="sec">
+  <div class="sect">Firmas de Apertura</div>
+  <div class="info-box">
+    El presente programa de trabajo ampara las actividades de <strong>${p.serv==='AV'?'Áreas Verdes':'Servicios Domésticos'}</strong> durante la <strong>Semana ${p.semana} (${fe.ini} — ${fe.fin})</strong> en instalaciones del área <strong>${p.area}</strong>. Al firmar, el Cabo se compromete a ejecutar y dar seguimiento. El Mando Medio autoriza para su ejecución. Folio: <strong>${folio}</strong>.
+  </div>
+  <div class="sign-grid">
+    <div class="sign-block">
+      <div class="sign-role">${p.serv==='AV'?'Cabo de Áreas Verdes':'Cabo de Domésticos'} — Elaboró</div>
+      <div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre y Firma${cab?' — '+cab.nombre:''}</div></div>
+      <div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Cargo</div></div>
+      <div><div class="sign-line"></div><div class="sign-lbl">Fecha</div></div>
+    </div>
+    <div class="sign-block">
+      <div class="sign-role">Mando Medio — Autorizó</div>
+      <div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre y Firma${mnd?' — '+mnd.nombre:''}</div></div>
+      <div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Cargo</div></div>
+      <div><div class="sign-line"></div><div class="sign-lbl">Fecha</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <div>PEMEX · URCS Sur · DAS-SSAB-GSG · Subdirección de Servicios al Capital Humano · Zona Coatzacoalcos</div>
+  <div>SACISC Módulo 02 · v3.0 · Uso interno</div>
+</div>
+
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// IMPRESIÓN — CIERRE
+// ══════════════════════════════════════════════════════════════
+function imprimirCierre(){
+  // Delegate to new tab approach
+  if(!_cierreId){toast('No hay programa seleccionado.');return;}
+  abrirDocCierre(_cierreId);
+}
+
+function abrirDocCierre(id){
+  const p=PROG.find(x=>x.id===id);if(!p)return;
+  const fe=semDates(p.anio,p.semana);
+  const pct=calcCump(p);const sc=semColor(pct);
+  const cab=getPer(p.caboId),mnd=getPer(p.mandoId);
+  const folio='CIE-'+p.serv+'-'+p.anio+'-S'+String(p.semana).padStart(2,'0')+'-'+String(Date.now()).slice(-4);
+  const hoy=new Date();
+  const dd=String(hoy.getDate()).padStart(2,'0'),mm2=String(hoy.getMonth()+1).padStart(2,'0'),yy=hoy.getFullYear();
+  const fechaHoy=dd+'/'+mm2+'/'+yy;
+  const locs=p.localizaciones||[];
+  const servLabel=p.serv==='AV'?'Areas Verdes':'Servicios Domesticos';
+  const caboLabel=p.serv==='AV'?'Cabo de Areas Verdes':'Cabo de Domesticos';
+  const cabNom=cab?cab.nombre+' - '+cab.cargo:'-';
+  const mndNom=mnd?mnd.nombre+' - '+mnd.cargo:'-';
+
+  // Get firma values from modal if open, else from cierreData
+  const cd=p.cierreData||{};
+  const firmaCabo=(document.getElementById('firmaCabo')?document.getElementById('firmaCabo').value:'')||cd.firmaCabo||(cab?cab.nombre:'');
+  const firmaMando=(document.getElementById('firmaMando')?document.getElementById('firmaMando').value:'')||cd.firmaMando||(mnd?mnd.nombre:'');
+  const obsCierre=(document.getElementById('obsCierre')?document.getElementById('obsCierre').value:'')||cd.obs||'';
+  const fechaCierreVal=(document.getElementById('fechaCierre')?document.getElementById('fechaCierre').value:'')||cd.fecha||fechaHoy;
+  const fechaCierreObj=fechaCierreVal?new Date(fechaCierreVal+'T12:00:00'):hoy;
+  const dd2=String(fechaCierreObj.getDate()).padStart(2,'0'),mm3=String(fechaCierreObj.getMonth()+1).padStart(2,'0');
+  const fechaCierre=dd2+'/'+mm3+'/'+fechaCierreObj.getFullYear();
+
+  const ejTotal=locs.filter(function(loc){const r=(p.ejecucion||{})[loc.locId+'_'+loc.dia];return r&&r.status==='EJECUTADO';}).length;
+  const devTotal=locs.filter(function(loc){const r=(p.ejecucion||{})[loc.locId+'_'+loc.dia];return r&&r.status==='DESVIACION';}).length;
+  const pendTotal=Math.max(0,locs.length-ejTotal-devTotal);
+
+  let locRows='';
+  locs.forEach(function(loc,i){
+    const sub=SA.find(function(s){return s.id===loc.subarea;});
+    const r=(p.ejecucion||{})[loc.locId+'_'+loc.dia];
+    const st=r?r.status:'PENDIENTE';
+    const sym=st==='EJECUTADO'?'OK':st==='DESVIACION'?'DESV':st==='NO_APLICA'?'N/A':'---';
+    const nota=st==='DESVIACION'?(TIPODEV[r.tipo]||r.tipo)+(r.motivo?' - '+r.motivo:''):st==='EJECUTADO'?'Ejecutado segun programa':'Sin registro';
+    const domEjec=r?r.domEjec||'':loc.domestico||'';
+    const sub2=sub?' - '+sub.nombre:'';
+    const bg=i%2?'background:#f4f9f7;':'background:#fff;';
+    const stColor=st==='EJECUTADO'?'color:#065f46;':st==='DESVIACION'?'color:#c2410c;':'color:#6b7280;';
+    const domTd=p.serv==='DOM'?('<td style="padding:5px 7px;font-size:7.5pt;">'+(domEjec||'-')+'</td>'):'';
+    locRows+='<tr style="border-bottom:1px solid #e0ede9;'+bg+'">'
+      +'<td style="padding:5px 7px;text-align:center;font-weight:700;">'+loc.dia+'<br><span style="font-size:6pt;font-weight:400;color:#555;">'+(loc.fecha||'')+'</span></td>'
+      +'<td style="padding:5px 7px;font-weight:700;font-size:7.5pt;">'+loc.nombre+'</td>'
+      +domTd
+      +'<td style="padding:5px 7px;text-align:center;font-weight:700;'+stColor+'">'+sym+'</td>'
+      +'<td style="padding:5px 7px;font-size:6.5pt;'+stColor+'">'+nota+'</td>'
+      +'</tr>';
+  });
+
+  const domTh=p.serv==='DOM'?'<th>Domestico</th>':'';
+  const obsRow=obsCierre?'<div class="sec"><div class="sect">Observaciones de Cierre</div><p style="font-size:7.5pt;padding:7px 9px;background:#f4f9f7;border-left:2px solid #1e5b4f;border-radius:3px;">'+obsCierre+'</p></div>':'';
+
+  const css='*{box-sizing:border-box;margin:0;padding:0;} body{font-family:Arial,sans-serif;font-size:8.5pt;color:#222;padding:14mm 15mm;} .rh{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1e5b4f;padding-bottom:10px;margin-bottom:14px;} .logo{width:42px;height:42px;border-radius:50%;background:#1e5b4f;display:inline-flex;align-items:center;justify-content:center;} .rh-t{font-size:13pt;font-weight:700;color:#002f2a;text-transform:uppercase;} .rh-s{font-size:7pt;color:#666;margin-top:2px;} .rh-meta{text-align:right;font-size:7pt;color:#444;line-height:1.9;} .folio{display:inline-block;background:#1e5b4f;color:#fff;font-size:6.5pt;font-weight:700;padding:2px 9px;border-radius:9px;} .sec{margin-bottom:13px;} .sect{background:#002f2a;color:#fff;font-size:7pt;font-weight:700;text-transform:uppercase;padding:4px 10px;border-radius:3px;margin-bottom:8px;} .kpis{display:flex;gap:6px;margin-bottom:10px;} .kbox{flex:1;border:1.5px solid #d0e8e3;border-radius:4px;padding:7px;text-align:center;} .kbox .lbl{font-size:5.5pt;font-weight:700;text-transform:uppercase;color:#777;margin-bottom:2px;} .kbox .val{font-size:13pt;font-weight:700;color:#002f2a;} table{width:100%;border-collapse:collapse;} thead tr{background:#002f2a;} thead th{color:#fff;padding:5px 7px;font-size:6.5pt;font-weight:700;text-transform:uppercase;text-align:left;} tbody tr:nth-child(even){background:#f4f9f7;} tbody td{padding:5px 7px;border-bottom:1px solid #e0ede9;vertical-align:top;} .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px;} .sign-block{padding:0 8px;} .sign-role{font-size:7pt;font-weight:700;color:#002f2a;text-transform:uppercase;text-align:center;margin-bottom:12px;} .sign-line{width:100%;border:none;border-bottom:1.5px solid #333;display:block;height:28px;margin-bottom:3px;} .sign-lbl{font-size:5.5pt;color:#555;font-weight:600;text-transform:uppercase;} .foot{border-top:2px solid #1e5b4f;padding-top:8px;margin-top:16px;display:flex;justify-content:space-between;font-size:6pt;color:#555;} .info-box{background:#f0f9f6;border:1px solid #c3e0d6;border-radius:4px;padding:7px 10px;font-size:7pt;color:#1e5b4f;margin-bottom:12px;line-height:1.7;} .topbar{background:#1e5b4f;color:#fff;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;} .topbar button{background:#fff;color:#1e5b4f;border:none;border-radius:6px;padding:7px 18px;font-weight:700;font-size:9pt;cursor:pointer;} @media print{.topbar{display:none;} body{padding:10mm 12mm;}}';
+
+  const logoSvg='<svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+
+  const body=''
+    +'<div class="topbar"><span><strong>SACISC - Reporte de Cierre</strong> &nbsp; Folio: '+folio+'</span><button onclick="window.print()">Imprimir / Guardar PDF</button></div>'
+    +'<div class="rh"><div style="display:flex;align-items:center;gap:13px;"><div class="logo">'+logoSvg+'</div><div><div class="rh-t">URCS Sur - PEMEX</div><div class="rh-s">Reporte de Cierre - '+servLabel+' - Area: '+p.area+' - DAS-SSAB-GSG</div></div></div>'
+    +'<div class="rh-meta"><div><span class="folio">'+folio+'</span></div><div><strong>Semana '+p.semana+':</strong> '+fe.ini+' al '+fe.fin+'</div><div><strong>Emision:</strong> '+fechaHoy+'</div></div></div>'
+    +'<div class="sec"><div class="sect">Indicadores Generales de Cumplimiento</div>'
+    +'<div class="kpis">'
+    +'<div class="kbox"><div class="lbl">Localizaciones</div><div class="val">'+locs.length+'</div></div>'
+    +'<div class="kbox"><div class="lbl">Cumplimiento</div><div class="val" style="color:'+sc+';">'+pct+'%</div></div>'
+    +'<div class="kbox" style="border-color:#a7f3d0;"><div class="lbl">Ejecutados</div><div class="val" style="color:#065f46;">'+ejTotal+'</div></div>'
+    +'<div class="kbox" style="border-color:#fed7aa;"><div class="lbl">Desviaciones</div><div class="val" style="color:#c2410c;">'+devTotal+'</div></div>'
+    +'<div class="kbox" style="border-color:#fecaca;"><div class="lbl">Pendientes</div><div class="val" style="color:#991b1b;">'+pendTotal+'</div></div>'
+    +'</div></div>'
+    +'<div class="sec"><div class="sect">Detalle de Ejecucion por Localizacion</div>'
+    +'<table><thead><tr><th style="text-align:center;width:80px;">Dia / Fecha</th><th>Localizacion</th>'+domTh+'<th style="text-align:center;width:55px;">Estatus</th><th>Nota</th></tr></thead>'
+    +'<tbody>'+locRows+'</tbody></table></div>'
+    +obsRow
+    +'<div class="sec"><div class="sect">Firmas de Cierre y Validacion</div>'
+    +'<div class="info-box">El presente reporte certifica la evaluacion del Programa de Trabajo de '+servLabel+', Semana '+p.semana+' ('+fe.ini+' - '+fe.fin+'), Area '+p.area+'. Cumplimiento: '+pct+'%. Folio: '+folio+'.</div>'
+    +'<div class="sign-grid">'
+    +'<div class="sign-block"><div class="sign-role">'+caboLabel+' - Ejecuto</div>'
+    +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre: '+firmaCabo+'</div></div>'
+    +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Firma</div></div>'
+    +'<div><div class="sign-line"></div><div class="sign-lbl">Fecha: '+fechaCierre+'</div></div></div>'
+    +'<div class="sign-block"><div class="sign-role">Mando Medio - Vo.Bo. / Valido</div>'
+    +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre: '+firmaMando+'</div></div>'
+    +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Firma</div></div>'
+    +'<div><div class="sign-line"></div><div class="sign-lbl">Fecha</div></div></div>'
+    +'</div></div>'
+    +'<div class="foot"><div>PEMEX - URCS Sur - DAS-SSAB-GSG - Zona Coatzacoalcos</div><div>SACISC Modulo 02 v3.0</div></div>';
+
+  const html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>'+folio+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.target='_blank';a.rel='noopener';
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+}
+
+function generarHtmlCierre(p,fe,pct,sc,cab,mnd,folio,hoy,firmaCabo,firmaMando,obsCierre,fechaC,locs,locRows,ejTotal,devTotal,pendTotal){
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>${folio}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#222;padding:14mm 15mm;}
+.rh{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1e5b4f;padding-bottom:10px;margin-bottom:14px;}
+.logo{width:42px;height:42px;border-radius:50%;background:#1e5b4f;display:inline-flex;align-items:center;justify-content:center;}
+.rh-t{font-size:13pt;font-weight:700;color:#002f2a;text-transform:uppercase;letter-spacing:.04em;}
+.rh-s{font-size:7pt;color:#666;margin-top:2px;}
+.rh-meta{text-align:right;font-size:7pt;color:#444;line-height:1.9;}
+.folio{display:inline-block;background:#1e5b4f;color:#fff;font-size:6.5pt;font-weight:700;letter-spacing:.08em;padding:2px 9px;border-radius:9px;}
+.sec{margin-bottom:13px;}
+.sect{background:#002f2a;color:#fff;font-size:7pt;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:4px 10px;border-radius:3px;margin-bottom:8px;}
+.kpis{display:flex;gap:6px;margin-bottom:10px;}
+.kbox{flex:1;border:1.5px solid #d0e8e3;border-radius:4px;padding:7px;text-align:center;}
+.kbox .lbl{font-size:5.5pt;font-weight:700;text-transform:uppercase;color:#777;margin-bottom:2px;}
+.kbox .val{font-size:13pt;font-weight:700;color:#002f2a;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:#002f2a;}
+thead th{color:#fff;padding:5px 7px;font-size:6.5pt;font-weight:700;text-transform:uppercase;text-align:left;}
+tbody tr:nth-child(even){background:#f4f9f7;}
+tbody td{padding:5px 7px;border-bottom:1px solid #e0ede9;font-size:7.5pt;vertical-align:top;}
+.sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px;}
+.sign-block{padding:0 8px;}
+.sign-role{font-size:7pt;font-weight:700;color:#002f2a;text-transform:uppercase;text-align:center;margin-bottom:12px;}
+.sign-line{width:100%;border:none;border-bottom:1.5px solid #333;display:block;height:28px;margin-bottom:3px;}
+.sign-lbl{font-size:5.5pt;color:#555;font-weight:600;text-transform:uppercase;}
+.foot{border-top:2px solid #1e5b4f;padding-top:8px;margin-top:16px;display:flex;justify-content:space-between;font-size:6pt;color:#555;}
+.info-box{background:#f0f9f6;border:1px solid #c3e0d6;border-radius:4px;padding:7px 10px;font-size:7pt;color:#1e5b4f;margin-bottom:12px;line-height:1.7;}
+@media print{body{padding:10mm 12mm;}}
+</style>
+</head>
+<body>
+<div class="rh">
+  <div style="display:flex;align-items:center;gap:13px;">
+    <div class="logo"><svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+    <div><div class="rh-t">URCS Sur · PEMEX</div><div class="rh-s">Reporte de Cierre — ${p.serv==='AV'?'Áreas Verdes':'Servicios Domésticos'} · Área: ${p.area} · DAS-SSAB-GSG</div></div>
+  </div>
+  <div class="rh-meta"><div><span class="folio">${folio}</span></div><div><strong>Semana ${p.semana}:</strong> ${fe.ini} al ${fe.fin}</div><div><strong>Emisión:</strong> ${fmtF(hoy)}</div></div>
+</div>
+
+<div class="sec">
+  <div class="sect">Indicadores Generales de Cumplimiento</div>
+  <div class="kpis">
+    <div class="kbox"><div class="lbl">Localizaciones</div><div class="val">${locs.length}</div></div>
+    <div class="kbox"><div class="lbl">Cumplimiento</div><div class="val" style="color:${sc};">${pct}%</div></div>
+    <div class="kbox" style="border-color:#a7f3d0;"><div class="lbl">Ejecutados</div><div class="val" style="color:#065f46;">${ejTotal}</div></div>
+    <div class="kbox" style="border-color:#fed7aa;"><div class="lbl">Desviaciones</div><div class="val" style="color:#c2410c;">${devTotal}</div></div>
+    <div class="kbox" style="border-color:#fecaca;"><div class="lbl">Pendientes</div><div class="val" style="color:#991b1b;">${Math.max(0,pendTotal)}</div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sect">Detalle de Ejecución por Localización</div>
+  <table>
+    <thead><tr>
+      <th style="text-align:center;width:80px;">Día / Fecha</th>
+      <th>Localización</th>
+      ${p.serv==='DOM'?'<th>Doméstico</th>':''}
+      <th style="text-align:center;width:50px;">Estatus</th>
+      <th>Nota</th>
+    </tr></thead>
+    <tbody>${locRows}</tbody>
+  </table>
+</div>
+
+${obsCierre?`<div class="sec"><div class="sect">Observaciones de Cierre</div><p style="font-size:7.5pt;padding:7px 9px;background:#f4f9f7;border-left:2px solid #1e5b4f;border-radius:3px;">${obsCierre}</p></div>`:''}
+
+<div class="sec">
+  <div class="sect">Firmas de Cierre y Validación</div>
+  <div class="info-box">El presente reporte certifica la evaluación del Programa de Trabajo de <strong>${p.serv==='AV'?'Áreas Verdes':'Servicios Domésticos'}</strong>, <strong>Semana ${p.semana} (${fe.ini} — ${fe.fin})</strong>, Área <strong>${p.area}</strong>. Cumplimiento: <strong style="color:${sc};">${pct}%</strong>. Folio: <strong>${folio}</strong>.</div>
+  <div class="sign-grid">
+    <div class="sign-block">
+      <div class="sign-role">${p.serv==='AV'?'Cabo de Áreas Verdes':'Cabo de Domésticos'} — Ejecutó</div>
+      <div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre: ${firmaCabo}</div></div>
+      <div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Firma</div></div>
+      <div><div class="sign-line"></div><div class="sign-lbl">Fecha: ${fmtF(fechaC)}</div></div>
+    </div>
+    <div class="sign-block">
+      <div class="sign-role">Mando Medio — Vo.Bo. / Validó</div>
+      <div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre: ${firmaMando}</div></div>
+      <div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Firma</div></div>
+      <div><div class="sign-line"></div><div class="sign-lbl">Fecha</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <div>PEMEX · URCS Sur · DAS-SSAB-GSG · Subdirección de Servicios al Capital Humano · Zona Coatzacoalcos</div>
+  <div>SACISC Módulo 02 · v3.0 · Uso interno</div>
+</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ELIMINAR PROGRAMA + CONFIRM
+// ══════════════════════════════════════════════════════════════
+function confirmarElim(id){
+  const p=PROG.find(x=>x.id===id);if(!p)return;
+  const fe=semDates(p.anio,p.semana);
+  document.getElementById('confirmMsg').textContent=`¿Eliminar el programa "${SVCL[p.serv]}" — ${p.area} — ${fe.label}? Esta acción no se puede deshacer.`;
+  document.getElementById('btnConfirmOk').onclick=()=>{PROG=PROG.filter(x=>x.id!==id);save(LS.P,PROG);sbEliminar('programas',id);aplicarFiltros();renderProgramasTab();cerrarConfirm();toast('Programa eliminado.');};
+  document.getElementById('movConfirm').classList.add('active');
+}
+function cerrarConfirm(){document.getElementById('movConfirm').classList.remove('active');}
+
+// ── Recarga manual desde Supabase ──
+async function recargarDesdeSB(){
+  mostrarSyncBanner('Sincronizando...',true);
+  await cargarDesdeSB();
+  aplicarFiltros();renderProgramasTab();
+  renderCatalogos();renderOrgTree();renderPersonas();renderTendencia();cargarProgramasEjec();
+  refrescarDatalistDom();
+}
+
+// ── Auto-refresh cada 60 segundos ──
+setInterval(async function(){
+  if(!document.hidden&&_sbListo){
+    try{
+      const progs=await sbGet('programas');
+      PROG=progs.map(sb2prog);
+      saveLocal(LS.P,PROG);
+      aplicarFiltros();renderProgramasTab();
+    }catch(e){console.warn('auto-refresh',e);}
+  }
+},60000);
+
+// TOAST
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),3500);}
+
+// ═══════════════════════════════════════
+// TAB APERTURA
+// ═══════════════════════════════════════
+function cargarListaApertura(){
+  const anio=parseInt(document.getElementById('apAnio').value)||AÑO;
+  const sem=document.getElementById('apSemana').value;
+  const sv=document.getElementById('apServ').value;
+  const ss=document.getElementById('apSemana');const cv=ss.value;
+  ss.innerHTML='<option value="">— Todas —</option>';
+  semsAnio(anio).forEach(n=>{const f=semDates(anio,n);const o=document.createElement('option');o.value=n;o.textContent=f.label;ss.appendChild(o);});
+  ss.value=cv;
+  let d=PROG.filter(p=>p.anio===anio);
+  if(sem)d=d.filter(p=>String(p.semana)===String(sem));
+  if(sv)d=d.filter(p=>p.serv===sv);
+  const c=document.getElementById('listaApertura');
+  if(!d.length){c.innerHTML='<div class="wbox">No hay programas con los filtros seleccionados.</div>';return;}
+  c.innerHTML=d.map(p=>{
+    const fe=semDates(p.anio,p.semana);const cab=getPer(p.caboId);const pct=calcCump(p);const sc=semColor(pct);
+    return '<div style="background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">'
+      +'<div><div style="font-family:Barlow Condensed,sans-serif;font-size:1rem;font-weight:700;color:var(--gd);">'+SVCL[p.serv]+' — '+p.area+'</div>'
+      +'<div style="font-size:.75rem;color:var(--gray);margin-top:3px;">'+fe.label+' &nbsp;·&nbsp; '+(cab?cab.nombre:'Sin cabo')+' &nbsp;·&nbsp; '+((p.localizaciones||[]).length)+' localiz.</div></div>'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<span class="sbadge '+(EST_CLS[p.estado]||'cg')+'">'+(EST_LABEL[p.estado]||p.estado)+'</span>'
+      +'<span style="font-family:Barlow Condensed,sans-serif;font-weight:700;color:'+sc+';">'+pct+'%</span>'
+      +'<button onclick="abrirDocApertura(\''+p.id+'\')" style="display:inline-flex;align-items:center;gap:7px;background:#c2410c;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-family:Barlow Condensed,sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;">'
+      +'&#128424; Abrir Documento de Apertura</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function abrirDocApertura(id){
+  const p=PROG.find(x=>x.id===id);if(!p)return;
+  const fe=semDates(p.anio,p.semana);
+  const cab=getPer(p.caboId),mnd=getPer(p.mandoId);
+  const folio='APT-'+p.serv+'-'+p.anio+'-S'+String(p.semana).padStart(2,'0')+'-'+String(Date.now()).slice(-4);
+  const hoy=new Date();
+  const dd=String(hoy.getDate()).padStart(2,'0'),mm2=String(hoy.getMonth()+1).padStart(2,'0'),yy=hoy.getFullYear();
+  const fechaHoy=dd+'/'+mm2+'/'+yy;
+  const locs=p.localizaciones||[];
+  const acts=p.actividades||[];
+  const servLabel=p.serv==='AV'?'Areas Verdes':'Servicios Domesticos';
+  const caboLabel=p.serv==='AV'?'Cabo de Areas Verdes':'Cabo de Domesticos';
+  const cabNom=cab?cab.nombre+' - '+cab.cargo:'-';
+  const mndNom=mnd?mnd.nombre+' - '+mnd.cargo:'-';
+
+  let actRows='';
+  acts.forEach(function(a){actRows+='<tr><td>'+a.nombre+'</td><td>'+(a.desc||'-')+'</td></tr>';});
+
+  let locRows='';
+  locs.forEach(function(loc,i){
+    const sub=SA.find(function(s){return s.id===loc.subarea;});
+    const reg=(p.ejecucion||{})[loc.locId+'_'+loc.dia];
+    const st=reg?reg.status:'PENDIENTE';
+    const sym=st==='EJECUTADO'?'OK':st==='DESVIACION'?'DESV':st==='NO_APLICA'?'N/A':'---';
+    const sub2=sub?' - '+sub.nombre:'';
+    const bg=i%2?'background:#f4f9f7;':'background:#fff;';
+    const domTd=p.serv==='DOM'?('<td style="padding:6px 8px;font-size:7.5pt;">'+(loc.domestico||'-')+'</td>'):'';
+    const signTd=p.serv==='DOM'?'<td style="padding:12px 8px;vertical-align:bottom;"><div style="border-bottom:1.5px solid #333;height:22px;margin-bottom:2px;"></div><div style="font-size:5pt;color:#777;">Nombre / Firma</div></td>':'';
+    locRows+='<tr style="border-bottom:1.5px solid #d0e8e3;'+bg+'">'
+      +'<td style="padding:6px 8px;font-weight:700;text-align:center;">'+loc.dia+'<br><span style="font-size:6pt;font-weight:400;color:#555;">'+(loc.fecha||'')+'</span></td>'
+      +'<td style="padding:6px 8px;font-weight:700;">'+loc.nombre+'</td>'
+      +'<td style="padding:6px 8px;font-size:7pt;color:#555;">'+loc.tipo+sub2+'</td>'
+      +domTd
+      +'<td style="padding:6px 8px;text-align:center;font-weight:700;">'+sym+'</td>'
+      +signTd
+      +'</tr>';
+  });
+
+  const domTh=p.serv==='DOM'?'<th>Domestico Asignado</th>':'';
+  const signTh=p.serv==='DOM'?'<th>Firma Conformidad</th>':'';
+  const actSec=acts.length?'<div class="sec"><div class="sect">Actividades Programadas</div><table><thead><tr><th>Actividad</th><th>Descripcion</th></tr></thead><tbody>'+actRows+'</tbody></table></div>':'';
+  const obsRow=p.obs?'<tr><td colspan="2"><strong>Observaciones:</strong> '+p.obs+'</td></tr>':'';
+
+  const css='*{box-sizing:border-box;margin:0;padding:0;} body{font-family:Arial,sans-serif;font-size:8.5pt;color:#222;padding:14mm 15mm;} .rh{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1e5b4f;padding-bottom:10px;margin-bottom:14px;} .logo{width:42px;height:42px;border-radius:50%;background:#1e5b4f;display:inline-flex;align-items:center;justify-content:center;} .rh-t{font-size:13pt;font-weight:700;color:#002f2a;text-transform:uppercase;} .rh-s{font-size:7pt;color:#666;margin-top:2px;} .rh-meta{text-align:right;font-size:7pt;color:#444;line-height:1.9;} .folio{display:inline-block;background:#1e5b4f;color:#fff;font-size:6.5pt;font-weight:700;padding:2px 9px;border-radius:9px;} .sec{margin-bottom:13px;} .sect{background:#002f2a;color:#fff;font-size:7pt;font-weight:700;text-transform:uppercase;padding:4px 10px;border-radius:3px;margin-bottom:8px;} table{width:100%;border-collapse:collapse;} thead tr{background:#002f2a;} thead th{color:#fff;padding:5px 7px;font-size:6.5pt;font-weight:700;text-transform:uppercase;text-align:left;} tbody tr:nth-child(even){background:#f4f9f7;} tbody td{padding:5px 7px;border-bottom:1px solid #e0ede9;vertical-align:top;} .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:20px;} .sign-block{padding:0 8px;} .sign-role{font-size:7pt;font-weight:700;color:#002f2a;text-transform:uppercase;text-align:center;margin-bottom:12px;} .sign-line{width:100%;border:none;border-bottom:1.5px solid #333;display:block;height:28px;margin-bottom:3px;} .sign-lbl{font-size:5.5pt;color:#555;font-weight:600;text-transform:uppercase;} .foot{border-top:2px solid #1e5b4f;padding-top:8px;margin-top:16px;display:flex;justify-content:space-between;font-size:6pt;color:#555;} .info-box{background:#f0f9f6;border:1px solid #c3e0d6;border-radius:4px;padding:7px 10px;font-size:7pt;color:#1e5b4f;margin-bottom:12px;line-height:1.7;} .topbar{background:#1e5b4f;color:#fff;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;} .topbar button{background:#fff;color:#1e5b4f;border:none;border-radius:6px;padding:7px 18px;font-weight:700;font-size:9pt;cursor:pointer;} @media print{.topbar{display:none;} body{padding:10mm 12mm;}}';
+
+  const logoSvg='<svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+
+  const body=''
+    +'<div class="topbar"><span><strong>SACISC - Apertura</strong> &nbsp; Folio: '+folio+'</span><button onclick="window.print()">Imprimir / Guardar PDF</button></div>'
+    +'<div class="rh"><div style="display:flex;align-items:center;gap:13px;"><div class="logo">'+logoSvg+'</div><div><div class="rh-t">URCS Sur - PEMEX</div><div class="rh-s">Programa Semanal - '+servLabel+' - Area: '+p.area+' - DAS-SSAB-GSG</div></div></div>'
+    +'<div class="rh-meta"><div><span class="folio">'+folio+'</span></div><div><strong>Semana '+p.semana+':</strong> '+fe.ini+' al '+fe.fin+'</div><div><strong>Emision:</strong> '+fechaHoy+'</div></div></div>'
+    +'<div class="sec"><div class="sect">Datos del Programa</div><table><tbody>'
+    +'<tr><td style="width:50%;"><strong>Area Usuaria:</strong> '+p.area+'</td><td><strong>Servicio:</strong> '+servLabel+'</td></tr>'
+    +'<tr><td><strong>'+caboLabel+':</strong> '+cabNom+'</td><td><strong>Mando Medio:</strong> '+mndNom+'</td></tr>'
+    +obsRow+'</tbody></table></div>'
+    +actSec
+    +'<div class="sec"><div class="sect">Programa de Localizaciones - Semana '+p.semana+'</div>'
+    +'<table><thead><tr><th style="text-align:center;width:80px;">Dia / Fecha</th><th>Localizacion</th><th>Tipo / Subarea</th>'+domTh+'<th style="text-align:center;width:60px;">Estatus</th>'+signTh+'</tr></thead>'
+    +'<tbody>'+locRows+'</tbody></table></div>'
+    +'<div class="sec"><div class="sect">Firmas de Apertura</div>'
+    +'<div class="info-box">El presente programa ampara las actividades de '+servLabel+' durante la Semana '+p.semana+' ('+fe.ini+' - '+fe.fin+') en instalaciones del area '+p.area+'. Folio: '+folio+'.</div>'
+    +'<div class="sign-grid">'
+    +'<div class="sign-block"><div class="sign-role">'+caboLabel+' - Elaboro</div>'
+    +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre y Firma'+(cab?' - '+cab.nombre:'')+'</div></div>'
+    +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Cargo</div></div>'
+    +'<div><div class="sign-line"></div><div class="sign-lbl">Fecha</div></div></div>'
+    +'<div class="sign-block"><div class="sign-role">Mando Medio - Autorizo</div>'
+    +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre y Firma'+(mnd?' - '+mnd.nombre:'')+'</div></div>'
+    +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Cargo</div></div>'
+    +'<div><div class="sign-line"></div><div class="sign-lbl">Fecha</div></div></div>'
+    +'</div></div>'
+    +'<div class="foot"><div>PEMEX - URCS Sur - DAS-SSAB-GSG - Zona Coatzacoalcos</div><div>SACISC Modulo 02 v3.0</div></div>';
+
+  const html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>'+folio+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.target='_blank';a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+}
+
+</script>
+</body>
