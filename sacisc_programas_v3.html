@@ -251,6 +251,15 @@ hr.fd{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0;}
 .session-btn.danger{background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5;}.session-btn.danger:hover{background:#fca5a5;}
 .session-btn.warning{background:#fffbeb;color:#92400e;border:1.5px solid #fde68a;}.session-btn.warning:hover{background:#fde68a;}
 .session-btn.cancel{background:#f4f7f6;color:#666;border:1.5px solid #d0d0d0;}.session-btn.cancel:hover{background:#e0e0e0;}
+
+/* ── MODAL RÉPLICA ── */
+#movReplica .mc{max-width:520px;}
+.replica-info{background:#f0f9f6;border:1.5px solid #6ee7b7;border-radius:8px;padding:14px 18px;margin-bottom:16px;}
+.replica-arrow{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px 0;font-family:'Barlow Condensed',sans-serif;}
+.replica-sem{background:#002f2a;color:#fff;border-radius:6px;padding:5px 14px;font-size:.85rem;font-weight:700;}
+.replica-arrow-icon{font-size:1.4rem;color:var(--gm);}
+.replica-detail{font-size:.8rem;color:var(--gray);line-height:1.8;margin-top:10px;}
+.replica-detail strong{color:var(--gd);}
 /* ── LOGIN ── */
 #loginOverlay{position:fixed;inset:0;background:linear-gradient(135deg,#002f2a 0%,#1e5b4f 60%,#2d7a6a 100%);z-index:99999;display:flex;align-items:center;justify-content:center;}
 .login-box{background:#fff;border-radius:16px;padding:40px 44px;width:100%;max-width:420px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
@@ -1486,6 +1495,45 @@ hr.fd{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0;}
   <div class="mf"><button class="btn bsec" onclick="document.getElementById('movAgregarAct').classList.remove('active')">Cerrar</button></div>
 </div></div>
 
+
+<!-- MODAL RÉPLICA -->
+<div class="mov" id="movReplica">
+  <div class="mc">
+    <div class="mh">
+      <h2><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Replicar Programa a Semana Siguiente</span></h2>
+      <button class="mc-x" onclick="cerrarReplica()">✕</button>
+    </div>
+    <div class="mb" style="padding:20px 24px;">
+      <div class="replica-info">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.08em;color:var(--gm);margin-bottom:8px;">RESUMEN DE LA RÉPLICA</div>
+        <div id="replicaServArea" style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--gd);margin-bottom:8px;"></div>
+        <div class="replica-arrow">
+          <span class="replica-sem" id="replicaSemOrig">Sem. —</span>
+          <span class="replica-arrow-icon">→</span>
+          <span class="replica-sem" style="background:var(--gm);" id="replicaSemDest">Sem. —</span>
+        </div>
+        <div class="replica-detail" id="replicaDetalle"></div>
+      </div>
+      <div class="field" style="margin-bottom:16px;">
+        <label>Semana destino <span class="req">*</span></label>
+        <select id="replicaSemSelect" style="width:100%;border:1.5px solid var(--bd);border-radius:7px;padding:9px 12px;font-family:'Barlow',sans-serif;font-size:.88rem;">
+          <option value="">— Seleccionar semana —</option>
+        </select>
+      </div>
+      <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:7px;padding:10px 14px;font-size:.78rem;color:#92400e;margin-bottom:16px;">
+        ⚠️ La réplica copiará localizaciones, domésticos asignados y días programados. La ejecución diaria quedará en blanco y el estado será <strong>PROGRAMADO</strong>.
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn bsec" onclick="cerrarReplica()">Cancelar</button>
+      <button class="btn bpri" onclick="confirmarReplica()" style="gap:6px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Confirmar Réplica
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMAR -->
 <div class="mov" id="movConfirm"><div class="mc sm">
   <div class="mh"><h2>⚠️ Confirmar</h2><button class="mc-x" onclick="cerrarConfirm()">✕</button></div>
@@ -1950,6 +1998,7 @@ function renderProgramasTab(){
           ${p.estado!=='CERRADO'&&p.estado!=='CANCELADO'?`<button class="btn xs bwarn" onclick="abrirCierre('${p.id}')">Cerrar</button>`:''}
           <button class="btn xs" style="background:#f0f9f6;color:var(--gm);border:1.5px solid #c3e0d6;" onclick="imprimirApertura('${p.id}')">📄 Apertura</button>
           ${p.estado==='CERRADO'?`<button class="btn xs" style="background:#f0fdf4;color:#065f46;border:1.5px solid #a7f3d0;" onclick="abrirDocCierre('${p.id}')">🖨️ Cierre</button>`:''}
+          <button class="btn xs" style="background:#f0f4ff;color:#3730a3;border:1.5px solid #c7d2fe;" onclick="abrirReplica('${p.id}')">📋 Replicar</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -4081,6 +4130,118 @@ function imprimirConstanciaEmergente(p,dia,fecha,locOrig,locNueva,motivo,autorid
   a.href=url;a.target='_blank';a.rel='noopener';
   document.body.appendChild(a);a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO RÉPLICA DE PROGRAMA
+// ══════════════════════════════════════════════════════════════
+let _replicaId=null;
+
+function abrirReplica(id){
+  const p=PROG.find(x=>x.id===id);if(!p)return;
+  _replicaId=id;
+  const fe=semDates(p.anio,p.semana);
+  const serv=SVCL[p.serv]||p.serv;
+  const subNom=p.subareaNom||(p.subareaId?((SA.find(s=>s.id===p.subareaId)||{}).nombre||''):'');
+  // Info del programa origen
+  document.getElementById('replicaServArea').textContent=serv+' — '+p.area+(subNom?' · '+subNom:'');
+  document.getElementById('replicaSemOrig').textContent='Sem. '+p.semana+' ('+fe.ini+')';
+  // Detalle
+  const locs=p.localizaciones||[];
+  const doms=[...new Set(locs.map(l=>l.domestico).filter(Boolean))];
+  document.getElementById('replicaDetalle').innerHTML=
+    '<strong>'+locs.length+' localizaciones</strong> programadas · '+
+    '<strong>'+[...new Set(locs.map(l=>l.dia))].join(', ')+'</strong> días de la semana'+
+    (doms.length?'<br>Domésticos: <strong>'+doms.join(', ')+'</strong>':'');
+  // Poblar selector de semana destino — semanas siguientes del mismo año o siguiente
+  const sel=document.getElementById('replicaSemSelect');
+  sel.innerHTML='<option value="">— Seleccionar semana destino —</option>';
+  // Semanas del mismo año después de la semana origen
+  const semsAnioActual=semsAnio(p.anio).filter(s=>s>p.semana);
+  semsAnioActual.forEach(s=>{
+    const f=semDates(p.anio,s);
+    const yaExiste=PROG.some(x=>x.serv===p.serv&&x.area===p.area&&x.anio===p.anio&&x.semana===s&&(x.subareaId||'')===(p.subareaId||'')&&!x.eliminado);
+    const o=document.createElement('option');
+    o.value=p.anio+'_'+s;
+    o.textContent='Sem. '+s+' ('+f.ini+')' + (yaExiste?' ⚠ Ya existe':'');
+    if(s===p.semana+1)o.selected=true;
+    sel.appendChild(o);
+  });
+  // Semanas del año siguiente
+  const anioSig=p.anio+1;
+  const semsSig=semsAnio(anioSig).slice(0,8);
+  semsSig.forEach(s=>{
+    const f=semDates(anioSig,s);
+    const yaExiste=PROG.some(x=>x.serv===p.serv&&x.area===p.area&&x.anio===anioSig&&x.semana===s&&(x.subareaId||'')===(p.subareaId||'')&&!x.eliminado);
+    const o=document.createElement('option');
+    o.value=anioSig+'_'+s;
+    o.textContent=anioSig+' · Sem. '+s+' ('+f.ini+')'+(yaExiste?' ⚠ Ya existe':'');
+    sel.appendChild(o);
+  });
+  // Actualizar badge destino al cambiar
+  sel.onchange=function(){
+    const val=sel.value;
+    if(!val){document.getElementById('replicaSemDest').textContent='Sem. —';return;}
+    const [a,s]=val.split('_').map(Number);
+    const f=semDates(a,s);
+    document.getElementById('replicaSemDest').textContent='Sem. '+s+' ('+f.ini+')';
+  };
+  // Trigger inicial
+  sel.dispatchEvent(new Event('change'));
+  document.getElementById('movReplica').classList.add('active');
+}
+
+function cerrarReplica(){
+  document.getElementById('movReplica').classList.remove('active');
+  _replicaId=null;
+}
+
+function confirmarReplica(){
+  const p=PROG.find(x=>x.id===_replicaId);if(!p)return;
+  const val=document.getElementById('replicaSemSelect').value;
+  if(!val){toast('⚠️ Selecciona la semana destino.');return;}
+  const [anioD,semD]=val.split('_').map(Number);
+  // Verificar duplicado
+  const yaExiste=PROG.some(x=>x.serv===p.serv&&x.area===p.area&&x.anio===anioD&&x.semana===semD&&(x.subareaId||'')===(p.subareaId||'')&&!x.eliminado);
+  if(yaExiste){
+    toast('⚠️ Ya existe un programa de '+SVCL[p.serv]+' para la Semana '+semD+'. Elimínalo primero si deseas reemplazarlo.');
+    return;
+  }
+  // Calcular fechas del nuevo período
+  const feD=semDates(anioD,semD);
+  const DIAS=['LUN','MAR','MIÉ','JUE','VIE'];
+  // Clonar localizaciones actualizando las fechas al nuevo período
+  const nuevasLocs=(p.localizaciones||[]).map(loc=>{
+    const diaIdx=DIAS.indexOf(loc.dia);
+    const base=new Date(feD.l);
+    const fechaReal=new Date(base);
+    fechaReal.setUTCDate(base.getUTCDate()+(diaIdx>=0?diaIdx:0));
+    const dd=String(fechaReal.getUTCDate()).padStart(2,'0');
+    const mm=String(fechaReal.getUTCMonth()+1).padStart(2,'0');
+    const aa=fechaReal.getUTCFullYear();
+    return{...loc,fecha:`${dd}/${mm}/${aa}`};
+  });
+  // Crear nuevo programa
+  const nuevo={
+    id:uid(),
+    serv:p.serv,area:p.area,anio:anioD,semana:semD,
+    caboId:p.caboId,mandoId:p.mandoId,
+    subareaId:p.subareaId||'',subareaNom:p.subareaNom||'',
+    obs:p.obs||'',
+    localizaciones:nuevasLocs,
+    actividades:p.actividades||[],
+    ejecucion:{},
+    estado:'PROGRAMADO',
+    cierreData:null,
+    creadoEn:new Date().toISOString(),
+    updatedAt:new Date().toISOString()
+  };
+  PROG.push(nuevo);
+  save(LS.P,PROG);
+  cerrarReplica();
+  aplicarFiltros();renderProgramasTab();renderTendencia();
+  toast('✅ Programa replicado a Semana '+semD+' correctamente. Revísalo en el Tablero.');
 }
 
 </script>
