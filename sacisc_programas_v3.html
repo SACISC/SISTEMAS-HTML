@@ -3019,7 +3019,8 @@ function imprimirApertura(id){
 
   const actRows=acts.map(a=>`<tr><td>✔ ${a.nombre}</td><td>${a.desc||'—'}</td></tr>`).join('');
 
-  const locRows=locs.map((loc,i)=>{
+  const _locsOrd=[...locs].sort((a,b)=>['LUN','MAR','MIÉ','JUE','VIE'].indexOf(a.dia)-['LUN','MAR','MIÉ','JUE','VIE'].indexOf(b.dia));
+  const locRows=_locsOrd.map((loc,i)=>{
     const sub=SA.find(s=>s.id===loc.subarea);
     const reg=(p.ejecucion||{})[`${loc.locId}_${loc.dia}`];
     const stSym=!reg||reg.status==='PENDIENTE'?'—':reg.status==='EJECUTADO'?'✅':reg.status==='DESVIACION'?'⚠️':'N/A';
@@ -3105,7 +3106,8 @@ function generarHtmlApertura(p,fe,cab,mnd,folio,hoy,acts,locs,locRows,actRows){
   const fechaEmision=fmtF(hoy);
 
   let locRowsAper='';
-  (locs||[]).forEach(function(loc,i){
+  const _locsAperOrd=[...(locs||[])].sort(function(a,b){return ['LUN','MAR','MIÉ','JUE','VIE'].indexOf(a.dia)-['LUN','MAR','MIÉ','JUE','VIE'].indexOf(b.dia);});
+  _locsAperOrd.forEach(function(loc,i){
     const sub=SA.find(function(s){return s.id===loc.subarea;});
     const sub2=sub?' &middot; '+sub.nombre:'';
     const bg=i%2?'background:#f4f9f7;':'background:#fff;';
