@@ -485,6 +485,10 @@ hr.fd{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0;}
         <select id="gAnio" onchange="renderProgramasTab()" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;background:#e8f3ef;color:#002f2a;border:1.5px solid #a0cfc3;"><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
         <select id="gSemana" onchange="renderProgramasTab()" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;background:#e8f3ef;color:#002f2a;border:1.5px solid #a0cfc3;min-width:140px;"><option value="">— Todas las semanas —</option></select>
         <select id="gServicio" onchange="renderProgramasTab()" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;background:#e8f3ef;color:#002f2a;border:1.5px solid #a0cfc3;"><option value="">— Todos los servicios —</option><option value="AV">🌿 Áreas Verdes</option><option value="DOM">🏢 Domésticos</option><option value="RB">🗑️ Recolección de Basura</option></select>
+        <button onclick="exportarExcelDetallado()" style="background:#1D6F42;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#1D6F42"/><rect x="2" y="3" width="20" height="4" rx="1" fill="#155234"/><path d="M8 10h8M8 14h8M8 18h5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Excel Detallado
+        </button>
       </div>
     </div>
     <div class="pb">
@@ -4244,6 +4248,188 @@ function confirmarReplica(){
   cerrarReplica();
   aplicarFiltros();renderProgramasTab();renderTendencia();
   toast('✅ Programa replicado a Semana '+semD+' correctamente. Revísalo en el Tablero.');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// EXPORTAR EXCEL DETALLADO — Super tabla completa
+// ══════════════════════════════════════════════════════════════
+async function exportarExcelDetallado(){
+  // Cargar SheetJS si no está disponible
+  if(typeof XLSX==='undefined'){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload=res;s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  // Aplicar filtros activos del Listado
+  const anio=parseInt(document.getElementById('gAnio').value)||AÑO;
+  const fsem=document.getElementById('gSemana')?parseInt(document.getElementById('gSemana').value)||0:0;
+  const fsv=document.getElementById('gServicio').value;
+  let datos=PROG.filter(p=>p.anio===anio&&!p.eliminado);
+  if(fsem)datos=datos.filter(p=>p.semana===fsem);
+  if(fsv)datos=datos.filter(p=>p.serv===fsv);
+  if(_AREA_LOGIN&&_AREA_LOGIN!=='TODOS')datos=datos.filter(p=>p.area===_AREA_LOGIN);
+  datos.sort((a,b)=>a.semana-b.semana||a.serv.localeCompare(b.serv));
+
+  if(!datos.length){toast('⚠️ Sin datos para exportar con los filtros actuales.');return;}
+
+  const DIAS=['LUN','MAR','MIÉ','JUE','VIE'];
+  const wb=XLSX.utils.book_new();
+
+  // ── HOJA 1: RESUMEN EJECUTIVO ──
+  const resumen=datos.map(p=>{
+    const fe=semDates(p.anio,p.semana);
+    const cab=getPer(p.caboId);
+    const mnd=getPer(p.mandoId);
+    const cump=calcCump(p);
+    const locs=p.localizaciones||[];
+    const ejec=p.ejecucion||{};
+    const ejecutadas=locs.filter(l=>(ejec[l.locId+'_'+l.dia]||{}).status==='EJECUTADO').length;
+    const desviaciones=locs.filter(l=>(ejec[l.locId+'_'+l.dia]||{}).status==='DESVIACION').length;
+    const pendientes=locs.filter(l=>!(ejec[l.locId+'_'+l.dia]||{}).status||((ejec[l.locId+'_'+l.dia]||{}).status==='PENDIENTE')).length;
+    const subNom=p.subareaNom||(p.subareaId?((SA.find(s=>s.id===p.subareaId)||{}).nombre||''):'');
+    return{
+      'Año':p.anio,
+      'Semana':p.semana,
+      'Período':fe.label,
+      'Servicio':p.serv==='AV'?'Áreas Verdes':p.serv==='DOM'?'Servicios Domésticos':'Recolección de Basura',
+      'Área Usuaria':p.area,
+      'Subárea':subNom||'—',
+      'Estado':EST_LABEL[p.estado]||p.estado,
+      'Responsable (Cabo)':cab?cab.nombre:'—',
+      'Ficha Responsable':cab?cab.ficha||'—':'—',
+      'Cargo Responsable':cab?cab.cargo||'—':'—',
+      'Jefe de Área':mnd?mnd.nombre:'—',
+      'Ficha Jefe de Área':mnd?mnd.ficha||'—':'—',
+      'Total Localizaciones':locs.length,
+      'Ejecutadas':ejecutadas,
+      'Desviaciones':desviaciones,
+      'Pendientes':pendientes,
+      'Cumplimiento (%)':cump,
+      'Observaciones Generales':p.obs||'',
+      'Fecha Cierre':p.cierreData?p.cierreData.fecha||'':'',
+      'Obs. Cierre':p.cierreData?p.cierreData.obs||'':'',
+      'Firma Responsable en Cierre':p.cierreData?p.cierreData.firmaCabo||'':'',
+      'Firma Jefe en Cierre':p.cierreData?p.cierreData.firmaMando||'':'',
+    };
+  });
+
+  // ── HOJA 2: DETALLE POR LOCALIZACIÓN ──
+  const detalle=[];
+  datos.forEach(p=>{
+    const fe=semDates(p.anio,p.semana);
+    const cab=getPer(p.caboId);
+    const mnd=getPer(p.mandoId);
+    const ejec=p.ejecucion||{};
+    const subNom=p.subareaNom||(p.subareaId?((SA.find(s=>s.id===p.subareaId)||{}).nombre||''):'');
+    const serv=p.serv==='AV'?'Áreas Verdes':p.serv==='DOM'?'Servicios Domésticos':'Recolección de Basura';
+    const locs=[...(p.localizaciones||[])].sort((a,b)=>DIAS.indexOf(a.dia)-DIAS.indexOf(b.dia));
+    locs.forEach(loc=>{
+      const key=loc.locId+'_'+loc.dia;
+      const reg=ejec[key]||{};
+      const locMeta=LC.find(l=>l.id===loc.locId)||{};
+      detalle.push({
+        'Año':p.anio,
+        'Semana':p.semana,
+        'Período':fe.label,
+        'Servicio':serv,
+        'Área Usuaria':p.area,
+        'Subárea Programa':subNom||'—',
+        'Estado Programa':EST_LABEL[p.estado]||p.estado,
+        'Responsable (Cabo)':cab?cab.nombre:'—',
+        'Ficha Responsable':cab?cab.ficha||'—':'—',
+        'Jefe de Área':mnd?mnd.nombre:'—',
+        'Día':loc.dia,
+        'Fecha':loc.fecha||'',
+        'Localización':loc.nombre||locMeta.nombre||'—',
+        'Tipo de Espacio':loc.tipo||locMeta.tipo||'—',
+        'Subárea Localización':loc.subarNombre||(loc.subarea?((SA.find(s=>s.id===loc.subarea)||{}).nombre||''):'—'),
+        'Doméstico Asignado':loc.domestico||'—',
+        'Estatus Ejecución':reg.status||'PENDIENTE',
+        'Doméstico que Ejecutó':reg.domEjec||'—',
+        'Tipo Desviación':reg.tipo?( {'CAMBIO_LOC':'Cambio de Localización','AUSENCIA':'Ausencia','CANCELACION':'Cancelación','EMERGENCIA':'Emergencia'}[reg.tipo]||reg.tipo):'—',
+        'Motivo Desviación':reg.motivo||'—',
+        'Nueva Localización (si aplica)':reg.nuevaLoc||'—',
+        'Autoridad que ordenó cambio':reg.autoridad||'—',
+        'Observaciones Ejecución':reg.obs||'—',
+        'Fecha/Hora Registro':reg.registradoEn?new Date(reg.registradoEn).toLocaleString('es-MX'):'—',
+      });
+    });
+  });
+
+  // ── HOJA 3: DOMÉSTICOS — resumen de asignaciones ──
+  const domesticos=[];
+  datos.filter(p=>p.serv==='DOM').forEach(p=>{
+    const fe=semDates(p.anio,p.semana);
+    const cab=getPer(p.caboId);
+    const ejec=p.ejecucion||{};
+    const subNom=p.subareaNom||(p.subareaId?((SA.find(s=>s.id===p.subareaId)||{}).nombre||''):'');
+    const locs=[...(p.localizaciones||[])].sort((a,b)=>DIAS.indexOf(a.dia)-DIAS.indexOf(b.dia));
+    locs.forEach(loc=>{
+      const key=loc.locId+'_'+loc.dia;
+      const reg=ejec[key]||{};
+      domesticos.push({
+        'Año':p.anio,'Semana':p.semana,'Período':fe.label,
+        'Área':p.area,'Subárea':subNom||'—',
+        'Cabo':cab?cab.nombre:'—',
+        'Día':loc.dia,'Fecha':loc.fecha||'',
+        'Localización':loc.nombre||'—',
+        'Doméstico Programado':loc.domestico||'—',
+        'Doméstico que Ejecutó':reg.domEjec||'—',
+        'Estatus':reg.status||'PENDIENTE',
+        'Observaciones':reg.obs||'—',
+      });
+    });
+  });
+
+  // ── HOJA 4: ESTADÍSTICAS ──
+  const stats=[];
+  // Por servicio
+  ['AV','DOM','RB'].forEach(sv=>{
+    const progs=datos.filter(p=>p.serv===sv);
+    if(!progs.length)return;
+    const totalLocs=progs.reduce((s,p)=>(p.localizaciones||[]).length+s,0);
+    const cumps=progs.map(p=>calcCump(p));
+    const promCump=cumps.length?Math.round(cumps.reduce((a,b)=>a+b,0)/cumps.length):0;
+    const cerrados=progs.filter(p=>p.estado==='CERRADO').length;
+    stats.push({
+      'Servicio':sv==='AV'?'Áreas Verdes':sv==='DOM'?'Domésticos':'Recolección de Basura',
+      'Total Programas':progs.length,
+      'Programas Cerrados':cerrados,
+      'Programas En Curso':progs.filter(p=>p.estado==='EN_CURSO').length,
+      'Total Localizaciones Programadas':totalLocs,
+      'Cumplimiento Promedio (%)':promCump,
+      'Semanas Cubiertas':[...new Set(progs.map(p=>p.semana))].length,
+    });
+  });
+
+  // Crear hojas con estilos de ancho
+  const ws1=XLSX.utils.json_to_sheet(resumen);
+  const ws2=XLSX.utils.json_to_sheet(detalle);
+  const ws3=XLSX.utils.json_to_sheet(domesticos.length?domesticos:[{'Info':'No hay programas de Domésticos en el filtro actual'}]);
+  const ws4=XLSX.utils.json_to_sheet(stats);
+
+  // Anchos de columna
+  ws1['!cols']=[{wch:6},{wch:8},{wch:32},{wch:22},{wch:12},{wch:20},{wch:12},{wch:28},{wch:12},{wch:25},{wch:28},{wch:12},{wch:10},{wch:10},{wch:12},{wch:10},{wch:16},{wch:30},{wch:14},{wch:30},{wch:28},{wch:28}];
+  ws2['!cols']=[{wch:6},{wch:8},{wch:32},{wch:22},{wch:12},{wch:20},{wch:12},{wch:28},{wch:12},{wch:28},{wch:6},{wch:12},{wch:25},{wch:20},{wch:20},{wch:22},{wch:16},{wch:22},{wch:22},{wch:25},{wch:22},{wch:22},{wch:30},{wch:22}];
+  ws3['!cols']=[{wch:6},{wch:8},{wch:32},{wch:12},{wch:20},{wch:28},{wch:6},{wch:12},{wch:25},{wch:22},{wch:22},{wch:16},{wch:30}];
+  ws4['!cols']=[{wch:25},{wch:16},{wch:18},{wch:18},{wch:28},{wch:22},{wch:18}];
+
+  XLSX.utils.book_append_sheet(wb,ws1,'Resumen Ejecutivo');
+  XLSX.utils.book_append_sheet(wb,ws2,'Detalle por Localización');
+  if(domesticos.length)XLSX.utils.book_append_sheet(wb,ws3,'Domésticos');
+  XLSX.utils.book_append_sheet(wb,ws4,'Estadísticas');
+
+  const fAnio=anio;
+  const fSem=fsem?'_S'+String(fsem).padStart(2,'0'):'';
+  const fServ=fsv?'_'+fsv:'';
+  const fArea=_AREA_LOGIN&&_AREA_LOGIN!=='TODOS'?'_'+_AREA_LOGIN:'';
+  XLSX.writeFile(wb,`SACISC_Programas${fArea}${fServ}${fSem}_${fAnio}.xlsx`);
+  toast('✅ Excel detallado exportado — '+datos.length+' programa(s), '+detalle.length+' registros de ejecución.');
 }
 
 </script>
