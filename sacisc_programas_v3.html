@@ -4884,6 +4884,7 @@ function confirmarReplicaCierre(){
   if(!val){toast('⚠️ Selecciona la semana destino.');return;}
   const parts=val.split('_');
   const anioD=parseInt(parts[0]),semD=parseInt(parts[1]);
+
   // Buscar programa destino
   const dest=PROG.find(x=>x.serv===p.serv&&x.area===p.area&&x.anio===anioD&&x.semana===semD&&(x.subareaId||'')===(p.subareaId||'')&&!x.eliminado);
   if(!dest){
@@ -4894,25 +4895,48 @@ function confirmarReplicaCierre(){
     toast('⚠️ El programa destino (Sem. '+semD+') ya está CERRADO. No se puede sobrescribir.');
     return;
   }
-  // Calcular fechas del período destino para actualizar las fechas de ejecución
+
   const feD=semDates(anioD,semD);
-  const feO=semDates(p.anio,p.semana);
   const DIAS_ORD=['LUN','MAR','MIÉ','JUE','VIE','SAB','DOM'];
-  // Copiar ejecución adaptando los locId del destino
-  const nuevaEjec={};
-  const locsOrig=p.localizaciones||[];
   const locsDest=dest.localizaciones||[];
   const ejecOrig=p.ejecucion||{};
-  // Para cada localización del destino, buscar la equivalente en origen por locId y día
+  const ejecDest=dest.ejecucion||{};
+  const ahora=new Date().toISOString();
+  let replicados=0;
+  let omitidos=0;
+
+  // Por cada localización del destino:
+  // - Si ya tiene estatus distinto de PENDIENTE → respetar, no tocar
+  // - Si está PENDIENTE o sin registro → marcar EJECUTADO con obs del origen
   locsDest.forEach(locD=>{
     const key=locD.locId+'_'+locD.dia;
-    const regOrig=ejecOrig[key];
-    if(regOrig){
-      // Actualizar fecha en el registro si existe
-      nuevaEjec[key]={...regOrig,registradoEn:new Date().toISOString()};
+    const regDest=ejecDest[key];
+
+    // Si ya tiene estatus registrado (EJECUTADO, DESVIACION, NO_APLICA) → no tocar
+    if(regDest&&regDest.status&&regDest.status!=='PENDIENTE'){
+      omitidos++;
+      return;
     }
+
+    // Buscar el registro origen equivalente
+    const regOrig=ejecOrig[key];
+
+    // Construir nuevo registro: EJECUTADO, obs del origen, marcado como REPLICADO
+    const nuevoReg={
+      status:'EJECUTADO',
+      tipo:'',
+      motivo:'',
+      obs:regOrig&&regOrig.obs?regOrig.obs:'',
+      domEjec:'',  // No replicar doméstico — puede variar
+      origen:'REPLICADO',  // Trazabilidad
+      replicadoDe:'Sem.'+p.semana+'/'+p.anio,
+      registradoEn:ahora
+    };
+    ejecDest[key]=nuevoReg;
+    replicados++;
   });
-  // Copiar también extras adaptados
+
+  // Replicar extras del origen con fechas actualizadas
   const extrasOrig=p.extras||[];
   const nuevosExtras=extrasOrig.map(ex=>{
     const diaIdx=DIAS_ORD.indexOf(ex.dia);
@@ -4920,22 +4944,30 @@ function confirmarReplicaCierre(){
     const f=new Date(base);f.setUTCDate(base.getUTCDate()+(diaIdx>=0?diaIdx:0));
     const dd=String(f.getUTCDate()).padStart(2,'0');
     const mm=String(f.getUTCMonth()+1).padStart(2,'0');
-    return{...ex,fecha:dd+'/'+mm+'/'+f.getUTCFullYear(),registradoEn:new Date().toISOString()};
+    return{...ex,fecha:dd+'/'+mm+'/'+f.getUTCFullYear(),registradoEn:ahora,origen:'REPLICADO'};
   });
-  dest.ejecucion=nuevaEjec;
-  dest.extras=nuevosExtras;
+
+  // Aplicar al destino
+  dest.ejecucion=ejecDest;
+  if(nuevosExtras.length)dest.extras=[...(dest.extras||[]),...nuevosExtras];
   dest.estado='EN_CURSO';
-  dest.updatedAt=new Date().toISOString();
+  dest.updatedAt=ahora;
+
   save(LS.P,PROG);
   cerrarReplica();
-  // Restaurar el botón de confirmar al original
+
+  // Restaurar botón al original
   const btnConf=document.querySelector('#movReplica .mf .btn.bpri');
   if(btnConf){
     btnConf.onclick=confirmarReplica;
     btnConf.innerHTML='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Confirmar Réplica';
   }
+
   aplicarFiltros();renderProgramasTab();renderTendencia();
-  toast('✅ Ejecución replicada a Semana '+semD+' — '+Object.keys(nuevaEjec).length+' registros copiados.');
+  let msg='✅ Réplica completada — '+replicados+' localización(es) marcadas como EJECUTADO';
+  if(omitidos)msg+=' · '+omitidos+' omitida(s) (ya tenían estatus)';
+  if(nuevosExtras.length)msg+=' · '+nuevosExtras.length+' actividad(es) extra copiadas';
+  toast(msg);
 }
 
 
