@@ -2662,7 +2662,7 @@ function abrirEjecucion(id){
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:.76rem;font-weight:700;color:${reg.status==='EJECUTADO'?'#065f46':reg.status==='DESVIACION'?'#c2410c':reg.status==='NO_APLICA'?'#6b7280':'var(--gray)'};">${stLabel}</span>
-          <button class="btn sm bpri" onclick="abrirRegDia('${id}','${loc.locId}','${loc.dia}','${loc.fecha||''}','${loc.domestico||''}')">Registrar</button>
+          <button class="btn sm bpri" onclick="abrirRegDia('${id}','${loc.locId}','${loc.dia}','${(loc.fecha||'').replace(/'/g,'&apos;')}','${(loc.domestico||'').replace(/'/g,'&apos;')}')">Registrar</button>
         </div>
       </div>`;
     });
@@ -2686,6 +2686,8 @@ function abrirRegDia(progId,locId,dia,fecha,domProg){
   const key=`${locId}_${dia}`;
   const reg=(p.ejecucion||{})[key]||{status:'PENDIENTE',tipo:'',motivo:'',obs:''};
   const loc=p.localizaciones.find(l=>l.locId===locId);
+  const _subNomRP2=p.subareaNom||((p.subareaId?((SA.find(s=>s.id===p.subareaId)||{}).nombre||''):''));
+  const _esHospProg=_subNomRP2.toUpperCase().includes('HOSPITAL');
   const optsHTML=['EJECUTADO','DESVIACION','NO_APLICA','PENDIENTE'].map(v=>{
     const labels={EJECUTADO:'✅ Ejecutado',DESVIACION:'⚠️ Desviación',NO_APLICA:'N/A — No aplica',PENDIENTE:'— Pendiente'};
     return `<option value="${v}" ${reg.status===v?'selected':''}>${labels[v]}</option>`;
