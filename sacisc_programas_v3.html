@@ -121,7 +121,7 @@ tbody td{padding:9px 13px;color:#333;}
 .mov{display:none;position:fixed;inset:0;background:rgba(0,47,42,.62);z-index:10000;align-items:center;justify-content:center;padding:16px;}
 .mov.active{display:flex;}
 .mc{background:#fff;border-radius:14px;width:100%;max-height:93vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,47,42,.3);}
-.mc.sm{max-width:500px;}.mc.md{max-width:720px;}.mc.lg{max-width:960px;}.mc.xl{max-width:1180px;width:96vw;}
+.mc.sm{max-width:500px;}.mc.md{max-width:720px;}.mc.lg{max-width:960px;}.mc.xl{max-width:1260px;width:98vw;overflow-x:hidden;}
 .mh{background:var(--gd);color:#fff;padding:18px 26px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
 .mh h2{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:9px;}
 .mc-x{background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:background .18s;}
@@ -1667,6 +1667,27 @@ async function sbDelete(tabla,id){
 const LS={P:'s3_programas',AB:'s3_actbase',SA:'s3_subareas',LC:'s3_locs',PE:'s3_personas'};
 const LS_TBL={[LS.P]:'programas',[LS.AB]:'actividades_base',[LS.SA]:'subareas',[LS.LC]:'localizaciones',[LS.PE]:'personas'};
 
+// ── Versión de datos — se actualiza con cada deploy ──
+const DATA_VERSION='202606260011';
+const DATA_VER_KEY='sacisc_data_version';
+
+// Si la versión cambió, limpiar localStorage (datos del HTML anterior)
+(function(){
+  const saved=localStorage.getItem(DATA_VER_KEY);
+  if(saved!==DATA_VERSION){
+    // Nueva versión detectada — limpiar caché local
+    const keysToKeep=[DATA_VER_KEY,'s3_deleted']; // conservar solo lista de eliminados
+    const toDelete=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(!keysToKeep.includes(k))toDelete.push(k);
+    }
+    toDelete.forEach(k=>localStorage.removeItem(k));
+    localStorage.setItem(DATA_VER_KEY,DATA_VERSION);
+    console.log('[SACISC] Nueva versión detectada ('+DATA_VERSION+'). localStorage limpiado — cargando desde Supabase.');
+  }
+})();
+
 // localStorage como caché local (fallback offline)
 const loadLocal=(k,d=[])=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}};
 const saveLocal=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
@@ -1676,8 +1697,8 @@ let PROG=loadLocal(LS.P), AB=loadLocal(LS.AB), SA=loadLocal(LS.SA), LC=loadLocal
 let _sbListo=false;
 
 // ── Convertir snake_case (Supabase) ↔ camelCase (app) ──
-function prog2sb(p){return{id:p.id,serv:p.serv,area:p.area,anio:p.anio,semana:p.semana,cabo_id:p.caboId,mando_id:p.mandoId,obs:p.obs||'',localizaciones:p.localizaciones||[],actividades:p.actividades||[],ejecucion:p.ejecucion||{},estado:p.estado||'PROGRAMADO',cierre_data:p.cierreData||null,actualizado_en:new Date().toISOString(),subarea_id:p.subareaId||'',subarea_nom:p.subareaNom||''}}
-function sb2prog(r){return{id:r.id,serv:r.serv,area:r.area,anio:r.anio,semana:r.semana,caboId:r.cabo_id,mandoId:r.mando_id,obs:r.obs||'',localizaciones:r.localizaciones||[],actividades:r.actividades||[],ejecucion:r.ejecucion||{},estado:r.estado||'PROGRAMADO',cierreData:r.cierre_data||null,updatedAt:r.actualizado_en||null,eliminado:r.eliminado||false,subareaId:r.subarea_id||'',subareaNom:r.subarea_nom||''}}
+function prog2sb(p){return{id:p.id,serv:p.serv,area:p.area,anio:p.anio,semana:p.semana,cabo_id:p.caboId,mando_id:p.mandoId,obs:p.obs||'',localizaciones:p.localizaciones||[],actividades:p.actividades||[],ejecucion:p.ejecucion||{},estado:p.estado||'PROGRAMADO',cierre_data:p.cierreData||null,actualizado_en:new Date().toISOString(),subarea_id:p.subareaId||'',subarea_nom:p.subareaNom||'',personal_ideal:p.personalIdeal||null}}
+function sb2prog(r){return{id:r.id,serv:r.serv,area:r.area,anio:r.anio,semana:r.semana,caboId:r.cabo_id,mandoId:r.mando_id,obs:r.obs||'',localizaciones:r.localizaciones||[],actividades:r.actividades||[],ejecucion:r.ejecucion||{},estado:r.estado||'PROGRAMADO',cierreData:r.cierre_data||null,updatedAt:r.actualizado_en||null,eliminado:r.eliminado||false,subareaId:r.subarea_id||'',subareaNom:r.subarea_nom||'',personalIdeal:r.personal_ideal||null}}
 function per2sb(p){return{id:p.id,nombre:p.nombre,cargo:p.cargo,rol:p.rol,area:p.area||'',ficha:p.ficha||'',eliminado:p.eliminado||false};}
 function sub2sb(s){return{id:s.id,area:s.area,nombre:s.nombre,descripcion:s.desc||'',eliminado:s.eliminado||false};}
 function loc2sb(l){return{id:l.id,area:l.area,subarea:l.subarea||'',nombre:l.nombre,tipo:l.tipo,servs:l.servs||[],descripcion:l.desc||'',eliminado:l.eliminado||false};}
@@ -2068,7 +2089,16 @@ function renderCards(datos){
           <div class="pck"><div class="pkv">${locs}</div><div class="pkl">Locs.</div></div>
           <div class="pck" style="background:${pct>=80?'#d1fae5':'#f3f4f6'};border-color:${pct>=80?'#a7f3d0':'#e0ede9'};"><div class="pkv" style="color:${pct>=80?'#065f46':'var(--gd)'};">${pct}%</div><div class="pkl">Avance</div></div>
           <div class="pck" style="${desv>0?'background:#fff7ed;border-color:#fed7aa;':''}"><div class="pkv" style="${desv>0?'color:#c2410c;':''}">${desv}</div><div class="pkl">Desv.</div></div>
-          <div class="pck"><div class="pkv">${p.semana}</div><div class="pkl">Semana</div></div>
+          ${(()=>{
+            if(!p.personalIdeal)return '<div class="pck"><div class="pkv">'+p.semana+'</div><div class="pkl">Semana</div></div>';
+            const _regs=Object.values(p.ejecucion||{}).filter(x=>x&&x.personalReal!=null);
+            const _avg=_regs.length?Math.round(_regs.reduce((s,x)=>s+x.personalReal,0)/_regs.length):null;
+            const _def=_avg!==null?_avg-p.personalIdeal:null;
+            const _col=_def!==null&&_def<0?'color:#c2410c;':'color:var(--gd);';
+            const _bg=_def!==null&&_def<0?'background:#fff7ed;border-color:#fed7aa;':'';
+            const _val=_avg!==null?_avg+'/'+p.personalIdeal:p.personalIdeal+'👥';
+            return '<div class="pck" style="'+_bg+'"><div class="pkv" style="'+_col+'">'+_val+'</div><div class="pkl">Personal</div></div>';
+          })()}
         </div>
         <div class="pc-resp">
           ${cab?`<div class="pc-rrow"><div class="av ${p.serv==='AV'?'av-av':p.serv==='RB'?'av-rb':'av-dom'}" style="width:24px;height:24px;font-size:.68rem;">${initials(cab.nombre)}</div><div class="pc-rname">${cab.nombre}</div><div class="pc-rrole">${p.serv==='AV'?'Cabo AV':p.serv==='RB'?'Cabo RB':'Cabo DOM'}</div></div>`:'<div style="font-size:.73rem;color:var(--err);">⚠ Sin cabo asignado</div>'}
@@ -2165,6 +2195,7 @@ function abrirNuevoPrograma(){
   // Limpiar primero
   document.getElementById('pServ').value='';
   if(document.getElementById('pSubarea'))document.getElementById('pSubarea').value='';
+  if(document.getElementById('pPersonalIdeal'))document.getElementById('pPersonalIdeal').value='';
   document.getElementById('pAnio').value=AÑO;poblarSemanasM(AÑO);
   setTimeout(()=>{document.getElementById('pSemana').value=SEM;actualizarLocProgramador();},80);
   document.getElementById('pObs').value='';
@@ -2211,6 +2242,8 @@ function editarPrograma(id){
   document.getElementById('pAnio').value=p.anio;poblarSemanasM(p.anio);
   setTimeout(()=>{document.getElementById('pSemana').value=p.semana;actualizarLocProgramador();},120);
   document.getElementById('pObs').value=p.obs||'';
+  const pPersEl=document.getElementById('pPersonalIdeal');
+  if(pPersEl)pPersEl.value=p.personalIdeal||'';
   document.getElementById('lbCabo').innerHTML=`Cabo ${p.serv==='AV'?'Áreas Verdes':p.serv==='DOM'?'Domésticos':'Recolección de Basura'} <span class="req">*</span>`;
   poblarCabosM(p.serv);poblarMandosM(p.area);
   setTimeout(()=>{
@@ -2683,9 +2716,11 @@ function guardarPrograma(){
     }
   }
   const locsList=_locsTemp;
+  const personalIdeal=parseInt(document.getElementById('pPersonalIdeal').value)||0;
   const obj={
     id:ei||uid(),serv,area,anio,semana,caboId,mandoId,
     subareaId:subareaId||'',subareaNom:subareaNom||'',
+    personalIdeal:personalIdeal,
     obs:document.getElementById('pObs').value.trim(),
     localizaciones:locsList,actividades:_actsTemp,
     ejecucion:ei?((PROG.find(p=>p.id===ei)||{}).ejecucion||{}):{},
@@ -2852,11 +2887,13 @@ function guardarRegDia(progId,locId,dia){
   const obs=document.getElementById('rdObs')?.value||'';
   const nuevaLoc=document.getElementById('rdNuevaLoc')?.value?.trim()||'';
   const autoridad=document.getElementById('rdAutoridad')?.value?.trim()||'';
+  const personalReal=parseInt(document.getElementById('rdPersonalReal')?.value)||null;
+  const personalMotivo=document.getElementById('rdPersonalMotivo')?.value||'';
   if(status==='DESVIACION'&&(!tipo||!motivo.trim())){toast('⚠️ Indique tipo y motivo de la desviación.');return;}
   if(status==='DESVIACION'&&tipo==='CAMBIO_LOC'&&!nuevaLoc){toast('⚠️ Indique el nombre de la nueva localización.');return;}
   if(!p.ejecucion)p.ejecucion={};
   const domEjec=document.getElementById('rdDomEjec')?.value?.trim()||'';
-  const reg={status,tipo,motivo:motivo.trim(),obs:obs.trim(),domEjec,nuevaLoc,autoridad,registradoEn:new Date().toISOString()};
+  const reg={status,tipo,motivo:motivo.trim(),obs:obs.trim(),domEjec,nuevaLoc,autoridad,personalReal,personalMotivo,registradoEn:new Date().toISOString()};
   p.ejecucion[`${locId}_${dia}`]=reg;
   saveLocal(LS.P,PROG);save(LS.P,PROG);
   refrescarDatalistDom();
@@ -3554,6 +3591,7 @@ function generarHtmlApertura(p,fe,cab,mnd,folio,hoy,acts,locs,locRows,actRows){
     +'<div class="sec"><div class="sect">Datos del Programa</div>'
     +'<table><tbody>'
     +'<tr><td style="width:50%;"><strong>Area Usuaria:</strong> '+p.area+(p.subareaNom?' &mdash; Subárea: <strong>'+p.subareaNom+'</strong>':'')+'</td><td><strong>Servicio:</strong> '+servLabel+'</td></tr>'
+      +'<tr><td><strong>Personal programado:</strong> '+(p.personalIdeal?p.personalIdeal+' empleado(s)':'No especificado')+'</td><td><strong>Responsable:</strong> '+cabNom+'</td></tr>'
     +'<tr><td><strong>'+caboLabel+':</strong> '+cabNom+'</td><td><strong>Jefe de Area:</strong> '+mndNom+'</td></tr>'
     +'<tr><td colspan="2"><strong>Observaciones:</strong> '+(p.obs||'Ninguna')+'</td></tr>'
     +'</tbody></table></div>'
@@ -3700,7 +3738,52 @@ function abrirDocCierre(id){
     +'<tbody>'+locRows+'</tbody></table></div>'
     +obsRow
     +'<div class="sec"><div class="sect">Firmas de Cierre y Validacion</div>'
-    +'<div class="info-box">El presente reporte certifica la evaluacion del Programa de Trabajo de '+servLabel+(esHospitalCie?' &mdash; <strong>Modalidad Servicio Continuo 24hrs / 3 Jornadas de 8hrs</strong>':'')+', Semana '+p.semana+' ('+fe.ini+' - '+fe.fin+'), Area '+p.area+'. Cumplimiento: '+pct+'%. Folio: '+folio+'.</div>'
+    +(function(){
+  if(!p.personalIdeal)return '';
+  var DIAS_ORD=['LUN','MAR','MIE','JUE','VIE','SAB','DOM'];
+  var MOTIVOS={'OK':'Sin déficit','AUSENCIA':'Ausencia justificada','PLAZA_BLOQUEADA':'Plaza bloqueada por RH','RH_NO_AUTORIZO':'RH no autorizó cobertura','CONTRATACION_PENDIENTE':'Contratación pendiente','OTRO':'Otro'};
+  var ejec=p.ejecucion||{};
+  var locs=p.localizaciones||[];
+  var diasProg=[...new Set(locs.map(function(l){return l.dia;}))].sort(function(a,b){return DIAS_ORD.indexOf(a)-DIAS_ORD.indexOf(b);});
+  if(!diasProg.length)return '';
+  var diasConPers={};
+  Object.values(ejec).forEach(function(r){if(r&&r.personalReal!=null&&r.dia)diasConPers[r.dia]={real:r.personalReal,motivo:r.personalMotivo||''};});
+  var totalIdeal=0,totalReal=0,diasConDato=0;
+  var rows=diasProg.map(function(dia){
+    var dp=diasConPers[dia]||{};
+    var real=dp.real!=null?dp.real:'—';
+    var motivo=dp.motivo?MOTIVOS[dp.motivo]||dp.motivo:'';
+    var deficit=(dp.real!=null)?dp.real-p.personalIdeal:null;
+    var color=deficit===null?'#555':deficit<0?'#c2410c':'#065f46';
+    totalIdeal+=p.personalIdeal;
+    if(dp.real!=null){totalReal+=dp.real;diasConDato++;}
+    return '<tr style="border-bottom:1px solid #e0ede9;">'
+      +'<td style="padding:5px 7px;font-weight:700;font-size:7.5pt;">'+dia+'</td>'
+      +'<td style="padding:5px 7px;font-size:7.5pt;text-align:center;">'+p.personalIdeal+'</td>'
+      +'<td style="padding:5px 7px;font-size:7.5pt;text-align:center;font-weight:700;color:'+color+';">'+real+'</td>'
+      +'<td style="padding:5px 7px;font-size:7pt;color:#555;">'+motivo+'</td>'
+      +'</tr>';
+  }).join('');
+  var deficit=totalIdeal-totalReal;
+  var pctDef=totalIdeal?Math.round((deficit/totalIdeal)*100):0;
+  return '<div style="margin-bottom:14px;">'
+    +'<div style="background:#002f2a;color:#fff;font-size:7pt;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:4px 10px;border-radius:3px;margin-bottom:7px;print-color-adjust:exact;-webkit-print-color-adjust:exact;">&#128101; Control de Personal &#8212; Programado vs Real</div>'
+    +'<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">'
+    +'<thead><tr style="background:#1e5b4f;print-color-adjust:exact;-webkit-print-color-adjust:exact;">'
+    +'<th style="color:#fff;padding:5px 7px;font-size:6.5pt;font-weight:700;text-align:left;">Día</th>'
+    +'<th style="color:#fff;padding:5px 7px;font-size:6.5pt;font-weight:700;text-align:center;">Programado</th>'
+    +'<th style="color:#fff;padding:5px 7px;font-size:6.5pt;font-weight:700;text-align:center;">Real</th>'
+    +'<th style="color:#fff;padding:5px 7px;font-size:6.5pt;font-weight:700;text-align:left;">Motivo del déficit</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody>'
+    +'<tfoot><tr style="background:#f0f9f6;">'
+    +'<td style="padding:5px 7px;font-size:7pt;font-weight:700;">TOTAL</td>'
+    +'<td style="padding:5px 7px;font-size:7pt;font-weight:700;text-align:center;">'+totalIdeal+' j/h</td>'
+    +'<td style="padding:5px 7px;font-size:7pt;font-weight:700;text-align:center;color:'+(deficit>0?'#c2410c':'#065f46')+';">'+totalReal+' j/h</td>'
+    +'<td style="padding:5px 7px;font-size:7pt;color:#555;">'+(deficit>0?'Déficit: '+deficit+' j/h (-'+pctDef+'%)':'Personal completo')+'</td>'
+    +'</tr></tfoot>'
+    +'</table></div>';
+})()
++'<div class="info-box">El presente reporte certifica la evaluacion del Programa de Trabajo de '+servLabel+(esHospitalCie?' &mdash; <strong>Modalidad Servicio Continuo 24hrs / 3 Jornadas de 8hrs</strong>':'')+', Semana '+p.semana+' ('+fe.ini+' - '+fe.fin+'), Area '+p.area+'. Cumplimiento: '+pct+'%. Folio: '+folio+'.</div>'
     +'<div class="sign-grid">'
     +'<div class="sign-block"><div class="sign-role">'+caboLabel.replace('Cabo ','Responsable ').replace('Cabo','Responsable')+' - Ejecuto</div>'
     +'<div style="margin-bottom:8px;"><div class="sign-line"></div><div class="sign-lbl">Nombre: '+firmaCabo+'</div></div>'
