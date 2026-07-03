@@ -8011,19 +8011,35 @@ function abrirDrillDownMensual(mes, mesLabel, totalLitros) {
     const exist = parseFloat(el.dataset.exist||0);
     const mes   = parseInt(el.dataset.mes||0);
     const dif   = parseFloat(el.dataset.dif||0);
+    const cu    = parseFloat(el.dataset.cu||0);
     const mesN  = MES_C[mes]||'';
     const difCol = Math.abs(dif)<50?'#a8e6cf':dif>0?'#ffcc80':'#ff8a80';
     const sitTxt = Math.abs(dif)<50
       ? '\u2705 Saldo migr\u00f3 correctamente'
-      : dif>0
-      ? '\u26a0\ufe0f Proveedor declar\u00f3 m\u00e1s de lo que correspond\u00eda'
+      : dif>0 ? '\u26a0\ufe0f Proveedor declar\u00f3 m\u00e1s de lo correspondido'
       : '\ud83d\udea8 Posible fuga \u2014 proveedor declar\u00f3 menos';
+    const fmtP = n => '$'+n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const hayImp = Math.abs(dif)>=50 && cu>0;
+    const impColor= dif<0?'#ff8a80':'#ffcc80';
+    const impBg   = dif<0?'rgba(255,80,80,0.15)':'rgba(255,160,0,0.12)';
+    const impBor  = dif<0?'rgba(255,80,80,0.35)':'rgba(255,160,0,0.35)';
+    const impLabel= dif<0?'Valor no declarado por el proveedor':'Excedente sobre remanente';
+    const impHTML = hayImp
+      ? '<div style="margin-top:6px;padding:6px 8px;border-radius:6px;background:'+impBg
+        +';border:1px solid '+impBor+';">'
+        +'<div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;margin-bottom:3px;">'
+        +'\ud83d\udcb0 Impacto econ\u00f3mico</div>'
+        +'<div style="font-family:Barlow Condensed,sans-serif;font-size:1.1rem;font-weight:900;color:'+impColor+';">'
+        +fmtP(Math.abs(dif)*cu)+'</div>'
+        +'<div style="font-size:0.6rem;color:#aaa;margin-top:1px;">'+impLabel+' \u00b7 '+fmtP(cu)+'/L</div>'
+        +'</div>' : '';
     const existRow = exist>0
       ? '<div style="border-top:1px solid rgba(45,158,126,0.3);padding-top:5px;margin-top:1px;">'
         +'<div style="display:flex;justify-content:space-between;gap:14px;">'
         +'<span style="font-size:0.65rem;color:#aaa;">Diferencia</span>'
         +'<span style="font-weight:900;font-size:0.9rem;color:'+difCol+';">'+(dif>=0?'+':'')+fmtT(dif)+' L</span></div>'
-        +'<div style="font-size:0.65rem;color:'+difCol+';margin-top:3px;">'+sitTxt+'</div></div>'
+        +'<div style="font-size:0.65rem;color:'+difCol+';margin-top:3px;">'+sitTxt+'</div>'
+        +impHTML+'</div>'
       : '<div style="font-size:0.63rem;color:#ff8a80;margin-top:2px;">\u26a0\ufe0f Sin dato declarado</div>';
     return '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:0.75rem;font-weight:900;'
       +'color:#a8e6cf;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;'
@@ -13707,6 +13723,68 @@ function renderDesgloseDiario(estId) {
     });
   }
 
+
+  // ── Líneas de simulación: vales PENDIENTE / EN SURTIMIENTO ──────────
+  // Proyecta en qué día el tanque necesitará cada vale según el consumo diario
+  if (promDiario > 0 && estId && estId !== '_total') {
+    const _prods2 = combFilt ? [combFilt] : ['MAGNA','DIESEL'];
+    let _valesSim = [];
+    _prods2.forEach(prod => {
+      const _blkSim = VALES_RETIRO[estId+'||'+prod]?.meses?.[mesNum];
+      if (!_blkSim?.vales?.length) return;
+      _blkSim.vales.forEach(v => {
+        const _es = String(v.estatus||'').toUpperCase().trim();
+        if (_es !== 'SURTIDO') _valesSim.push({...v, prod});
+      });
+    });
+
+    if (_valesSim.length) {
+      // Colores por índice de vale
+      const _colsSim = ['#ff9800','#9c27b0','#2196f3','#00bcd4','#8bc34a'];
+      // Simular nivel encadenado: cuándo se necesita cada vale
+      let _nivelSim  = nivelUltimo;
+      let _diaSim    = ultimoDia;
+
+      _valesSim.forEach((v, vi) => {
+        if (_nivelSim <= 0 || promDiario <= 0) return;
+        // Día en que el nivel llegará a 0 sin esta pipa
+        const _diasAut  = Math.floor(_nivelSim / promDiario);
+        const _diaUso   = Math.min(_diaSim + _diasAut, diasEnMes);
+        const _idxUso   = dias.indexOf(_diaUso);
+        if (_idxUso < 0) return;
+
+        const _col  = _colsSim[vi % _colsSim.length];
+        const _cx   = PAD.left + _idxUso * cW + cW/2;
+        const _vol  = v.vol || 0;
+        const _folio= String(v.folio||'Vale '+(vi+1)).replace('URSS-CCZAD ','').replace(' 2026','');
+
+        // Línea vertical punteada
+        svg += `<line x1="${_cx.toFixed(1)}" y1="${PAD.top+2}" x2="${_cx.toFixed(1)}" y2="${y0}"
+          stroke="${_col}" stroke-width="2" stroke-dasharray="5,3" opacity="0.85"/>`;
+
+        // Triángulo apuntando abajo desde arriba
+        const _ay = PAD.top + 28 + vi * 26; // escalonar verticalmente si hay varios
+        svg += `<polygon points="${_cx},${_ay+12} ${_cx-6},${_ay} ${_cx+6},${_ay}"
+          fill="${_col}" opacity="0.95"/>`;
+
+        // Badge con folio y volumen
+        const _lbl = `🚛 ${_folio} · ${(_vol/1000).toFixed(0)}k L`;
+        const _lW  = Math.min(_lbl.length * 6.2 + 14, 180);
+        const _lX  = Math.max(PAD.left+2, Math.min(_cx - _lW/2, W-PAD.right-_lW-4));
+        const _lY  = _ay + 14;
+        svg += `<rect x="${_lX.toFixed(1)}" y="${_lY.toFixed(1)}"
+          width="${_lW.toFixed(1)}" height="18" rx="4"
+          fill="${_col}" opacity="0.92"/>`;
+        svg += `<text x="${(_lX+_lW/2).toFixed(1)}" y="${(_lY+13).toFixed(1)}"
+          text-anchor="middle" font-size="9.5" font-weight="800" fill="#fff">${_lbl}</text>`;
+
+        // Actualizar nivel simulado para el siguiente vale
+        _nivelSim = _nivelSim - (_diasAut * promDiario) + _vol;
+        _diaSim   = _diaUso;
+      });
+    }
+  }
+
   // ── Flecha / marca de agotamiento estimado ───────────────────────────
   if (diaAgotamiento) {
     const idxAgot = dias.indexOf(diaAgotamiento);
@@ -13869,6 +13947,253 @@ function renderDesgloseDiario(estId) {
 
   svg += '</svg>';
   document.getElementById('ddChartWrap').innerHTML = svg;
+
+  // Renderizar panel de simulación de abastecimiento
+  if (estId && estId !== '_total') renderSimPanel(estId);
+  else { const p = document.getElementById('ddSimPanel'); if(p) p.style.display='none'; }
+}
+
+function cerrarDesgloseDiario() {
+  document.getElementById('desgDiarioModal').style.display = 'none';
+  document.getElementById('ddChartWrap').innerHTML = '';
+  // Resetear panel simulación
+  const panel = document.getElementById('ddSimPanel');
+  if (panel) panel.style.display = 'none';
+  const content = document.getElementById('ddSimContent');
+  if (content) content.style.display = 'none';
+}
+
+function toggleSimPanel() {
+  const content  = document.getElementById('ddSimContent');
+  const chevron  = document.getElementById('ddSimChevron');
+  const expanded = content.style.display !== 'none';
+  content.style.display  = expanded ? 'none' : 'block';
+  chevron.style.transform = expanded ? '' : 'rotate(180deg)';
+}
+
+function renderSimPanel(estId) {
+  const { mesNum, anioNum, combFilt } = _DD;
+  const fmt  = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const diasEnMes = new Date(anioNum, mesNum, 0).getDate();
+  const MES_N = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  // Obtener vales pendientes/en surtimiento de la estación activa
+  const prods = combFilt ? [combFilt] : ['MAGNA','DIESEL'];
+  let valesPend = [];
+  prods.forEach(prod => {
+    const blk = VALES_RETIRO[estId+'||'+prod]?.meses?.[mesNum];
+    if (!blk?.vales?.length) return;
+    blk.vales.forEach(v => {
+      const es = String(v.estatus||'').toUpperCase().trim();
+      if (es === 'SURTIDO') return; // ya llegó, no simular
+      valesPend.push({ ...v, prod, est: estId });
+    });
+  });
+
+  // Consumo promedio diario — estructura real: byEst[id].litros = {dia: litros}
+  const byEstData     = _DD.byEst[estId] || {};
+  const litrosPorDia  = byEstData.litros || {};
+  const diasConConsL  = Object.values(litrosPorDia).filter(v=>v>0).length;
+  const totalLitros   = Object.values(litrosPorDia).reduce((s,v)=>s+(v||0),0);
+  const consDiario    = diasConConsL>0 ? totalLitros/diasConConsL : 0;
+
+  // Último día con consumo registrado
+  const diasConDatos  = Object.keys(litrosPorDia).map(Number)
+    .filter(d=>litrosPorDia[d]>0).sort((a,b)=>a-b);
+  const ultimoDia     = diasConDatos.length ? diasConDatos[diasConDatos.length-1] : 0;
+
+  // Nivel actual = invIni + entradas surtidas − consumo real acumulado
+  const prod0  = combFilt || prods[0] || 'MAGNA';
+  const invIni = INVENTARIO_TANQUES[estId+'||'+prod0]?.meses?.[mesNum]?.invInicial || 0;
+  let entSurt  = 0;
+  prods.forEach(prod => {
+    const blk = VALES_RETIRO[estId+'||'+prod]?.meses?.[mesNum];
+    blk?.vales?.forEach(v => {
+      if (String(v.estatus||'').toUpperCase().trim()==='SURTIDO') entSurt += v.vol||0;
+    });
+  });
+  const nivelActual = Math.max(0, invIni + entSurt - totalLitros);
+
+  const panel   = document.getElementById('ddSimPanel');
+  const badge   = document.getElementById('ddSimBadge');
+  const body    = document.getElementById('ddSimBody');
+
+  if (!valesPend.length) {
+    panel.style.display = 'block';
+    badge.textContent   = 'Sin vales pendientes';
+    badge.style.background = '#aaa';
+    body.innerHTML = `<div style="text-align:center;padding:20px;color:#aaa;font-size:0.8rem;">
+      No hay vales pendientes de surtir para esta estación en ${MES_N[mesNum]}.</div>`;
+    return;
+  }
+
+  panel.style.display   = 'block';
+  badge.textContent     = valesPend.length + ' vale' + (valesPend.length>1?'s':'') + ' pendiente' + (valesPend.length>1?'s':'');
+  badge.style.background = '#ff9800';
+  badge.style.color      = '#fff';
+
+  // Calcular escenarios por cada vale pendiente
+  const cards = valesPend.map((v, idx) => {
+    const vol   = v.vol || 0;
+    const prod  = v.prod;
+    const folio = v.folio || ('Vale '+(idx+1));
+    const es    = String(v.estatus||'').toUpperCase().trim();
+    const esBadge = es.includes('EN SURT')
+      ? '<span style="background:#ff9800;color:#fff;border-radius:4px;padding:1px 6px;font-size:0.65rem;font-weight:800;">En Surtimiento</span>'
+      : '<span style="background:#c0392b;color:#fff;border-radius:4px;padding:1px 6px;font-size:0.65rem;font-weight:800;">Pendiente</span>';
+
+    // Slider: día estimado de llegada — siempre de día 1 a fin de mes
+    // Default: día siguiente al último con datos (o día 1 si no hay datos)
+    const diaMin     = 1;
+    const diaDefault = ultimoDia>0 ? Math.min(ultimoDia+1, diasEnMes) : 1;
+
+    // Función de simulación inline
+    const simId = 'sim_'+idx;
+
+    return `
+    <div style="border:1.5px solid #c8ddd8;border-radius:10px;background:#fff;
+      overflow:hidden;break-inside:avoid;page-break-inside:avoid;">
+      <!-- Card header -->
+      <div style="background:linear-gradient(135deg,#1e5b4f,#2d9e7e);
+        padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;
+            font-weight:900;color:#fff;letter-spacing:0.04em;">${folio}</div>
+          <div style="font-size:0.62rem;color:rgba(255,255,255,0.75);margin-top:1px;">
+            ${fmt(vol)} L · ${prod} ${esBadge}</div>
+        </div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;
+          font-weight:900;color:#11CD78;">${fmt(vol)} L</div>
+      </div>
+      <!-- Slider de día estimado de llegada -->
+      <div style="padding:10px 14px 6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;
+          margin-bottom:4px;">
+          <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.06em;color:#888;">📅 Día estimado de llegada</span>
+          <span id="${simId}_dia" style="font-family:'Barlow Condensed',sans-serif;
+            font-size:1rem;font-weight:900;color:#1e5b4f;">Día ${diaDefault}</span>
+        </div>
+        <input type="range" min="1" max="${diasEnMes}" value="${diaDefault}" step="1"
+          style="width:100%;accent-color:#1e5b4f;"
+          oninput="actualizarSimVale(${idx}, this.value, ${nivelActual}, ${consDiario}, ${vol}, ${diasEnMes}, ${ultimoDia})">
+        <div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#ccc;">
+          <span>Día 1</span><span>Día ${diasEnMes}</span>
+        </div>
+      </div>
+      <!-- Resultado simulación -->
+      <div id="${simId}_result" style="padding:0 14px 12px;"></div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `
+    <!-- Info del estado actual -->
+    <div style="background:#f0f7f4;border-radius:8px;padding:10px 14px;
+      margin-bottom:12px;border-left:3px solid #2d9e7e;font-size:0.75rem;">
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+        <div><span style="color:#888;">Nivel actual estimado:</span>
+          <b style="color:#1e5b4f;margin-left:4px;">${fmt(nivelActual)} L</b></div>
+        <div><span style="color:#888;">Consumo prom./día:</span>
+          <b style="color:#1e5b4f;margin-left:4px;">${fmt(consDiario)} L/día</b></div>
+        <div><span style="color:#888;">Días restantes sin pipa:</span>
+          <b style="color:${consDiario>0&&nivelActual/consDiario<7?'#c0392b':'#1e5b4f'};margin-left:4px;">
+            ${consDiario>0?Math.floor(nivelActual/consDiario)+' días':'—'}</b></div>
+        <div><span style="color:#888;">Días en mes:</span>
+          <b style="color:#555;margin-left:4px;">${diasEnMes} días</b></div>
+      </div>
+    </div>
+    <!-- Cards de vales -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">
+      ${cards}
+    </div>`;
+
+  // Inicializar todos los sliders con su valor default
+  valesPend.forEach((v, idx) => {
+    const diasEnMesL = new Date(anioNum, mesNum, 0).getDate();
+    const diaMin     = Math.max(1, ultimoDia);
+    const diaDefault = Math.min(diaMin+1, diasEnMesL);
+    actualizarSimVale(idx, diaDefault, nivelActual, consDiario, v.vol||0, diasEnMesL, ultimoDia);
+  });
+}
+
+function actualizarSimVale(idx, diaLlegada, nivelActual, consDiario, volPipa, diasEnMes, ultimoDia) {
+  const simId = 'sim_'+idx;
+  const diaEl = document.getElementById(simId+'_dia');
+  const resEl = document.getElementById(simId+'_result');
+  if (!diaEl || !resEl) return;
+
+  diaLlegada = parseInt(diaLlegada);
+  diaEl.textContent = 'Día ' + diaLlegada;
+  const fmt = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+
+  // Nivel proyectado al día de llegada (sin la pipa)
+  const diasTranscurridos = Math.max(0, diaLlegada - ultimoDia);
+  const nivelAlLlegar     = Math.max(0, nivelActual - consDiario * diasTranscurridos);
+  // Nivel después de la pipa
+  const nivelConPipa      = nivelAlLlegar + volPipa;
+  // Días adicionales que da la pipa
+  const diasConPipa       = consDiario>0 ? Math.floor(nivelConPipa / consDiario) : diasEnMes;
+  // Día de agotamiento con la pipa
+  const diaAgotamiento    = diaLlegada + diasConPipa;
+  // ¿Alcanza hasta fin de mes?
+  const alcanzaMes        = diaAgotamiento >= diasEnMes;
+  // Consumo que falta en el mes después de la pipa
+  const diasRestantesMes  = diasEnMes - diaLlegada;
+  const consumoRestante   = diasRestantesMes * consDiario;
+  const saldoFinMes       = nivelConPipa - consumoRestante;
+
+  const col   = alcanzaMes ? '#27ae60' : '#c0392b';
+  const icon  = alcanzaMes ? '✅' : '⚠️';
+  const msg   = alcanzaMes
+    ? `Cubre hasta el fin de mes con <b style="color:#27ae60">${fmt(Math.max(0,saldoFinMes))} L</b> de saldo`
+    : `Se agota estimado el <b style="color:#c0392b">día ${Math.min(diaAgotamiento, diasEnMes)}</b> — faltan ${fmt(Math.abs(saldoFinMes))} L`;
+
+  resEl.innerHTML = `
+    <div style="display:grid;gap:5px;">
+      <div style="display:flex;gap:8px;align-items:stretch;">
+        <div style="flex:1;background:#f0f7f4;border-radius:6px;padding:7px 10px;text-align:center;">
+          <div style="font-size:0.58rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;">
+            Nivel al llegar</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;
+            font-weight:900;color:#e67e22;">${fmt(nivelAlLlegar)} L</div>
+        </div>
+        <div style="flex:1;background:#e8f5e9;border-radius:6px;padding:7px 10px;text-align:center;">
+          <div style="font-size:0.58rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;">
+            Nivel con pipa</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;
+            font-weight:900;color:#1e5b4f;">${fmt(nivelConPipa)} L</div>
+        </div>
+        <div style="flex:1;background:#e8f0fb;border-radius:6px;padding:7px 10px;text-align:center;">
+          <div style="font-size:0.58rem;color:#888;text-transform:uppercase;letter-spacing:0.06em;">
+            Autonomía +pipa</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;
+            font-weight:900;color:#1565c0;">${diasConPipa} días</div>
+        </div>
+      </div>
+      <!-- Diagnóstico -->
+      <div style="background:${alcanzaMes?'#e8f5e9':'#fde8e8'};border-radius:6px;
+        padding:7px 12px;font-size:0.72rem;color:#555;border-left:3px solid ${col};">
+        ${icon} ${msg}
+      </div>
+      <!-- Mini barra de progreso del mes -->
+      <div style="background:#eee;border-radius:4px;height:6px;overflow:hidden;position:relative;">
+        <!-- Consumido hasta hoy -->
+        <div style="position:absolute;left:0;top:0;height:100%;
+          background:#c8ddd8;width:${Math.min(100,(ultimoDia/diasEnMes)*100).toFixed(1)}%;"></div>
+        <!-- Llegada pipa -->
+        <div style="position:absolute;top:0;height:100%;width:2px;background:#1e5b4f;
+          left:${Math.min(100,(diaLlegada/diasEnMes)*100).toFixed(1)}%;"></div>
+        <!-- Agotamiento -->
+        ${!alcanzaMes?`<div style="position:absolute;top:0;height:100%;width:2px;background:#c0392b;
+          left:${Math.min(100,(Math.min(diaAgotamiento,diasEnMes)/diasEnMes)*100).toFixed(1)}%;"></div>`:''}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.58rem;color:#aaa;">
+        <span>Día 1</span>
+        <span style="color:#1e5b4f;font-weight:700;">📦 Día ${diaLlegada}</span>
+        ${!alcanzaMes?`<span style="color:#c0392b;font-weight:700;">⚠ Día ${Math.min(diaAgotamiento,diasEnMes)}</span>`:'<span style="color:#27ae60;font-weight:700;">✅ Fin mes</span>'}
+        <span>Día ${diasEnMes}</span>
+      </div>
+    </div>`;
 }
 
 function cerrarDesgloseDiario() {
@@ -17329,6 +17654,7 @@ function renderCvp() {
                     data-exist="${f._existSigFl}"
                     data-mes="${f._mesSigFl}"
                     data-dif="${f._difMigr}"
+                    data-cu="${f.cu}"
                     style="cursor:help;display:inline-block;text-align:right;">
                     <div style="font-weight:800;color:#c0392b;">${fmtM(f.saldoImp)}</div>
                     <div style="font-size:0.65rem;color:#e67e22;">${fmt(f.saldoL)} L</div>
@@ -20809,9 +21135,32 @@ function renderPronostico() {
     <!-- KPIs de referencia -->
     <div id="ddKpis" style="flex-shrink:0;"></div>
 
-    <!-- Área de la gráfica SVG — scroll horizontal si hay muchos días -->
-    <div style="flex:1;overflow:auto;padding:10px 18px 16px;">
+    <!-- Área de la gráfica SVG -->
+    <div style="flex:1;overflow:auto;padding:10px 18px 0;">
       <div id="ddChartWrap" style="width:100%;"></div>
+    </div>
+
+    <!-- Panel colapsable: Simulación de Abastecimiento -->
+    <div id="ddSimPanel" style="flex-shrink:0;border-top:2px solid #e0e8e4;
+      background:#f8fbf9;display:none;">
+      <!-- Header colapsable -->
+      <div onclick="toggleSimPanel()" style="display:flex;align-items:center;justify-content:space-between;
+        padding:10px 18px;cursor:pointer;background:#002f2a;user-select:none;"
+        title="Clic para expandir/colapsar">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:900;
+            color:#11CD78;text-transform:uppercase;letter-spacing:0.08em;">
+            🚛 Simulación de Abastecimiento — Vales Pendientes
+          </span>
+          <span id="ddSimBadge" style="background:#11CD78;color:#002f2a;border-radius:10px;
+            padding:1px 8px;font-size:0.7rem;font-weight:800;"></span>
+        </div>
+        <span id="ddSimChevron" style="color:#11CD78;font-size:1rem;transition:transform 0.2s;">▼</span>
+      </div>
+      <!-- Contenido -->
+      <div id="ddSimContent" style="display:none;padding:14px 18px 16px;">
+        <div id="ddSimBody"></div>
+      </div>
     </div>
 
   </div>
