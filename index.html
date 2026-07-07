@@ -15,7 +15,7 @@
 // ═══════════════════════════════════════════════════════════
 // ── Saldo Sobrante — constantes compartidas ───────────────────────────────
 const _SS_EST_IDS = ['7394','9602','9851','10885'];
-const _SS_EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'Graham','10885':'Las Choapas'};
+const _SS_EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
 const _SS_EST_COL = {'7394':'#1e5b4f','9602':'#27ae60','9851':'#2d9e7e','10885':'#52c49a'};
 const _SS_MES_N   = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',
                      7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
@@ -224,7 +224,7 @@ function renderGraficaHistorica() {
                  7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
   const ests  = fEst  ? [fEst]  : ['7394','9602','9851','10885'];
   const prods = fProd ? [fProd] : ['MAGNA','DIESEL'];
-  const EST_N = {'7394':'Los Cocos','9602':'Gavilán','9851':'Graham','10885':'Las Choapas'};
+  const EST_N = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
 
   // Recopilar todos los meses con datos
   const mesesSet = new Set();
@@ -962,8 +962,8 @@ function renderMonitor() {
                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const fmt   = n => n.toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
 
-  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'Graham','10885':'Las Choapas'};
-  const EST_ID  = {'7394':'Est. 7394','9602':'Est. 9602','9851':'Est. 9851','10885':'Est. 10885'};
+  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
+  const EST_ID  = {'7394':'Est. 7394 · Los Cocos','9602':'Est. 9602 · Gavilán','9851':'Est. 9851 · El Graham','10885':'Est. 10885 · Las Choapas'};
   const PROD_COL= {'MAGNA':'#1D9E75','DIESEL':'#685860'};
   const PROD_LT = {'MAGNA':'#e8f5f0','DIESEL':'#f0eeed'};
 
@@ -2333,7 +2333,8 @@ function renderRendDiario(rows, mes) {
                 const v = item.raw;
                 if (!bench) return ` Rendimiento: ${v.toFixed(2)} km/L`;
                 const est = v<bench.min?'⚠️ Bajo':v>bench.max?'🔝 Alto':'✅ Óptimo';
-                return ` Rendimiento: ${v.toFixed(2)} km/L — ${est}`;
+                const _estNomTip = ({'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'})[String(est||'').trim()]||est;
+              return ` Rendimiento: ${v.toFixed(2)} km/L — ${_estNomTip} (${est})`;
               }
               if (item.datasetIndex===1) return ` Mín esperado: ${item.raw} km/L`;
               if (item.datasetIndex===2) return ` Máx esperado: ${item.raw} km/L`;
@@ -2801,6 +2802,7 @@ function renderRendDiario(rows, mes) {
   ═══════════════════════════════════════════ */
   #printReport { display: none; }
   #printSaldoRemanente { display: none; }
+  #printPatronComport  { display: none; }
 
   @media print {
     @page { size: Letter portrait; margin: 14mm 16mm 14mm 16mm; }
@@ -2808,6 +2810,7 @@ function renderRendDiario(rows, mes) {
     body { background: #fff !important; font-family: 'Barlow', 'Arial', sans-serif; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #printReport { display: block !important; width: 100%; }
     #printSaldoRemanente { display: block !important; width: 100%; }
+    #printPatronComport  { display: block !important; width: 100%; }
     .rpt-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1e5b4f; padding-bottom: 10px; margin-bottom: 14px; }
     .rpt-header-left { display: flex; align-items: center; gap: 14px; }
     .rpt-header-left img { height: 46px; }
@@ -5317,6 +5320,18 @@ function renderRendDiario(rows, mes) {
         </svg>
         Evaluación
       </button>
+      <button id="btnPatronComport" class="btn-export" onclick="abrirPatronComportamiento()"
+        style="display:none;background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;
+          border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;
+          font-size:0.82rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;
+          align-items:center;gap:6px;"
+        title="Patrón de comportamiento de consumo — solo disponible con mes específico">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        Patrón
+      </button>
       <button id="btnTrazabilidad" class="btn-export btn-traz" onclick="abrirTrazabilidad()">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <circle cx="12" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/>
@@ -5324,6 +5339,18 @@ function renderRendDiario(rows, mes) {
           <line x1="12" y1="13" x2="5" y2="16"/>
         </svg>
         Trazabilidad
+      </button>
+      <button class="btn-export" onclick="abrirEstacionesServicio()"
+        style="display:none;background:linear-gradient(135deg,#0d47a1,#1976d2);color:#fff;border:none;
+          border-radius:8px;padding:7px 14px;cursor:pointer;
+          font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;font-weight:800;
+          letter-spacing:0.06em;text-transform:uppercase;
+          align-items:center;gap:6px;">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Estaciones
       </button>
     </div>
 
@@ -5706,6 +5733,7 @@ function renderRendDiario(rows, mes) {
 
 <!-- ═══════════════════════════ PRINT REPORT (hidden on screen) ═══════════════════════════ -->
 <div id="printSaldoRemanente"></div>
+<div id="printPatronComport"></div>
 <div id="printReport">
   <div class="rpt-header">
     <div class="rpt-header-left">
@@ -6196,7 +6224,7 @@ function abrirModalRemanente() {
 
   // Reutilizar constantes del contexto CVP
   const EST_IDS = ['7394','9602','9851','10885'];
-  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'Graham','10885':'Las Choapas'};
+  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
   const EST_COL = {'7394':'#1e5b4f','9602':'#27ae60','9851':'#2d9e7e','10885':'#52c49a'};
   const MES_NOM = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
   const fmt  = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -6263,7 +6291,7 @@ function abrirModalRemanente() {
       : 'linear-gradient(135deg,#fde8e8,#fff5f5)';
     const pctBar   = Math.min(100, r.pct);
     const barCol   = r.pct>105?'#c0392b':r.pct>=90?'#27ae60':r.pct>=80?'#e67e22':'#c0392b';
-    const estado   = r.pct>105?'Sobreconsumo':r.pct>=90?'En rango':r.pct>=80?'Déficit leve':'Déficit crítico';
+    const estado   = r.pct>105?'Dispersión autorizada':r.pct>100?'Uso adicional':r.pct>=90?'En rango':r.pct>=80?'Déficit leve':'Déficit crítico';
     const estadoCol= r.pct>105?'#c0392b':r.pct>=90?'#27ae60':r.pct>=80?'#e67e22':'#c0392b';
 
     // Mini timeline de meses
@@ -7086,6 +7114,13 @@ function buscar() {
   currentPage = 1;
   rptContext = { usuario, mes, secundario, tipo: tipoBusqueda };
 
+  // Botón Patrón: solo visible con búsqueda por USUARIO y mes específico
+  const btnPat2 = document.getElementById('btnPatronComport');
+  if (btnPat2) {
+    const mostrar = tipoBusqueda === 'usuario' && mes > 0 && rows.length > 0;
+    btnPat2.style.display = mostrar ? 'flex' : 'none';
+  }
+
   if (!rows.length) { alert('No se encontraron registros para los criterios seleccionados.'); return; }
 
   const totalLitros = rows.reduce((s,r) => s + r.litros, 0);
@@ -7146,9 +7181,11 @@ function buscar() {
   renderTable();
   renderChart(rows, mes);
   document.getElementById('resultsSection').className = 'results-section visible fade-in';
-  // Mostrar botón de observaciones en el panel mensual
   const btnObs = document.getElementById('btnObsMensual');
   if (btnObs) btnObs.style.display = 'flex';
+  // Botón patrón: solo visible cuando hay mes específico
+  const btnPat = document.getElementById('btnPatronComport');
+  if (btnPat) btnPat.style.display = tipoBusqueda==='usuario'&&currentRows.length ? 'flex' : 'none';
   // Invalidar cache anual si el usuario/tarjeta cambió
   // para que el modal de observaciones siempre use datos frescos
   if (_anualDataCache) {
@@ -7177,7 +7214,7 @@ function renderTable() {
     <tr>
       <td>${r.fecha}</td>
       <td>${r.hora}</td>
-      <td>${r.estacion}</td>
+      <td>${(({'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'})[String(r.estacion||'').trim().replace(/\.0$/,'').replace(/^E0*/,'')]||String(r.estacion||'—'))}<br><span style='font-size:0.62rem;color:#aaa;'>Est.${String(r.estacion||'').trim().replace(/\.0$/,'')}</span></td>
       <td><span class="${String(r.producto).toUpperCase() === 'MAGNA' ? 'tag-magna' : 'tag-diesel'}">${r.producto}</span></td>
       <td class="num">${r.litros.toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
       <td class="num">${fmtRend(r)}</td>
@@ -7224,6 +7261,8 @@ function limpiar() {
   document.getElementById('resultsSection').className = 'results-section';
   const btnObsL = document.getElementById('btnObsMensual');
   if (btnObsL) btnObsL.style.display = 'none';
+  const btnPatL = document.getElementById('btnPatronComport');
+  if (btnPatL) btnPatL.style.display = 'none';
   document.getElementById('emptyState').style.display = '';
   currentRows = [];
   if (consumoChartInstance) { consumoChartInstance.destroy(); consumoChartInstance = null; }
@@ -7244,12 +7283,50 @@ function renderChart(rows, mes) {
   });
 
   const diasMes = [1,3,5,7,8,10,12].includes(mes) ? 31 : mes===2 ? 28 : 30;
+
+  // ── Última carga del mes anterior (referencial) ──────────────────────
+  const mesAnt = mes > 1 ? mes - 1 : 12;
+  const rowsAnt = (typeof RAW !== 'undefined' ? RAW : []).filter(r => {
+    const tarjAct = String(rows[0]?.tarjeta||'').trim();
+    return String(r.tarjeta||'').trim() === tarjAct && Number(r.mes) === mesAnt;
+  });
+  let ultimaCargaAnt = null;
+  if (rowsAnt.length) {
+    // Ordenar por fecha+hora descendente y tomar la última
+    rowsAnt.sort((a,b)=>(String(b.fecha)+String(b.hora||'')).localeCompare(String(a.fecha)+String(a.hora||'')));
+    ultimaCargaAnt = rowsAnt[0];
+  }
+  const litrosRef = ultimaCargaAnt ? parseFloat((ultimaCargaAnt.litros||0).toFixed(2)) : null;
+  const kmRef     = ultimaCargaAnt && !([...TIPOS_EQUIPO||[]].length) ? parseFloat((ultimaCargaAnt.distancia||0).toFixed(1)) : null;
+  const MESES_N_REF = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
+  const labelRef = ultimaCargaAnt
+    ? `Últ. carga ${MESES_N_REF[mesAnt]} (ref.)`
+    : '— (sin ref.)';
+
+  // Label del eje X para la referencia: día del mes anterior
+  const _diaRef = ultimaCargaAnt
+    ? (() => {
+        const f = String(ultimaCargaAnt.fecha||'').split('T')[0];
+        const p = f.includes('-') ? f.split('-') : f.split('/').reverse();
+        return `${MESES_N_REF[mesAnt]}${parseInt(p[2]||0)}`;
+      })()
+    : `${MESES_N_REF[mesAnt]}?`;
+
+  // Labels: día referencial + días 1-31
+  const labelsConRef = [_diaRef];
+  const litrosConRef = [litrosRef];
+  const kmConRef     = [kmRef];
+
   const labels = [], litrosData = [], kmData = [];
   for (let d = 1; d <= diasMes; d++) {
     labels.push(d);
     litrosData.push(dayMap[d] ? parseFloat(dayMap[d].litros.toFixed(2)) : null);
     kmData.push(dayMap[d] ? parseFloat(dayMap[d].distancia.toFixed(1)) : null);
   }
+  // Unir referencia + datos del mes
+  const labelsF    = [...labelsConRef, ...labels];
+  const litrosF    = [...litrosConRef, ...litrosData];
+  const kmF        = [...kmConRef, ...kmData];
 
   // Summary stats
   let avgDiasBetween = '—';
@@ -7354,15 +7431,23 @@ function renderChart(rows, mes) {
   if(_leyEl) _leyEl.style.display = esEquipo ? 'none' : '';
 
   const dsetsConsumo = [
-    { type:'bar', label:'Litros consumidos', data:litrosData, backgroundColor:gradBar, borderColor:'#1e5b4f', borderWidth:1, borderRadius:5, borderSkipped:'bottom', yAxisID:'yLitros', order:2 },
+    { type:'bar', label:'Litros consumidos', data:litrosF,
+      backgroundColor: litrosF.map((_,i) => i===0 ? 'rgba(160,160,160,0.35)' : gradBar),
+      borderColor:     litrosF.map((_,i) => i===0 ? 'rgba(130,130,130,0.7)' : '#1e5b4f'),
+      borderWidth:     litrosF.map((_,i) => i===0 ? 2 : 1),
+      borderRadius:5, borderSkipped:'bottom', yAxisID:'yLitros', order:2 },
   ];
   if (!esEquipo) {
-    dsetsConsumo.push({ type:'line', label:'Kilómetros recorridos', data:kmData, borderColor:'rgba(0,0,0,0)', backgroundColor:'rgba(0,0,0,0)', borderWidth:0, pointBackgroundColor:'#e67e22', pointBorderColor:'#ffffff', pointBorderWidth:2, pointRadius:6, pointHoverRadius:8, tension:0, fill:false, yAxisID:'yKm', order:1, spanGaps:false, showLine:false });
-    if (bench) dsetsConsumo.push({ type:'line', label:`Rendimiento mín. esperado: ${bench.min} km/L`, data:litrosData.map(()=>null), borderColor:'rgba(0,0,0,0)', backgroundColor:'transparent', pointRadius:0, yAxisID:'yKm', order:0 });
+    dsetsConsumo.push({ type:'line', label:'Kilómetros recorridos', data:kmF, borderColor:'rgba(0,0,0,0)', backgroundColor:'rgba(0,0,0,0)', borderWidth:0,
+      pointBackgroundColor: kmF.map((_,i)=> i===0?'rgba(200,150,80,0.45)':'#e67e22'),
+      pointBorderColor: kmF.map((_,i)=> i===0?'rgba(255,255,255,0.5)':'#ffffff'),
+      pointBorderWidth:2, pointRadius: kmF.map((_,i)=>i===0?4:6), pointHoverRadius:8,
+      tension:0, fill:false, yAxisID:'yKm', order:1, spanGaps:false, showLine:false });
+    if (bench) dsetsConsumo.push({ type:'line', label:`Rendimiento mín. esperado: ${bench.min} km/L`, data:litrosF.map(()=>null), borderColor:'rgba(0,0,0,0)', backgroundColor:'transparent', pointRadius:0, yAxisID:'yKm', order:0 });
   }
 
   const scalesConsumo = {
-    x:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#888',font:{family:"'Barlow',sans-serif",size:11},callback:v=>`${v+1}`}, title:{display:true,text:'Día del Mes',color:'#98989a',font:{family:"'Barlow Condensed',sans-serif",size:12,weight:'600'},padding:{top:8}} },
+    x:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#888',font:{family:"'Barlow',sans-serif",size:11},callback:(v,i)=> i===0 ? '◀ Ref' : `${v}`}, title:{display:true,text:'Día del Mes',color:'#98989a',font:{family:"'Barlow Condensed',sans-serif",size:12,weight:'600'},padding:{top:8}} },
     yLitros:{ type:'linear', position:'left', grid:{color:'rgba(30,91,79,0.07)'}, ticks:{color:'#1e5b4f',font:{family:"'Barlow',sans-serif",size:11},callback:v=>`${v.toLocaleString('es-MX')} L`}, title:{display:true,text:'Litros Consumidos',color:'#1e5b4f',font:{family:"'Barlow Condensed',sans-serif",size:12,weight:'600'},padding:{bottom:6}} },
   };
   if (!esEquipo) {
@@ -7370,7 +7455,7 @@ function renderChart(rows, mes) {
   }
 
   consumoChartInstance = new Chart(ctx, {
-    data: { labels, datasets: dsetsConsumo },
+    data: { labels: labelsF, datasets: dsetsConsumo },
     options: {
       responsive:true, maintainAspectRatio:true,
       aspectRatio: window.innerWidth < 600 ? 1.4 : 2.6,
@@ -7383,10 +7468,32 @@ function renderChart(rows, mes) {
           titleFont:{family:"'Barlow Condensed',sans-serif",size:13,weight:'600'},
           bodyFont:{family:"'Barlow',sans-serif",size:12},
           callbacks:{
-            title: ctx => `Día ${ctx[0].label} — ${MESES_NAMES[mes]||mes}`,
-            label: item => item.datasetIndex===0
-              ? ` Litros: ${item.raw!==null?item.raw.toLocaleString('es-MX',{minimumFractionDigits:1}):'—'} L`
-              : ` Distancia: ${item.raw!==null?item.raw.toLocaleString('es-MX'):'—'} km`
+            title: ctx => {
+              const idx = ctx[0].dataIndex;
+              if (idx === 0) {
+                const fechaRef = ultimaCargaAnt
+                  ? (() => {
+                      const f = String(ultimaCargaAnt.fecha||'').split('T')[0];
+                      const p = f.includes('-') ? f.split('-') : f.split('/').reverse();
+                      return `${parseInt(p[2]||0)} de ${MESES_N_REF[mesAnt]} — ${ultimaCargaAnt.hora||''}`.trim();
+                    })()
+                  : 'Sin registro';
+                return `◀ Última carga ${MESES_N_REF[mesAnt]}: ${fechaRef}`;
+              }
+              return `Día ${ctx[0].label} — ${MESES_NAMES[mes]||mes}`;
+            },
+            label: item => {
+              const idx    = item.dataIndex;
+              const isRef  = idx === 0;
+              const prefix = isRef ? ' [REF] ' : ' ';
+              return item.datasetIndex===0
+                ? `${prefix}Litros: ${item.raw!==null?item.raw.toLocaleString('es-MX',{minimumFractionDigits:1}):'—'} L`
+                : `${prefix}Distancia: ${item.raw!==null?item.raw.toLocaleString('es-MX'):'—'} km`;
+            },
+            labelColor: item => {
+              const isRef = item.dataIndex === 0;
+              return { borderColor: isRef?'#aaa':'#1e5b4f', backgroundColor: isRef?'rgba(160,160,160,0.5)':gradBar };
+            }
           }
         }
       },
@@ -7490,7 +7597,7 @@ function prepararReporte() {
 
   document.getElementById('rptTableBody').innerHTML = rows.map((r, i) => `
     <tr>
-      <td>${i+1}</td><td>${r.fecha}</td><td>${r.hora}</td><td>${r.estacion}</td>
+      <td>${i+1}</td><td>${r.fecha}</td><td>${r.hora}</td><td>${(({'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'})[String(r.estacion||'').trim().replace(/\.0$/,'').replace(/^E0*/,'')]||String(r.estacion||'—'))}<span style='font-size:0.62rem;color:#aaa;display:block;'>Est.${String(r.estacion||'').trim().replace(/\.0$/,'')}</span></td>
       <td><span class="rpt-tag ${String(r.producto).toUpperCase()==='MAGNA'?'magna':'diesel'}">${r.producto}</span></td>
       <td class="r">${r.litros.toLocaleString('es-MX',{minimumFractionDigits:1})}</td>
       <td class="r">${fmtRend(r)}</td>
@@ -7861,6 +7968,7 @@ actualizarUIBD();
 let anualChartInstances = [];
 
 function abrirDrillDownMensual(mes, mesLabel, totalLitros) {
+  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
   const registros = (window._anualRegistros||[]).filter(r => Number(r.mes) === mes);
   if (!registros.length) return;
 
@@ -8116,6 +8224,728 @@ function filtrarDrillMensual(texto) {
   });
   const cnt = document.getElementById('drillMensualCount');
   if (cnt) cnt.textContent = q ? `${vis} resultado${vis!==1?'s':''}` : '';
+}
+
+function exportarPatronPDF() {
+  if (!window._rankPatronUsuario && !rptContext.usuario) {
+    alert('Sin datos de patrón para exportar.'); return;
+  }
+  const usuario   = window._rankPatronUsuario || rptContext.usuario || '—';
+  const mes       = rptContext.mes || 0;
+  const rows      = window._rankPatronRows || currentRows || [];
+  const MES_N2    = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',
+                     7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
+  const fmt2      = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const hoy       = new Date();
+  const anio      = hoy.getFullYear();
+  const folio     = 'PCBH-'+anio+String(mes).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0')
+                    +String(hoy.getHours()).padStart(2,'0')+String(hoy.getMinutes()).padStart(2,'0');
+  const diasEnMes = new Date(anio, mes, 0).getDate();
+  const EST_N2    = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
+
+  // Recopilar datos
+  const rowsMes = rows.filter(r=>Number(r.mes)===mes);
+  if (!rowsMes.length) { alert('Sin registros del mes para exportar.'); return; }
+
+  const r0  = rowsMes[0];
+  const area= String(r0.areaUsuaria||r0.gerencia||'SSAB-GSG').trim();
+
+  const cargas2 = rowsMes.map(r=>{
+    const fecha = String(r.fecha||'').trim();
+    const dia   = fecha.includes('-')?parseInt(fecha.split('-')[2]):
+                  fecha.includes('/')?parseInt(fecha.split('/')[0]):0;
+    let diaSem=-1;
+    if(fecha){const p=fecha.split('T')[0].split('-').map(Number);if(p.length===3){const _d=new Date(p[0],p[1]-1,p[2]);if(!isNaN(_d))diaSem=_d.getDay();}}
+    return {dia, hora:String(r.hora||'').substring(0,5), litros:r.litros||0,
+            tarjeta:String(r.tarjeta||'—').trim(), placa:String(r.placa||'—').trim(),
+            prod:String(r.producto||'—').toUpperCase(), diaSem,
+            est:String(r.estacion||'').trim().replace(/\.0$/,'').replace(/^E0*/,'')};
+  }).filter(c=>c.dia>0);
+
+  const diasActivos2= [...new Set(cargas2.map(c=>c.dia))].sort((a,b)=>a-b);
+  const totalL2     = cargas2.reduce((s,c)=>s+c.litros,0);
+  const totalC2     = cargas2.length;
+  const porEst2     = {};
+  cargas2.forEach(c=>{const n=EST_N2[c.est]||c.est;porEst2[n]=(porEst2[n]||0)+1;});
+  const estPrinc2   = Object.entries(porEst2).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+  const tarjetasU2  = [...new Set(cargas2.map(c=>c.tarjeta))];
+  const finSem2     = cargas2.filter(c=>c.diaSem===0||c.diaSem===6);
+  const nocturnas2  = cargas2.filter(c=>{const h=parseInt(c.hora||'25');return h>=22||h<5;});
+  const multiDia2   = diasActivos2.filter(d=>cargas2.filter(c=>c.dia===d).length>2);
+  const horasAM2    = cargas2.filter(c=>{const h=parseInt(c.hora||'0');return h>=6&&h<12;}).length;
+  const horasPM2    = cargas2.filter(c=>{const h=parseInt(c.hora||'0');return h>=12&&h<18;}).length;
+  const turno2      = horasAM2>=horasPM2?'Mañana (06:00–12:00 h)':'Tarde (12:00–18:00 h)';
+  const frecuencia2 = diasActivos2.length>1
+    ? ((diasActivos2[diasActivos2.length-1]-diasActivos2[0])/(diasActivos2.length-1)).toFixed(1)+' días'
+    : '1 día';
+
+  // Timeline para el PDF
+  const DIAS_S2=['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
+  const timelinePDF = Array.from({length:diasEnMes},(_,i)=>i+1).map(d=>{
+    const n = cargas2.filter(c=>c.dia===d).length;
+    const esFin = cargas2.filter(c=>c.dia===d).some(c=>c.diaSem===0||c.diaSem===6);
+    const col = !n?'#e0e0e0':esFin?'#e67e22':n>=3?'#c0392b':'#1e5b4f';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:24px;">
+      <div style="width:${n?16:10}px;height:${n?16:10}px;border-radius:50%;background:${col};
+        display:flex;align-items:center;justify-content:center;
+        font-size:8px;font-weight:900;color:#fff;">${n||''}</div>
+      <div style="font-size:7px;color:${n?col:'#ccc'};">${d}</div>
+    </div>`;
+  }).join('');
+
+  // Alertas para el PDF
+  const alertasPDF = [];
+  if(finSem2.length)   alertasPDF.push({icon:'⚠️',txt:`${finSem2.length} carga(s) registrada(s) en días no laborables (fin de semana)`});
+  if(nocturnas2.length) alertasPDF.push({icon:'🌙',txt:`${nocturnas2.length} carga(s) en horario nocturno (22:00–05:00 h)`});
+  if(multiDia2.length)  alertasPDF.push({icon:'🔄',txt:`${multiDia2.length} día(s) con más de 2 cargas en la misma jornada`});
+  if(tarjetasU2.length>3) alertasPDF.push({icon:'💳',txt:`Uso de ${tarjetasU2.length} tarjetas distintas durante el período`});
+  if(Object.keys(porEst2).length>2) alertasPDF.push({icon:'📍',txt:`Cargas registradas en ${Object.keys(porEst2).length} estaciones de servicio diferentes`});
+
+  const div = document.getElementById('printPatronComport');
+  div.innerHTML = `<div style="font-family:'Inter',sans-serif;font-size:8.5pt;color:#111;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;line-height:1.4;">
+
+    <!-- ENCABEZADO INSTITUCIONAL -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;
+      border-bottom:3px solid #1e5b4f;padding-bottom:10px;margin-bottom:14px;">
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16pt;font-weight:900;
+          color:#1e5b4f;text-transform:uppercase;letter-spacing:0.04em;">
+          PEMEX · URCS Sur</div>
+        <div style="font-size:8.5pt;color:#555;margin-top:2px;">
+          Subdirección de Servicios · SSAB-GSG</div>
+      </div>
+      <div style="text-align:right;font-size:7.5pt;color:#888;">
+        <div style="font-weight:700;color:#1e5b4f;font-size:8pt;">Folio: ${folio}</div>
+        <div>Emitido: ${hoy.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'})}</div>
+        <div>Hora: ${hoy.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    </div>
+
+    <!-- TÍTULO DEL DOCUMENTO -->
+    <div style="background:#1e5b4f;color:#fff;padding:10px 14px;border-radius:6px;margin-bottom:14px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13pt;font-weight:900;
+        text-transform:uppercase;letter-spacing:0.05em;">
+        Notificación de Patrón de Comportamiento de Consumo de Combustible</div>
+      <div style="font-size:7.5pt;color:rgba(255,255,255,0.75);margin-top:3px;">
+        Documento generado automáticamente por SACISC · Módulo Combustibles · Para conocimiento del usuario</div>
+    </div>
+
+    <!-- DATOS DEL USUARIO -->
+    <div style="border:1.5px solid #c8ddd8;border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+      <div style="font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;
+        color:#888;margin-bottom:5px;">Datos del usuario</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div><div style="font-size:6.5pt;color:#aaa;text-transform:uppercase;">Nombre</div>
+          <div style="font-weight:700;font-size:9pt;color:#111;">${String(usuario).toUpperCase()}</div></div>
+        <div><div style="font-size:6.5pt;color:#aaa;text-transform:uppercase;">Área</div>
+          <div style="font-weight:700;font-size:9pt;color:#111;">${area}</div></div>
+        <div><div style="font-size:6.5pt;color:#aaa;text-transform:uppercase;">Período analizado</div>
+          <div style="font-weight:700;font-size:9pt;color:#111;">${MES_N2[mes]} ${anio}</div></div>
+      </div>
+    </div>
+
+    <!-- RESUMEN ESTADÍSTICO -->
+    <div style="font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;
+      color:#1e5b4f;margin-bottom:6px;">Resumen estadístico del período</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;">
+      ${[
+        ['Días activos',    diasActivos2.length+' de '+diasEnMes],
+        ['Total cargas',    totalC2],
+        ['Litros consumidos', fmt2(totalL2)+' L'],
+        ['Tarjetas utilizadas', tarjetasU2.length],
+        ['Promedio por carga', fmt2(totalL2/Math.max(totalC2,1))+' L'],
+        ['Frecuencia',      'Cada '+frecuencia2],
+        ['Turno habitual',  turno2],
+        ['Estación principal', estPrinc2],
+      ].map(([l,v])=>`
+      <div style="background:#f0f7f4;border-radius:5px;padding:6px 8px;border-left:2.5px solid #1e5b4f;">
+        <div style="font-size:6pt;color:#888;text-transform:uppercase;letter-spacing:0.05em;">${l}</div>
+        <div style="font-weight:800;font-size:8.5pt;color:#1e5b4f;">${v}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- DISTRIBUCIÓN POR ESTACIÓN -->
+    <div style="font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;
+      color:#1e5b4f;margin-bottom:5px;">Distribución por estación de servicio</div>
+    <div style="margin-bottom:12px;">
+      ${Object.entries(porEst2).sort((a,b)=>b[1]-a[1]).map(([e,n])=>{
+        const pct=Math.round(n/totalC2*100);
+        const lit=cargas2.filter(c=>(EST_N2[c.est]||c.est)===e).reduce((s,c)=>s+c.litros,0);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div style="width:90px;font-size:7.5pt;font-weight:700;">${e}</div>
+          <div style="flex:1;height:8px;background:#eee;border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:#1e5b4f;border-radius:3px;"></div>
+          </div>
+          <div style="font-size:7pt;color:#555;width:100px;">${n} cargas · ${fmt2(lit)} L · ${pct}%</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- LÍNEA DE TIEMPO -->
+    <div style="font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;
+      color:#1e5b4f;margin-bottom:5px;">Línea de tiempo — ${MES_N2[mes]} ${anio}</div>
+    <div style="background:#f8fbf9;border-radius:6px;padding:10px 12px;
+      border:1px solid #e0e8e4;margin-bottom:12px;">
+      <div style="position:relative;">
+        <div style="position:absolute;top:8px;left:12px;right:12px;height:1.5px;background:#e0e0e0;"></div>
+        <div style="display:flex;gap:1px;position:relative;justify-content:space-between;">
+          ${timelinePDF}
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:6.5pt;color:#aaa;margin-top:5px;">
+        <span>● Verde = normal</span>
+        <span style="color:#c0392b;">● Rojo = 3+ cargas</span>
+        <span style="color:#e67e22;">● Naranja = fin de semana</span>
+      </div>
+    </div>
+
+    <!-- ALERTAS DE COMPORTAMIENTO -->
+    ${alertasPDF.length ? `
+    <div style="border:1.5px solid #f0c14b;border-radius:6px;padding:9px 12px;
+      background:#fffbea;margin-bottom:12px;">
+      <div style="font-size:7pt;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;
+        color:#8a6d00;margin-bottom:6px;">⚡ Observaciones de comportamiento detectadas</div>
+      ${alertasPDF.map(a=>`
+      <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;">
+        <span style="font-size:8pt;flex-shrink:0;">${a.icon}</span>
+        <span style="font-size:7.5pt;color:#5a4a00;">${a.txt}</span>
+      </div>`).join('')}
+    </div>` : `
+    <div style="border:1.5px solid #c8ddd8;border-radius:6px;padding:9px 12px;
+      background:#f0f7f4;margin-bottom:12px;">
+      <div style="font-size:7.5pt;color:#1e5b4f;font-weight:700;">
+        ✅ No se detectaron alertas de comportamiento atípico en el período analizado.
+      </div>
+    </div>`}
+
+    <!-- COMUNICADO AL USUARIO -->
+    <div style="border:1.5px solid #1e5b4f;border-radius:6px;padding:10px 14px;
+      background:#f0f7f4;margin-bottom:16px;">
+      <div style="font-size:7pt;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;
+        color:#1e5b4f;margin-bottom:5px;">📋 Comunicado al usuario</div>
+      <div style="font-size:7.5pt;color:#333;line-height:1.6;">
+        Por medio del presente documento se hace de su conocimiento que el sistema SACISC de
+        <strong>PEMEX URCS Sur</strong> realiza el monitoreo continuo del consumo de combustible
+        asignado a su persona. Los datos registrados en el período de
+        <strong>${MES_N2[mes]} ${anio}</strong> han sido analizados y conforman el presente
+        informe de comportamiento.<br><br>
+        Le informamos que <strong>toda actividad de carga de combustible queda registrada</strong>
+        con fecha, hora, estación, unidad y volumen. Este seguimiento tiene como objetivo garantizar
+        el uso eficiente y justificado de los recursos de combustible asignados a la institución,
+        en cumplimiento de las políticas internas de control y fiscalización de PEMEX.<br><br>
+        En caso de tener observaciones sobre los datos aquí presentados, favor de dirigirse al
+        área de <strong>Servicios Generales · SSAB-GSG</strong> dentro de los 5 días hábiles
+        siguientes a la recepción de este documento.
+      </div>
+    </div>
+
+    <!-- FIRMAS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;page-break-inside:avoid;">
+      <div style="text-align:center;">
+        <div style="border-top:1.5px solid #1e5b4f;padding-top:5px;margin-top:35px;
+          font-size:7pt;font-weight:700;text-transform:uppercase;color:#1e5b4f;">
+          Titular URCS Sur</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="border-top:1.5px solid #1e5b4f;padding-top:5px;margin-top:35px;
+          font-size:7pt;font-weight:700;text-transform:uppercase;color:#1e5b4f;">
+          Vo.Bo. Supervisor SSAB-GSG</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="border-top:1.5px solid #1e5b4f;padding-top:5px;margin-top:35px;
+          font-size:7pt;font-weight:700;text-transform:uppercase;color:#1e5b4f;">
+          Recibí conforme · ${String(usuario).toUpperCase()}</div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;font-size:6.5pt;color:#aaa;text-align:center;
+      border-top:1px solid #eee;padding-top:6px;">
+      SACISC · Módulo Combustibles · PEMEX URCS Sur · Folio ${folio} ·
+      Documento generado el ${hoy.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'})}
+    </div>
+  </div>`;
+
+  window.print();
+}
+
+function abrirPatronComportamiento() {
+  if (!currentRows.length) { alert('Sin datos. Realice una búsqueda primero.'); return; }
+  if (!rptContext.mes) { alert('Seleccione un mes específico para ver el Patrón de Comportamiento.'); return; }
+
+  const fmt  = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const MES_N= {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',
+                7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
+  const EST_N= {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
+  const rows = currentRows;
+  const mes  = rptContext.mes;
+  const usuario = rows[0]?.usuario || rptContext.usuario || '—';
+  const anio = new Date().getFullYear();
+  const diasEnMes = new Date(anio, mes, 0).getDate();
+
+  // ── Parsear datos ───────────────────────────────────────────────────
+  const cargas = rows.map(r => {
+    const fecha = String(r.fecha||'').trim();
+    const hora  = String(r.hora||'').trim().substring(0,5);
+    const dia   = fecha.includes('-') ? parseInt(fecha.split('-')[2]) :
+                  fecha.includes('/') ? parseInt(fecha.split('/')[0]) : 0;
+    const hNum  = hora ? parseInt(hora.split(':')[0]) : -1;
+    const est   = String(r.estacion||'').trim().replace(/\.0$/,'').replace(/^E0*/,'');
+    // Parsear diaSem con componentes locales para evitar desfase UTC
+    let diaSem = -1;
+    if (fecha) {
+      let _d;
+      if (fecha.includes('-')) {
+        const [y,m,d] = fecha.split('T')[0].split('-').map(Number);
+        _d = new Date(y, m-1, d);
+      } else if (fecha.includes('/')) {
+        const p = fecha.split('/');
+        _d = p[0].length===4 ? new Date(+p[0],+p[1]-1,+p[2]) : new Date(+p[2],+p[1]-1,+p[0]);
+      }
+      if (_d && !isNaN(_d)) diaSem = _d.getDay();
+    }
+    return { dia, hora, hNum, litros: r.litros||0,
+             tarjeta:  String(r.tarjeta||'—').trim(),
+             placa:    String(r.placa||'—').trim(),
+             tipo:     String(r.tipoVehiculo||r.tipo||'—').trim(),
+             prod:     String(r.producto||'—').trim().toUpperCase(),
+             est, estN: EST_N[est]||est, diaSem };
+  }).filter(c => c.dia > 0);
+
+  // ── KPIs de comportamiento ──────────────────────────────────────────
+  const diasActivos    = [...new Set(cargas.map(c=>c.dia))].sort((a,b)=>a-b);
+  const totalCargas    = cargas.length;
+  const totalLitros    = cargas.reduce((s,c)=>s+c.litros,0);
+  const promLitrosCarga= totalCargas>0 ? totalLitros/totalCargas : 0;
+  const frecuencia     = diasActivos.length>1
+    ? ((diasActivos[diasActivos.length-1]-diasActivos[0])/(diasActivos.length-1)).toFixed(1)
+    : '—';
+
+  // Horario típico
+  const horasPM  = cargas.filter(c=>c.hNum>=12&&c.hNum<18).length;
+  const horasAM  = cargas.filter(c=>c.hNum>=6&&c.hNum<12).length;
+  const horasNoc = cargas.filter(c=>c.hNum<6||c.hNum>=18).length;
+  const turnoTipico = horasAM>=horasPM&&horasAM>=horasNoc?'Mañana (6-12h)':
+                      horasPM>=horasNoc?'Tarde (12-18h)':'Noche/Madrugada';
+
+  // Estación más frecuente
+  const porEst = {};
+  cargas.forEach(c=>{ porEst[c.estN]=(porEst[c.estN]||0)+1; });
+  const estPrincipal = Object.entries(porEst).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+
+  // Días sin actividad más largo
+  let maxGap=0, gapActual=0;
+  for(let d=1;d<=diasEnMes;d++){
+    if(!diasActivos.includes(d)) gapActual++;
+    else { maxGap=Math.max(maxGap,gapActual); gapActual=0; }
+  }
+  maxGap=Math.max(maxGap,gapActual);
+
+  // Alertas
+  const alertas=[];
+  const finseSem = cargas.filter(c=>c.diaSem===0||c.diaSem===6);
+  if(finseSem.length) alertas.push({icon:'⚠️',col:'#e67e22',txt:`${finseSem.length} carga(s) en fin de semana`});
+  const nocturnas = cargas.filter(c=>c.hNum>=22||c.hNum<5);
+  if(nocturnas.length) alertas.push({icon:'🌙',col:'#8e44ad',txt:`${nocturnas.length} carga(s) nocturna(s) (22h-5h)`});
+  const multiCarga = diasActivos.filter(d=>cargas.filter(c=>c.dia===d).length>2);
+  if(multiCarga.length) alertas.push({icon:'🔄',col:'#c0392b',txt:`${multiCarga.length} día(s) con más de 2 cargas`});
+  if(Object.keys(porEst).length>2) alertas.push({icon:'📍',col:'#1565c0',txt:`Cargó en ${Object.keys(porEst).length} estaciones distintas`});
+
+  // ── Línea de tiempo ─────────────────────────────────────────────────
+  const timelineDias = Array.from({length:diasEnMes},(_,i)=>i+1).map(d=>{
+    const cargasDia = cargas.filter(c=>c.dia===d);
+    return { d, n:cargasDia.length, litros:cargasDia.reduce((s,c)=>s+c.litros,0),
+             cargas:cargasDia, esFin:cargasDia.some(c=>c.diaSem===0||c.diaSem===6) };
+  });
+  const maxCargasDia = Math.max(...timelineDias.map(t=>t.n),1);
+
+  const timelineHTML = timelineDias.map(t=>{
+    if(!t.n) return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:28px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#e0e0e0;"></div>
+        <div style="font-size:0.5rem;color:#ccc;">${t.d}</div>
+      </div>`;
+    const size = 12 + Math.round((t.n/maxCargasDia)*14);
+    const col  = t.esFin?'#e67e22':t.n>=3?'#c0392b':'#1e5b4f';
+    const dataCargas = JSON.stringify(t.cargas.map(c=>({
+      hora:c.hora, estN:c.estN, litros:c.litros,
+      tarjeta:c.tarjeta, placa:c.placa, tipo:c.tipo, prod:c.prod
+    }))).replace(/"/g,'&quot;');
+    return `
+      <div class="tl-node" data-dia="${t.d}" data-col="${col}"
+        data-cargas="${dataCargas}"
+        style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:28px;cursor:pointer;">
+        <div class="tl-circle" style="width:${size}px;height:${size}px;border-radius:50%;background:${col};
+          display:flex;align-items:center;justify-content:center;
+          font-size:0.55rem;font-weight:900;color:#fff;
+          box-shadow:0 2px 8px ${col}88;
+          transition:transform 0.15s,box-shadow 0.15s;">
+          ${t.n}
+        </div>
+        <div style="font-size:0.5rem;color:${col};font-weight:700;">${t.d}</div>
+      </div>`;
+  }).join('');
+
+  // ── Mapa de calor horario ────────────────────────────────────────────
+  const HORAS = Array.from({length:24},(_,i)=>i);
+  const DIAS_S = ['Do','Lu','Ma','Mi','Ju','Vi','Sá'];
+  const DIAS_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const heatMap  = {}; // {diaSem_hora: [{carga},...]}
+  cargas.forEach(c=>{
+    const k = `${c.diaSem}_${c.hNum}`;
+    if (!heatMap[k]) heatMap[k] = [];
+    heatMap[k].push(c);
+  });
+  const heatCount = k => (heatMap[k]||[]).length;
+  const maxHeat   = Math.max(...Object.keys(heatMap).map(k=>heatMap[k].length),1);
+
+  const heatHTML = `
+    <div style="overflow-x:auto;">
+      <table style="border-collapse:separate;border-spacing:2px;font-size:0.6rem;">
+        <thead>
+          <tr>
+            <th style="padding:2px 6px;color:#888;text-align:right;">Hora</th>
+            ${DIAS_S.map(d=>`<th style="padding:2px 6px;color:#555;font-weight:700;">${d}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${HORAS.map(h=>`
+          <tr>
+            <td style="padding:2px 6px;color:#888;text-align:right;">${String(h).padStart(2,'0')}h</td>
+            ${[0,1,2,3,4,5,6].map(ds=>{
+              const v   = heatCount(`${ds}_${h}`);
+              const bg  = v>0?`rgba(30,91,79,${(0.15+v/maxHeat*0.85).toFixed(2)})`:'#f5f5f5';
+              const col = v>0&&v/maxHeat>0.5?'#fff':'#1e5b4f';
+              if (!v) return `<td style="width:32px;height:18px;background:#f5f5f5;border-radius:3px;"></td>`;
+              const dCargas = JSON.stringify((heatMap[`${ds}_${h}`]||[]).map(c=>({
+                dia:c.dia, hora:c.hora, estN:c.estN, litros:c.litros,
+                tarjeta:c.tarjeta, placa:c.placa, tipo:c.tipo, prod:c.prod
+              }))).replace(/"/g,'&quot;');
+              return `<td class="heat-cell" data-ds="${ds}" data-h="${h}"
+                data-cargas="${dCargas}"
+                style="width:32px;height:18px;background:${bg};border-radius:3px;
+                  text-align:center;color:${col};font-weight:700;cursor:pointer;
+                  transition:transform 0.1s,box-shadow 0.1s;"
+                onmouseover="this.style.transform='scale(1.3)';this.style.boxShadow='0 3px 10px rgba(30,91,79,0.4)';this.style.zIndex='2';this.style.position='relative'"
+                onmouseout="this.style.transform='';this.style.boxShadow='';this.style.zIndex=''">${v}</td>`;
+            }).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  // ── Distribución por estación ─────────────────────────────────────
+  const estDist = Object.entries(porEst).sort((a,b)=>b[1]-a[1]).map(([e,n])=>({
+    est:e, n, pct:Math.round(n/totalCargas*100),
+    lit: cargas.filter(c=>c.estN===e).reduce((s,c)=>s+c.litros,0)
+  }));
+  const colsEst=['#1e5b4f','#2d9e7e','#27ae60','#52c49a'];
+  const estHTML = estDist.map((e,i)=>`
+    <div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.72rem;margin-bottom:3px;">
+        <span style="font-weight:700;color:#333;">${e.est}</span>
+        <span style="color:#888;">${e.n} cargas · ${fmt(e.lit)} L · ${e.pct}%</span>
+      </div>
+      <div style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${e.pct}%;background:${colsEst[i%4]};border-radius:4px;
+          transition:width 0.5s;"></div>
+      </div>
+    </div>`).join('');
+
+  // ── Construir modal ─────────────────────────────────────────────────
+  let modal = document.getElementById('modalPatronComport');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalPatronComport';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10950;background:rgba(0,0,0,0.7);'
+      +'display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px;';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:1000px;
+      box-shadow:0 32px 80px rgba(0,0,0,0.45);overflow:hidden;margin:auto;">
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#002f2a,#1e5b4f);padding:16px 22px;
+        display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;
+            color:#fff;letter-spacing:0.06em;text-transform:uppercase;">
+            🕐 Patrón de Comportamiento de Consumo
+          </div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.7);margin-top:2px;">
+            ${String(usuario).toUpperCase()} · ${MES_N[mes]} ${anio}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="exportarPatronPDF()"
+            style="display:flex;align-items:center;gap:6px;background:#e53935;
+              color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;
+              font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;font-weight:800;
+              letter-spacing:0.06em;text-transform:uppercase;">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>PDF
+          </button>
+          <button onclick="document.getElementById('modalPatronComport').style.display='none'"
+            style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:50%;
+              width:32px;height:32px;cursor:pointer;font-size:1rem;flex-shrink:0;">✕</button>
+        </div>
+      </div>
+
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:18px;">
+
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+          ${[
+            ['🚗 Días activos',     diasActivos.length+' de '+diasEnMes, '#1e5b4f'],
+            ['💳 Tarjetas usadas',  [...new Set(cargas.map(c=>c.tarjeta))].length+' tarjeta'+([...new Set(cargas.map(c=>c.tarjeta))].length!==1?'s':''), '#5c6bc0'],
+            ['⛽ Total cargas',     totalCargas,                          '#1565c0'],
+            ['💧 Total litros',     fmt(totalLitros)+' L',               '#27ae60'],
+            ['📊 Prom./carga',      fmt(promLitrosCarga)+' L',           '#7b1fa2'],
+            ['📅 Frecuencia',       frecuencia!='—'?'Cada '+frecuencia+' días':'Solo 1 día','#e67e22'],
+            ['🕐 Turno típico',     turnoTipico,                         '#c0392b'],
+            ['📍 Est. principal',   estPrincipal,                        '#1e5b4f'],
+            ['⏸ Max sin carga',    maxGap+' días',                      '#888'],
+          ].map(([l,v,c])=>`
+          <div style="background:#f8f9ff;border-radius:10px;padding:10px 12px;
+            border-left:3px solid ${c};">
+            <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+              letter-spacing:0.06em;color:#888;margin-bottom:3px;">${l}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;
+              font-weight:900;color:${c};">${v}</div>
+          </div>`).join('')}
+        </div>
+
+        <!-- Alertas -->
+        ${alertas.length?`
+        <div style="background:#fffbea;border-radius:10px;padding:12px 16px;
+          border:1.5px solid #f0c14b;">
+          <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;
+            letter-spacing:0.06em;color:#8a6d00;margin-bottom:8px;">⚡ Alertas de comportamiento</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${alertas.map(a=>`
+            <span style="background:#fff;border:1.5px solid ${a.col}33;color:${a.col};
+              border-radius:8px;padding:5px 12px;font-size:0.72rem;font-weight:700;">
+              ${a.icon} ${a.txt}</span>`).join('')}
+          </div>
+        </div>`:''}
+
+        <!-- Línea de tiempo -->
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:800;
+            text-transform:uppercase;color:#1e5b4f;letter-spacing:0.05em;margin-bottom:10px;">
+            📅 Línea de tiempo — ${MES_N[mes]}
+          </div>
+          <div style="background:#f8fbf9;border-radius:10px;padding:14px 16px;
+            border:1px solid #e0e8e4;overflow-x:auto;">
+            <div style="position:relative;margin-bottom:8px;">
+              <div style="position:absolute;top:10px;left:14px;right:14px;height:2px;background:#e0e0e0;"></div>
+              <div id="tlNodesWrap" style="display:flex;gap:2px;position:relative;justify-content:space-between;">
+                ${timelineHTML}
+              </div>
+            </div>
+            <div style="display:flex;gap:14px;font-size:0.6rem;color:#aaa;margin-top:6px;flex-wrap:wrap;">
+              <span>● Verde = carga normal</span>
+              <span style="color:#c0392b;">● Rojo = 3+ cargas en el día</span>
+              <span style="color:#e67e22;">● Naranja = fin de semana</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mapa de calor + Distribución por estación -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:800;
+              text-transform:uppercase;color:#1e5b4f;letter-spacing:0.05em;margin-bottom:10px;">
+              🗓 Mapa de calor — Día × Hora
+            </div>
+            <div style="background:#f8fbf9;border-radius:10px;padding:12px;border:1px solid #e0e8e4;">
+              ${heatHTML}
+              <div style="font-size:0.58rem;color:#aaa;margin-top:6px;">
+                Color más oscuro = más cargas en ese horario/día
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:800;
+              text-transform:uppercase;color:#1e5b4f;letter-spacing:0.05em;margin-bottom:10px;">
+              📍 Distribución por estación
+            </div>
+            <div style="background:#f8fbf9;border-radius:10px;padding:14px 16px;border:1px solid #e0e8e4;">
+              ${estHTML || '<div style="color:#aaa;font-size:0.78rem;">Sin datos</div>'}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>`;
+
+  modal.style.display = 'flex';
+
+  // ── Tooltip flotante para nodos del timeline ─────────────────────────
+  setTimeout(() => {
+    let tlTip = document.getElementById('tlTooltip');
+    if (!tlTip) {
+      tlTip = document.createElement('div');
+      tlTip.id = 'tlTooltip';
+      tlTip.style.cssText = 'display:none;position:fixed;z-index:99999;min-width:220px;max-width:300px;'
+        +'background:#0d2137;border:1.5px solid #2d9e7e;border-radius:12px;'
+        +'padding:0;box-shadow:0 12px 32px rgba(0,0,0,0.6);pointer-events:none;overflow:hidden;';
+      document.body.appendChild(tlTip);
+    }
+    const fmtL = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+    const PROD_COL = {'MAGNA':'#27ae60','DIESEL':'#1565c0'};
+
+    document.querySelectorAll('.tl-node').forEach(node => {
+      node.addEventListener('mouseenter', function(e) {
+        const dia  = this.dataset.dia;
+        const col  = this.dataset.col || '#1e5b4f';
+        let cargas = [];
+        try { cargas = JSON.parse(this.dataset.cargas.replace(/&quot;/g,'"')); } catch(_){}
+
+        const totalL = cargas.reduce((s,c)=>s+(c.litros||0),0);
+        const rows = cargas.map((c,i)=>`
+          <div style="padding:8px 12px;${i<cargas.length-1?'border-bottom:1px solid rgba(255,255,255,0.07)':''}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;
+                  font-weight:900;color:#fff;">${c.hora||'—'}</span>
+                <span style="background:${PROD_COL[c.prod]||'#555'};color:#fff;
+                  border-radius:4px;padding:1px 6px;font-size:0.6rem;font-weight:800;">${c.prod||'—'}</span>
+              </div>
+              <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;
+                font-weight:900;color:#11CD78;">${fmtL(c.litros)} L</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+              <div>
+                <div style="font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.05em;">Estación</div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,0.9);font-weight:600;">${c.estN||'—'}</div>
+              </div>
+              <div>
+                <div style="font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.05em;">Tarjeta</div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,0.9);font-weight:600;">${c.tarjeta||'—'}</div>
+              </div>
+              <div>
+                <div style="font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.05em;">Placa</div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,0.9);font-weight:600;">${c.placa||'—'}</div>
+              </div>
+              <div>
+                <div style="font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.05em;">Clasificación</div>
+                <div style="font-size:0.68rem;color:rgba(255,255,255,0.9);font-weight:600;">${c.tipo||'—'}</div>
+              </div>
+            </div>
+          </div>`).join('');
+
+        tlTip.innerHTML = `
+          <div style="background:${col};padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;
+              font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:0.05em;">
+              📅 Día ${dia} — ${cargas.length} carga${cargas.length!==1?'s':''}
+            </span>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;
+              font-weight:900;color:#fff;">${fmtL(totalL)} L</span>
+          </div>
+          <div>${rows}</div>`;
+        tlTip.style.display = 'block';
+      });
+
+      node.addEventListener('mousemove', function(e) {
+        const tip = document.getElementById('tlTooltip');
+        if (!tip||tip.style.display==='none') return;
+        const tw=tip.offsetWidth||250, th=tip.offsetHeight||200;
+        const vw=window.innerWidth, vh=window.innerHeight;
+        let x=e.clientX+14, y=e.clientY+14;
+        if(x+tw>vw-10) x=e.clientX-tw-10;
+        if(y+th>vh-10) y=e.clientY-th-10;
+        tip.style.left=x+'px'; tip.style.top=y+'px';
+      });
+
+      node.addEventListener('mouseleave', function() {
+        const tip = document.getElementById('tlTooltip');
+        if(tip) tip.style.display='none';
+      });
+    });
+
+    // ── Tooltip para celdas del mapa de calor ────────────────────────
+    document.querySelectorAll('.heat-cell').forEach(cell => {
+      cell.addEventListener('mouseenter', function() {
+        const ds  = parseInt(this.dataset.ds);
+        const h   = parseInt(this.dataset.h);
+        let cargas2 = [];
+        try { cargas2 = JSON.parse(this.dataset.cargas.replace(/&quot;/g,'"')); } catch(_){}
+        const tip = document.getElementById('tlTooltip');
+        if (!tip) return;
+
+        const totalL  = cargas2.reduce((s,c)=>s+(c.litros||0),0);
+        const diaFull = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][ds]||'—';
+        const fmtL2   = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+        const PROD_COL2 = {'MAGNA':'#27ae60','DIESEL':'#1565c0'};
+
+        const rows2 = cargas2.map((c,i)=>`
+          <div style="padding:7px 12px;${i<cargas2.length-1?'border-bottom:1px solid rgba(255,255,255,0.07)':''}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;
+                  font-weight:900;color:#fff;">Día ${c.dia} · ${c.hora||'—'}</span>
+                <span style="background:${PROD_COL2[c.prod]||'#555'};color:#fff;
+                  border-radius:4px;padding:1px 6px;font-size:0.6rem;font-weight:800;">${c.prod||'—'}</span>
+              </div>
+              <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;
+                font-weight:900;color:#11CD78;">${fmtL2(c.litros)} L</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;">
+              <div>
+                <div style="font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;">Estación</div>
+                <div style="font-size:0.67rem;color:rgba(255,255,255,0.9);font-weight:600;">${c.estN||'—'}</div>
+              </div>
+              <div>
+                <div style="font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;">Tarjeta</div>
+                <div style="font-size:0.67rem;color:rgba(255,255,255,0.9);font-weight:600;">${c.tarjeta||'—'}</div>
+              </div>
+              <div>
+                <div style="font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;">Placa</div>
+                <div style="font-size:0.67rem;color:rgba(255,255,255,0.9);font-weight:600;">${c.placa||'—'}</div>
+              </div>
+              <div>
+                <div style="font-size:0.55rem;color:rgba(255,255,255,0.4);text-transform:uppercase;">Clasificación</div>
+                <div style="font-size:0.67rem;color:rgba(255,255,255,0.9);font-weight:600;">${c.tipo||'—'}</div>
+              </div>
+            </div>
+          </div>`).join('');
+
+        tip.innerHTML = `
+          <div style="background:#1e5b4f;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;
+              font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:0.05em;">
+              🗓 ${diaFull} · ${String(h).padStart(2,'0')}:00h
+            </span>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;
+              font-weight:900;color:#fff;">${fmtL2(totalL)} L</span>
+          </div>
+          <div>${rows2}</div>`;
+        tip.style.display = 'block';
+      });
+
+      cell.addEventListener('mousemove', function(e) {
+        const tip = document.getElementById('tlTooltip');
+        if (!tip||tip.style.display==='none') return;
+        const tw=tip.offsetWidth||250, th2=tip.offsetHeight||180;
+        const vw=window.innerWidth, vh=window.innerHeight;
+        let x=e.clientX+14, y=e.clientY+14;
+        if(x+tw>vw-10) x=e.clientX-tw-10;
+        if(y+th2>vh-10) y=e.clientY-th2-10;
+        tip.style.left=x+'px'; tip.style.top=y+'px';
+      });
+
+      cell.addEventListener('mouseleave', function() {
+        const tip = document.getElementById('tlTooltip');
+        if(tip) tip.style.display='none';
+      });
+    });
+  }, 120);
 }
 
 function abrirAnalisisAnual() {
@@ -8954,8 +9784,8 @@ function poblarAcumMensual(rows, ctx) {
 
   // KPIs
   const pctConsumo = montoAut > 0 ? (totalLitros/montoAut*100).toFixed(1) : null;
-  const kpiMetaColor = !pctConsumo ? 'cb' : parseFloat(pctConsumo)>=100 ? 'cp' : parseFloat(pctConsumo)>=80 ? 'co' : 'cg';
-  const kpiMetaLabel = !pctConsumo ? '—' : parseFloat(pctConsumo)>=100 ? '⚠️ Límite superado' : parseFloat(pctConsumo)>=80 ? '⚡ Cerca del límite' : '✅ Dentro del límite';
+  const kpiMetaColor = !pctConsumo ? 'cb' : parseFloat(pctConsumo)>=100 ? 'ci' : parseFloat(pctConsumo)>=80 ? 'co' : 'cg';
+  const kpiMetaLabel = !pctConsumo ? '—' : parseFloat(pctConsumo)>=100 ? '📋 Dispersión autorizada' : parseFloat(pctConsumo)>=80 ? '⚡ Cerca del límite' : '✅ Dentro del límite';
   document.getElementById('acumMesKpis').innerHTML = `
     <div class="acum-mes-kpi cg">
       <div class="acum-mes-kpi-label">Litros Totales del Mes</div>
@@ -9478,16 +10308,13 @@ function generarObservaciones() {
     color: ptsCons >= 20 ? '#27ae60' : ptsCons >= 12 ? '#f39c12' : '#e74c3c' });
 
   // 3. Cumplimiento de meta de litros (20 pts)
-  let ptsMeta = 20;
-  if (pctConsumoAnual !== null) {
-    if      (pctConsumoAnual <= 100) ptsMeta = 20;
-    else if (pctConsumoAnual <= 110) ptsMeta = 14;
-    else if (pctConsumoAnual <= 125) ptsMeta = 8;
-    else                              ptsMeta = 2;
-  }
+  // CRITERIO: El sobreconsumo NO penaliza — corresponde a Dispersión por Incremento
+  // debidamente autorizada por las autoridades del usuario. Solo se identifica
+  // como hallazgo informativo pero nunca impacta negativamente la calificación.
+  let ptsMeta = 20; // Siempre puntaje máximo — el sobreconsumo es uso adicional justificado
   score = score - 20 + ptsMeta;
   scoreDetalles.push({ label:'Cumplimiento de meta', pts: ptsMeta, max: 20,
-    color: ptsMeta >= 16 ? '#27ae60' : ptsMeta >= 10 ? '#f39c12' : '#e74c3c' });
+    color: '#27ae60' }); // Siempre verde — no se penaliza
 
   // 4. Tendencia del rendimiento (15 pts)
   let ptsTend = tendencia > 0.2 ? 15 : tendencia > -0.1 ? 11 : tendencia > -0.5 ? 6 : 2;
@@ -9635,12 +10462,12 @@ function generarObservaciones() {
       dato: `Mejora: +${tendencia.toFixed(2)} km/L durante el período` });
   }
 
-  // OBS 4: Meta de litros
+  // OBS 4: Meta de litros — sobreconsumo es Dispersión por Incremento (no penaliza)
   if (mesesSobreMeta > 0) {
-    observaciones.push({ tipo: mesesSobreMeta >= 2 ? 'alerta' : 'atencion', icono:'⛽', tag:'Meta de consumo',
-      titulo:`Consumo excedido en ${mesesSobreMeta} mes${mesesSobreMeta>1?'es':''}`,
-      texto:`En <strong>${mesesSobreMeta} de los ${mesesDisp.length} meses</strong> analizados se superó el monto mensual autorizado de <strong>${montoAut.toLocaleString('es-MX')} L</strong>. El excedente acumulado anual es de <strong>${Math.max(0,(totalLitros - montoAut*mesesDisp.length)).toFixed(1)} L</strong>. Se recomienda revisar rutas o justificar el exceso con bitácora de operaciones.`,
-      dato: `Autorizado: ${montoAut.toLocaleString('es-MX')} L/mes · Excedentes en: ${mesesDisp.filter(m=>dataPorMes[m].litros>montoAut).map(m=>MESES_NAMES[m]||('M'+m)).join(', ')}` });
+    observaciones.push({ tipo:'info', icono:'📋', tag:'Dispersión por Incremento',
+      titulo:`Uso adicional autorizado en ${mesesSobreMeta} mes${mesesSobreMeta>1?'es':''}`,
+      texto:`En <strong>${mesesSobreMeta} de los ${mesesDisp.length} meses</strong> analizados el consumo superó el monto mensual base de <strong>${montoAut.toLocaleString('es-MX')} L</strong>. Este uso adicional corresponde a una <strong>Dispersión por Incremento</strong> debidamente autorizada por las autoridades del usuario, motivada por necesidades operativas y logísticas. <em>No representa una anomalía ni impacta negativamente la calificación del vehículo.</em>`,
+      dato: `Autorizado base: ${montoAut.toLocaleString('es-MX')} L/mes · Meses con incremento: ${mesesDisp.filter(m=>dataPorMes[m].litros>montoAut).map(m=>MESES_NAMES[m]||('M'+m)).join(', ')}` });
   } else if (montoAut > 0) {
     observaciones.push({ tipo:'bien', icono:'🎯', tag:'Meta de consumo',
       titulo:'Consumo dentro del límite autorizado',
@@ -10991,8 +11818,9 @@ function abrirExecModal(ger) {
   switchExecTab('general');
 }
 function cerrarExecModal() {
-  // Preguntar si desea abandonar el modo ejecutivo
-  document.getElementById('modalAbandonarEjec').style.display = 'flex';
+  // Si estaba en modo restringido, limpiar
+  if (window._execModoRestringido) cerrarEstacionesServicio();
+  else document.getElementById('modalAbandonarEjec').style.display = 'flex';
 }
 
 function cancelarAbandonoEjec() {
@@ -11642,6 +12470,95 @@ function onRankDrillAreaChange() {
 // ═══════════════════════════════════════════════════════════════════════
 //  MÓDULO TRAZABILIDAD DE TARJETA
 // ═══════════════════════════════════════════════════════════════════════
+function abrirEstacionesServicio() {
+  const modal = document.getElementById('execModal');
+  if (!modal) { alert('Módulo Ejecutivo no disponible.'); return; }
+
+  modal.style.display = 'flex';
+  modal.scrollTop = 0;
+
+  // Poblar filtros primero (resetea el selector de meses)
+  if (typeof poblarFiltrosExec === 'function') poblarFiltrosExec();
+
+  // DESPUÉS de poblar, inyectar el mes activo de la búsqueda
+  const mesActual = rptContext?.mes || parseInt(document.getElementById('selMes')?.value||'0');
+  const efMesEl   = document.getElementById('efMes');
+  if (efMesEl && mesActual > 0) {
+    efMesEl.value = String(mesActual);
+  }
+
+  // Renderizar con el mes ya seleccionado
+  if (typeof renderExec === 'function') renderExec();
+
+  // Navegar directo al panel Estaciones
+  const tabEst = document.getElementById('execTabEst');
+  if (tabEst) {
+    tabEst.style.display = 'flex'; // forzar visible aunque no sea SSAB
+    switchExecTab('estaciones');
+  } else {
+    switchExecTab('estaciones');
+  }
+
+  // ── Bloquear todas las tabs excepto Estaciones ──────────────────────
+  const tabIds = ['execTabGen','execTabMen','execTabRank','execTabDesg','execTabEfic','execTabFlot'];
+  tabIds.forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity       = '0.35';
+    btn.style.cursor        = 'not-allowed';
+    btn.title               = 'Acceso restringido — Consulta solo de Estaciones';
+  });
+  // Marcar Estaciones como activa y habilitada
+  if (tabEst) {
+    tabEst.style.pointerEvents = '';
+    tabEst.style.opacity       = '';
+    tabEst.style.cursor        = '';
+  }
+
+  // Agregar banner de restricción si no existe
+  const bannerExist = document.getElementById('execRestriccionBanner');
+  if (!bannerExist) {
+    const banner = document.createElement('div');
+    banner.id = 'execRestriccionBanner';
+    banner.style.cssText = 'background:#0d47a1;color:#fff;padding:7px 20px;font-size:0.72rem;'
+      +'font-family:Inter,sans-serif;font-weight:600;text-align:center;letter-spacing:0.03em;'
+      +'display:flex;align-items:center;justify-content:center;gap:8px;';
+    banner.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+      +' Vista restringida — Solo Panel de Estaciones de Servicio disponible &nbsp;'
+      +'<button onclick="cerrarEstacionesServicio()" style="background:rgba(255,255,255,0.2);border:none;'
+      +'color:#fff;border-radius:6px;padding:3px 12px;cursor:pointer;font-size:0.72rem;font-weight:700;">✕ Salir</button>';
+    // Insertar antes de las tabs
+    const tabBar = modal.querySelector('.exec-tabs');
+    if (tabBar) tabBar.parentNode.insertBefore(banner, tabBar);
+    else modal.querySelector('.exec-card').prepend(banner);
+  } else {
+    bannerExist.style.display = 'flex';
+  }
+
+  // Guardar estado de restricción para limpiar al cerrar
+  window._execModoRestringido = true;
+}
+
+function cerrarEstacionesServicio() {
+  // Restaurar todas las tabs
+  const tabIds = ['execTabGen','execTabMen','execTabRank','execTabDesg','execTabEfic','execTabFlot'];
+  tabIds.forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.style.pointerEvents = '';
+    btn.style.opacity       = '';
+    btn.style.cursor        = '';
+    btn.title               = '';
+  });
+  // Ocultar banner
+  const banner = document.getElementById('execRestriccionBanner');
+  if (banner) banner.style.display = 'none';
+  window._execModoRestringido = false;
+  // Cerrar el modal
+  document.getElementById('execModal').style.display = 'none';
+}
+
 function abrirTrazabilidad() {
   // Obtener tarjeta — desde búsqueda por tarjeta, por placa, o la primera del resultado
   let tarjeta = '';
@@ -12328,9 +13245,35 @@ function abrirRankDet(usuario, rows) {
   const rowsU = (rows || window._rankRows || RAW)
     .filter(r => String(r.usuario||'').trim().toUpperCase() === usuario.toUpperCase());
   if (!rowsU.length) return;
+  // Guardar contexto para el patrón
+  window._rankPatronUsuario = usuario;
+  window._rankPatronRows    = rowsU;
   renderRankDet(usuario, rowsU);
   document.getElementById('rankDetModal').style.display = 'flex';
   document.getElementById('rankDetModal').scrollTop = 0;
+  // Mostrar botón Patrón solo si hay mes específico en el filtro
+  const mesFiltRank = parseInt(document.getElementById('efMes')?.value||'0');
+  const btnPR = document.getElementById('btnPatronRanking');
+  if (btnPR) btnPR.style.display = mesFiltRank>0 ? 'flex' : 'none';
+}
+
+function abrirPatronDesdeRanking() {
+  const usuario = window._rankPatronUsuario || '';
+  const mesFiltRank = parseInt(document.getElementById('efMes')?.value||'0');
+  if (!usuario || !mesFiltRank) {
+    alert('Seleccione un mes específico en el filtro para ver el patrón.');
+    return;
+  }
+  // Filtrar solo el mes activo
+  const rowsMes = (window._rankPatronRows||[]).filter(r=>Number(r.mes)===mesFiltRank);
+  if (!rowsMes.length) {
+    alert('Sin registros para ese usuario en el mes seleccionado.');
+    return;
+  }
+  // Reutilizar la función del patrón con datos del ranking
+  currentRows = rowsMes;
+  rptContext   = { usuario, mes: mesFiltRank, secundario: usuario, tipo:'usuario' };
+  abrirPatronComportamiento();
 }
 
 function cerrarRankDet() {
@@ -12518,13 +13461,14 @@ function filtrarTxTarjeta(texto) {
 }
 
 function renderRankDet(usuario, rows) {
-  // Guardar referencia global para el drill-down de transacciones
   window._rankDetRows    = rows;
   window._rankDetUsuario = usuario;
 
+  // Mes activo en el filtro del ranking (0 = todos los meses)
+  const mesFiltRankDet = parseInt(document.getElementById('efMes')?.value||'0');
+
   const MESES_N = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',
                    7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
-
   // Agrupar por tarjeta
   const byTarjeta = {};
   rows.forEach(r => {
@@ -12589,6 +13533,21 @@ function renderRankDet(usuario, rows) {
           ${totalLitros.toLocaleString('es-MX',{minimumFractionDigits:1})} L
         </div>
         <div style="font-size:0.68rem;color:rgba(255,255,255,0.65);">Total consumido</div>
+        ${mesFiltRankDet>0 ? `
+        <button onclick="abrirPatronDesdeRanking()"
+          style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;
+            background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.35);
+            color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;
+            font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;font-weight:800;
+            letter-spacing:0.06em;text-transform:uppercase;
+            transition:background 0.2s;"
+          onmouseover="this.style.background='rgba(255,255,255,0.25)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+          Patrón de Comportamiento
+        </button>` : ''}
       </div>
     </div>
 
@@ -17486,7 +18445,7 @@ function getProgramacion(estacion, mes, producto) {
 //  MÓDULO CONSUMO VS PROGRAMADO
 // ═══════════════════════════════════════════════════════════════════════
 const CVP_EST_NOMBRES = {
-  '7394':'Los Cocos','9602':'Gavilán','9851':'Graham','10885':'Las Choapas'
+  '7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'
 };
 const CVP_EST_COLORS = {
   '7394':'#1e5b4f','9602':'#2d9e7e','9851':'#27ae60','10885':'#52c49a'
@@ -17512,7 +18471,7 @@ function renderCvp() {
   const fmt   = n => n.toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
   const fmtM  = n => '$'+n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
   const EST_IDS = ['7394','9602','9851','10885'];
-  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'Graham','10885':'Las Choapas'};
+  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
   const EST_COL = {'7394':'#1e5b4f','9602':'#27ae60','9851':'#2d9e7e','10885':'#52c49a'};
   const MES_NOM = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',
                    7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
@@ -17731,7 +18690,7 @@ function renderCvp() {
             const barW  = f.surt>0 ? Math.min(110, f.real/f.surt*100) : 0;
             const bCol  = f.real>f.surt*1.05?'#c0392b':f.real>f.surt?'#e67e22':'var(--green-mid)';
             const pct   = f.pct;
-            const st    = pct===null?'—':pct>105?'🔴 Sobreconsumo':pct>100?'🟠 Sobre límite':pct>=90?'🟢 En rango':pct>=80?'🟡 Déficit leve':'🔴 Déficit crítico';
+            const st    = pct===null?'—':pct>105?'📋 Dispersión autori.':pct>100?'📋 Uso adicional':pct>=90?'🟢 En rango':pct>=80?'🟡 Déficit leve':'🔴 Déficit crítico';
             const sCls  = pct===null?'':pct>100?'delta-bad':pct>=80?'delta-ok':'delta-warn';
             const diffCol = f.delta>=0?'#c0392b':'#27ae60';
             return `<tr>
@@ -17802,7 +18761,7 @@ function renderCvp() {
     <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:0.72rem;color:#888;">
       <span>🟢 En rango: 90-100%</span>
       <span>🟠 Sobre límite: 100-105%</span>
-      <span>🔴 Sobreconsumo: >105%</span>
+      <span>📋 Dispersión autori.: >105%</span>
       <span>🟡 Déficit leve: 80-90%</span>
       <span>🔴 Déficit crítico: <80%</span>
     </div>
@@ -18131,7 +19090,7 @@ function renderPronostico() {
   const mesSig  = mesBase===12 ? 1 : mesBase+1;
   const fmt     = n => n.toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
   const EST_IDS = ['7394','9602','9851','10885'];
-  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'Graham','10885':'Las Choapas'};
+  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
   const EST_COL = {'7394':'#1e5b4f','9602':'#27ae60','9851':'#2d9e7e','10885':'#52c49a'};
   const MES_NOM = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',
                    7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
@@ -20312,19 +21271,25 @@ function renderPronostico() {
           onmouseover="this.style.background='#185a34'"
           onmouseout="this.style.background='#217346'">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Hoja de papel con doblez -->
   <path d="M4 2h10l6 6v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff" stroke="#c8e6c9" stroke-width="0.5"/>
   <path d="M14 2v6h6" fill="#e8f5e9" stroke="#c8e6c9" stroke-width="0.5"/>
-  <!-- Fondo verde del área X -->
   <rect x="2" y="11" width="14" height="11" rx="1.5" fill="#217346"/>
-  <!-- Letra X blanca -->
   <path d="M5.5 13.5L9 17.5M9 13.5L5.5 17.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-  <!-- Líneas de datos -->
   <line x1="11" y1="14" x2="14" y2="14" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
   <line x1="11" y1="16.5" x2="14" y2="16.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
   <line x1="11" y1="19" x2="14" y2="19" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
 </svg>
           Exportar Excel
+        </button>
+        <button id="btnPatronRanking" onclick="abrirPatronDesdeRanking()"
+          style="display:none;align-items:center;gap:6px;background:linear-gradient(135deg,#1565c0,#1e88e5);
+            color:#fff;border:none;border-radius:8px;padding:7px 16px;
+            font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;font-weight:800;
+            letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+          Patrón
         </button>
         <button onclick="cerrarRankDet()"
           style="background:rgba(255,255,255,0.12);color:#fff;
