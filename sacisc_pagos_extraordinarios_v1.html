@@ -1856,24 +1856,32 @@ function onTrabajadorChange() {
 
 // ── PASO 4: DIAS ────────────────────────────────────────────────
 function fechaDeDia(idx) {
-  if (!capturaState.semana) return '';
-  const inicio = new Date(capturaState.semana.fecha_inicio + 'T00:00:00');
-  const d = new Date(inicio);
-  d.setDate(d.getDate() + idx);
-  return d.toISOString().slice(0,10);
+  if (!capturaState.semana || !capturaState.semana.fecha_inicio) return '';
+  try {
+    const inicio = new Date(capturaState.semana.fecha_inicio + 'T00:00:00');
+    const d = new Date(inicio);
+    d.setDate(d.getDate() + idx);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0,10);
+  } catch (e) {
+    return '';
+  }
 }
 
 function renderDias() {
   const cont = document.getElementById('diasContainer');
   cont.innerHTML = DIAS_SEMANA.map((d, idx) => {
-    const fecha = fechaDeDia(idx);
+    const fechaCalculada = fechaDeDia(idx);
     if (!capturaState.dias[d.clave]) {
-      capturaState.dias[d.clave] = { fecha, horario:'', dobletes:0, comidas:0, horas:0, minutos:0,
+      capturaState.dias[d.clave] = { fecha: fechaCalculada, horario:'', dobletes:0, comidas:0, horas:0, minutos:0,
         ausente1:{ficha:'',nombre:'',motivo:'',horario:''}, ausente2:{ficha:'',nombre:'',motivo:'',horario:''},
         labores:'' };
-    } else {
-      capturaState.dias[d.clave].fecha = fecha;
+    } else if (fechaCalculada) {
+      // Solo pisa la fecha si el calculo dio un resultado valido; si no,
+      // se conserva la fecha ya guardada (importante al editar un folio existente).
+      capturaState.dias[d.clave].fecha = fechaCalculada;
     }
+    const fecha = capturaState.dias[d.clave].fecha;
     return renderDiaCard(d, idx, fecha);
   }).join('');
 }
@@ -2085,7 +2093,13 @@ async function editarFolio(folioId) {
   // Precargar el estado de captura con los datos del folio existente
   capturaState.tipoPago = folio.tipo_pago;
   capturaState.anio = folio.anio;
-  capturaState.semana = { anio: folio.anio, num_semana: folio.num_semana, fecha_termino: folio.fecha_termino_semana, fecha_inicio: null };
+  let fechaInicioCalculada = null;
+  if (folio.fecha_termino_semana) {
+    const fin = new Date(folio.fecha_termino_semana + 'T00:00:00');
+    fin.setDate(fin.getDate() - 6);
+    fechaInicioCalculada = fin.toISOString().slice(0,10);
+  }
+  capturaState.semana = { anio: folio.anio, num_semana: folio.num_semana, fecha_termino: folio.fecha_termino_semana, fecha_inicio: fechaInicioCalculada };
   capturaState.trabajador = capturaState.trabajadoresCat.find(t => String(t.ficha) === String(folio.ficha)) ||
     { ficha: folio.ficha, nombre: folio.nombre_trabajador, regimen: folio.regimen, sociedad: folio.sociedad, nivel: folio.nivel, salario: folio.salario, jornada: folio.jornada };
 
