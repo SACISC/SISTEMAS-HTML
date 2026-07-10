@@ -1902,8 +1902,8 @@ function renderDiaCard(d, idx, fecha) {
   } else if (capturaState.tipoPago === 'TIEMPO_EXTRA' || capturaState.tipoPago === 'INSALUBRE') {
     inputsHtml = `
       <div class="dia-grid">
-        <div class="field"><label>Hora inicio</label><input type="number" min="0" max="24" placeholder="ej. 15" id="ini-${d.clave}" onchange="onHorasDiaChange('${d.clave}')"></div>
-        <div class="field"><label>Hora término</label><input type="number" min="0" max="24" placeholder="ej. 18" id="fin-${d.clave}" onchange="onHorasDiaChange('${d.clave}')"></div>
+        <div class="field"><label>Hora inicio</label><input type="number" min="0" max="24" placeholder="ej. 15" id="ini-${d.clave}" value="${data.iniRaw ?? ''}" onchange="onHorasDiaChange('${d.clave}')"></div>
+        <div class="field"><label>Hora término</label><input type="number" min="0" max="24" placeholder="ej. 18" id="fin-${d.clave}" value="${data.finRaw ?? ''}" onchange="onHorasDiaChange('${d.clave}')"></div>
       </div>
       ${data.horas || data.minutos ? `<div class="dia-calc-badge">${data.horas}h ${data.minutos}min${capturaState.tipoPago==='TIEMPO_EXTRA' ? ' · ' + data.comidas + ' comida(s)' : ''}</div>` : ''}
     `;
@@ -1980,9 +1980,13 @@ function onHorarioDiaChange(diaClave, horarioClave) {
 }
 
 function onHorasDiaChange(diaClave) {
-  const ini = parseFloat(document.getElementById('ini-' + diaClave).value);
-  const fin = parseFloat(document.getElementById('fin-' + diaClave).value);
+  const iniStr = document.getElementById('ini-' + diaClave).value;
+  const finStr = document.getElementById('fin-' + diaClave).value;
+  const ini = parseFloat(iniStr);
+  const fin = parseFloat(finStr);
   const data = capturaState.dias[diaClave];
+  data.iniRaw = iniStr;
+  data.finRaw = finStr;
   if (isNaN(ini) || isNaN(fin)) { data.horas = 0; data.minutos = 0; data.comidas = 0; renderDias(); return; }
   let diff = fin - ini;
   if (diff < 0) diff += 24; // cruza medianoche
