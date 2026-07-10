@@ -2182,9 +2182,9 @@ async function vaciarCatalogoSupabase(cat) {
 //  GENERACION DEL FORMATO 7 OFICIAL (dispara GitHub Action)
 // ═══════════════════════════════════════════════════════════════
 // IMPORTANTE: reemplaza estos 3 valores con los tuyos antes de usar en produccion.
-const GITHUB_OWNER = 'Angello7813';
-const GITHUB_REPO = 'SISTEMAS-HTML';
-const GITHUB_TOKEN = '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'; // fine-grained PAT, sin expiracion, permisos Actions+Contents read/write
+// Ya NO hay ningun token de GitHub en este archivo. La funcion Edge de
+// Supabase (generar-formato7-trigger) lo esconde del lado del servidor.
+const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/generar-formato7-trigger`;
 
 async function generarFormato7(folioId, btnEl) {
   const originalText = btnEl.textContent;
@@ -2192,18 +2192,15 @@ async function generarFormato7(folioId, btnEl) {
   btnEl.textContent = '⏳ Generando...';
 
   try {
-    // 1. Disparar el GitHub Action
-    const dispatchResp = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/dispatches`, {
+    // 1. Disparar el proceso via la funcion Edge de Supabase (token oculto ahi)
+    const dispatchResp = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
       headers: {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        event_type: 'generar-formato7',
-        client_payload: { folio_id: folioId }
-      })
+      body: JSON.stringify({ folio_id: folioId })
     });
 
     if (!dispatchResp.ok) {
