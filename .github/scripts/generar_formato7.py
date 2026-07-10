@@ -100,9 +100,19 @@ def generar_excel(folio, out_path):
                     p.set_value(f"H{r}", partes[1])
             p.set_value(f"I{r}", dia.get("dobletes") or None)
         elif folio["tipo_pago"] == "TIEMPO_EXTRA":
+            if dia.get("horario"):
+                partes = dia["horario"].split("-")
+                if len(partes) == 2:
+                    p.set_value(f"G{r}", partes[0])
+                    p.set_value(f"H{r}", partes[1])
             p.set_value(f"K{r}", dia.get("horas") or None)
             p.set_value(f"L{r}", dia.get("minutos") or None)
         elif folio["tipo_pago"] == "INSALUBRE":
+            if dia.get("horario"):
+                partes = dia["horario"].split("-")
+                if len(partes) == 2:
+                    p.set_value(f"G{r}", partes[0])
+                    p.set_value(f"H{r}", partes[1])
             p.set_value(f"Q{r}", dia.get("horas") or None)
             p.set_value(f"R{r}", dia.get("minutos") or None)
 
