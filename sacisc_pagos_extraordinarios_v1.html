@@ -745,7 +745,8 @@
         <div class="tab-panel active" id="tab-trabajadores">
           <p class="paste-hint">
             Pega aquí filas copiadas de tu Excel (columnas separadas por tabulador, en este orden):<br>
-            <strong>Ficha&nbsp;&nbsp;Nombre&nbsp;&nbsp;Régimen&nbsp;&nbsp;Sociedad&nbsp;&nbsp;Nivel&nbsp;&nbsp;Salario&nbsp;&nbsp;Jornada</strong>
+            <strong>Ficha&nbsp;&nbsp;Nombre&nbsp;&nbsp;Régimen&nbsp;&nbsp;Sociedad&nbsp;&nbsp;Nivel&nbsp;&nbsp;Salario&nbsp;&nbsp;Jornada</strong><br>
+            <span style="font-size:0.72rem;color:var(--gray);">Si una ficha aparece dos veces con salarios distintos (el trabajador tiene puesto base y ascendido), el sistema lo detecta solo y etiqueta automáticamente cuál es BASE y cuál ASCENDIDO — no necesitas escribir nada extra.</span>
           </p>
           <textarea class="paste-box" id="pasteTrabajadores" placeholder="240975	LUIS G. CANCINO GONZALEZ	PS	10	18	244.02	1"></textarea>
           <div class="cat-toolbar">
@@ -758,7 +759,7 @@
           </div>
           <div class="cat-table-wrap">
             <table class="cat-table">
-              <thead><tr><th>Ficha</th><th>Nombre</th><th>Régimen</th><th>Sociedad</th><th>Nivel</th><th>Salario</th><th>Jornada</th><th></th></tr></thead>
+              <thead><tr><th>Ficha</th><th>Nombre</th><th>Régimen</th><th>Sociedad</th><th>Nivel</th><th>Salario</th><th>Jornada</th><th>Etiqueta</th><th></th></tr></thead>
               <tbody id="body-trabajadores"></tbody>
             </table>
           </div>
@@ -1592,10 +1593,10 @@ const SUPABASE_ANON_KEY = 'sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0';
 const CAT_CONFIG = {
   trabajadores: {
     tabla: 'pe_trabajadores',
-    cols: ['ficha','nombre','regimen','sociedad','nivel','salario','jornada'],
-    tipos: ['int','text','text','text','int','float','int'],
+    cols: ['ficha','nombre','regimen','sociedad','nivel','salario','jornada','etiqueta_puesto'],
+    tipos: ['int','text','text','text','int','float','int','text'],
     global: false,
-    conflict: 'area,subarea,ficha'
+    conflict: 'area,subarea,ficha,etiqueta_puesto'
   },
   semanas: {
     tabla: 'pe_semanas',
@@ -1750,33 +1751,72 @@ function parsearPegado(cat) {
   const config = CAT_CONFIG[cat];
   const filas = texto.split('\n').map(l => l.split('\t').map(c => c.trim()));
 
-  const keyCols = config.conflict
-    ? config.conflict.split(',').filter(c => c !== 'area' && c !== 'subarea').map(c => config.cols.indexOf(c))
-    : null;
-
   let nuevas = 0, actualizadas = 0;
 
-  filas.forEach(f => {
-    if (f.length >= 1 && f.some(v => v !== '')) {
-      while (f.length < config.cols.length) f.push('');
-      const filaLimpia = f.slice(0, config.cols.length);
+  if (cat === 'trabajadores') {
+    // Caso especial: la ficha SOLA no basta para saber si es "la misma fila"
+    // porque un trabajador puede tener 2 salarios (base y ascendido). Aqui se
+    // empareja por FICHA + SALARIO -- si coincide, se actualiza; si la ficha
+    // ya existe pero con OTRO salario, se agrega como una fila nueva (una
+    // segunda version de ese trabajador), y luego se etiqueta automaticamente.
+    const idxFicha = config.cols.indexOf('ficha');
+    const idxSalario = config.cols.indexOf('salario');
+    const idxEtiqueta = config.cols.indexOf('etiqueta_puesto');
 
-      if (keyCols) {
-        const key = keyCols.map(ci => filaLimpia[ci]).join('|');
-        const idxExistente = CAT_DATA[cat].findIndex(existing => keyCols.map(ci => existing[ci]).join('|') === key);
+    filas.forEach(f => {
+      if (f.length >= 1 && f.some(v => v !== '')) {
+        while (f.length < config.cols.length) f.push('');
+        const filaLimpia = f.slice(0, config.cols.length);
+        const fichaNorm = parseInt(String(filaLimpia[idxFicha]).trim(), 10);
+        const salarioNorm = parseFloat(String(filaLimpia[idxSalario]).trim());
+
+        const idxExistente = CAT_DATA[cat].findIndex(existing => {
+          const efFicha = parseInt(String(existing[idxFicha]).trim(), 10);
+          const efSalario = parseFloat(String(existing[idxSalario]).trim());
+          return efFicha === fichaNorm && efSalario === salarioNorm;
+        });
+
         if (idxExistente >= 0) {
+          const etiquetaVieja = CAT_DATA[cat][idxExistente][idxEtiqueta];
+          filaLimpia[idxEtiqueta] = etiquetaVieja || 'BASE';
           CAT_DATA[cat][idxExistente] = filaLimpia;
           actualizadas++;
+        } else {
+          filaLimpia[idxEtiqueta] = 'BASE'; // se corrige en el auto-etiquetado de abajo
+          CAT_DATA[cat].push(filaLimpia);
+          nuevas++;
+        }
+      }
+    });
+
+    autoEtiquetarTrabajadores();
+  } else {
+    const keyCols = config.conflict
+      ? config.conflict.split(',').filter(c => c !== 'area' && c !== 'subarea').map(c => config.cols.indexOf(c))
+      : null;
+
+    filas.forEach(f => {
+      if (f.length >= 1 && f.some(v => v !== '')) {
+        while (f.length < config.cols.length) f.push('');
+        const filaLimpia = f.slice(0, config.cols.length);
+
+        if (keyCols) {
+          const key = keyCols.map(ci => filaLimpia[ci]).join('|');
+          const idxExistente = CAT_DATA[cat].findIndex(existing => keyCols.map(ci => existing[ci]).join('|') === key);
+          if (idxExistente >= 0) {
+            CAT_DATA[cat][idxExistente] = filaLimpia;
+            actualizadas++;
+          } else {
+            CAT_DATA[cat].push(filaLimpia);
+            nuevas++;
+          }
         } else {
           CAT_DATA[cat].push(filaLimpia);
           nuevas++;
         }
-      } else {
-        CAT_DATA[cat].push(filaLimpia);
-        nuevas++;
       }
-    }
-  });
+    });
+  }
 
   ta.value = '';
   renderTabla(cat);
@@ -1786,6 +1826,39 @@ function parsearPegado(cat) {
     statusEl.className = 'cat-status ok';
     statusEl.textContent = `Vista previa: ${nuevas} fila(s) nueva(s), ${actualizadas} actualizada(s) (sin duplicar).`;
   }
+}
+
+// Recorre TODO el catalogo de Trabajadores cargado y, para cada ficha que
+// tenga 2 o mas salarios distintos, etiqueta automaticamente el mas bajo
+// como BASE y los demas como ASCENDIDO (o ASCENDIDO 2, ASCENDIDO 3...).
+function autoEtiquetarTrabajadores() {
+  const config = CAT_CONFIG.trabajadores;
+  const idxFicha = config.cols.indexOf('ficha');
+  const idxSalario = config.cols.indexOf('salario');
+  const idxEtiqueta = config.cols.indexOf('etiqueta_puesto');
+
+  const grupos = {};
+  CAT_DATA.trabajadores.forEach((fila, i) => {
+    const ficha = parseInt(String(fila[idxFicha]).trim(), 10);
+    if (!grupos[ficha]) grupos[ficha] = [];
+    grupos[ficha].push(i);
+  });
+
+  Object.values(grupos).forEach(indices => {
+    if (indices.length < 2) return;
+    const ordenados = indices.slice().sort((a, b) => {
+      const sa = parseFloat(String(CAT_DATA.trabajadores[a][idxSalario]).trim()) || 0;
+      const sb = parseFloat(String(CAT_DATA.trabajadores[b][idxSalario]).trim()) || 0;
+      return sa - sb;
+    });
+    const salarios = ordenados.map(i => parseFloat(String(CAT_DATA.trabajadores[i][idxSalario]).trim()) || 0);
+    const distintos = new Set(salarios).size > 1;
+    if (!distintos) return;
+
+    ordenados.forEach((i, pos) => {
+      CAT_DATA.trabajadores[i][idxEtiqueta] = pos === 0 ? 'BASE' : (pos === 1 ? 'ASCENDIDO' : `ASCENDIDO ${pos}`);
+    });
+  });
 }
 
 function agregarFilaVacia(cat) {
@@ -1874,13 +1947,22 @@ async function guardarCatalogo(cat) {
     return;
   }
 
-  // Detectar duplicados dentro del propio bloque pegado (misma clave de conflicto repetida)
+  // Detectar duplicados dentro del propio bloque pegado (misma clave de conflicto repetida).
+  // Se normaliza cada valor (quitar espacios, convertir a numero si aplica) antes de comparar,
+  // porque " 240975" y "240975" son la MISMA ficha para Postgres pero texto distinto para JS.
   if (config.conflict) {
     const keyCols = config.conflict.split(',').filter(c => c !== 'area' && c !== 'subarea');
     const keyIdx = keyCols.map(c => config.cols.indexOf(c));
+    const normalizarValor = (valor, ci) => {
+      const tipo = config.tipos[ci];
+      const limpio = (valor ?? '').toString().trim();
+      if (tipo === 'int') return String(parseInt(limpio, 10));
+      if (tipo === 'float') return String(parseFloat(limpio));
+      return limpio.toUpperCase();
+    };
     const vistos = new Map();
     filas.forEach((f, i) => {
-      const key = keyIdx.map(ci => f[ci]).join('|');
+      const key = keyIdx.map(ci => normalizarValor(f[ci], ci)).join('|');
       if (!vistos.has(key)) vistos.set(key, []);
       vistos.get(key).push(i);
     });
@@ -2106,7 +2188,12 @@ async function cargarTrabajadoresCat() {
   capturaState.trabajadoresCat = await sbGet('pe_trabajadores', q);
   const sel = document.getElementById('selTrabajador');
   sel.innerHTML = '<option value="">— Selecciona trabajador —</option>' +
-    capturaState.trabajadoresCat.map(t => `<option value="${t.ficha}">${t.ficha} — ${t.nombre}</option>`).join('');
+    capturaState.trabajadoresCat.map(t => {
+      const etiqueta = t.etiqueta_puesto && t.etiqueta_puesto !== 'BASE' ? ` — ${t.etiqueta_puesto} ($${t.salario})` : (t.salario ? ` — $${t.salario}` : '');
+      // Cuando el trabajador tiene mas de una version (BASE/ASCENDIDO), el value
+      // debe distinguir cual exactamente para no confundir el salario a usar.
+      return `<option value="${t.ficha}|||${t.etiqueta_puesto||'BASE'}">${t.ficha} — ${t.nombre}${etiqueta}</option>`;
+    }).join('');
 }
 
 async function cargarFirmantesCat() {
@@ -2143,8 +2230,9 @@ function onSemanaChange() {
 
 // ── PASO 3: TRABAJADOR ─────────────────────────────────────────
 function onTrabajadorChange() {
-  const ficha = document.getElementById('selTrabajador').value;
-  const t = capturaState.trabajadoresCat.find(x => String(x.ficha) === ficha);
+  const valor = document.getElementById('selTrabajador').value;
+  const [ficha, etiqueta] = valor.split('|||');
+  const t = capturaState.trabajadoresCat.find(x => String(x.ficha) === ficha && (x.etiqueta_puesto || 'BASE') === etiqueta);
   capturaState.trabajador = t || null;
   const info = document.getElementById('trabajadorInfo');
   if (t) {
@@ -2154,6 +2242,7 @@ function onTrabajadorChange() {
         <div class="stat-item"><div class="stat-label">Nivel</div><div class="stat-value" style="font-size:1.1rem;">${t.nivel ?? '—'}</div></div>
         <div class="stat-item"><div class="stat-label">Salario</div><div class="stat-value" style="font-size:1.1rem; ${t.salario == null ? 'color:#ffb84d;' : ''}">${t.salario != null ? '$' + t.salario : '⚠️ Sin capturar'}</div></div>
         <div class="stat-item"><div class="stat-label">Jornada</div><div class="stat-value" style="font-size:1.1rem;">${t.jornada ?? '—'}</div></div>
+        <div class="stat-item"><div class="stat-label">Puesto</div><div class="stat-value" style="font-size:1.1rem;">${t.etiqueta_puesto || 'BASE'}</div></div>
       </div>`;
     document.getElementById('btnPaso3Next').disabled = false;
   } else {
@@ -2182,7 +2271,7 @@ function renderDias() {
     const fechaCalculada = fechaDeDia(idx);
     if (!capturaState.dias[d.clave]) {
       capturaState.dias[d.clave] = { fecha: fechaCalculada, horario:'', dobletes:0, comidas:0, horas:0, minutos:0,
-        ausente1:{ficha:'',nombre:'',motivo:'',horario:''}, ausente2:{ficha:'',nombre:'',motivo:'',horario:''},
+        ausente1:{ficha:'',nombre:'',motivo:'',horario:'',tipoMotivo:'AUSENCIA',comentarioPlaza:''}, ausente2:{ficha:'',nombre:'',motivo:'',horario:'',tipoMotivo:'AUSENCIA',comentarioPlaza:''},
         labores:'' };
     } else if (fechaCalculada) {
       // Solo pisa la fecha si el calculo dio un resultado valido; si no,
@@ -2241,16 +2330,22 @@ function renderDiaCard(d, idx, fecha) {
 }
 
 function renderAusenteBox(diaClave, n, ausente) {
-  const opcionesFicha = capturaState.trabajadoresCat
+  // Deduplicar por ficha (un trabajador puede aparecer 2 veces: BASE y ASCENDIDO,
+  // pero para saber QUIEN falto no importa cual version de salario tenia)
+  const fichasUnicas = [...new Map(capturaState.trabajadoresCat.map(t => [String(t.ficha), t])).values()];
+  const opcionesFicha = fichasUnicas
     .map(t => `<option value="${t.ficha}" ${String(ausente.ficha)===String(t.ficha)?'selected':''}>${t.ficha} — ${t.nombre}</option>`)
     .join('');
   const tiposUnicos = [...new Map(capturaState.ausenciasCat.map(a => [a.tipo, a])).values()];
   const opcionesMotivo = tiposUnicos
     .map(a => `<option value="${a.tipo}" ${ausente.motivo===a.tipo?'selected':''}>${a.tipo}</option>`)
     .join('');
-  return `
-    <div class="ausente-box">
-      <div class="abx-title">🚫 Ausente ${n}</div>
+
+  const tipoMotivo = ausente.tipoMotivo || 'AUSENCIA';
+
+  let contenidoSegunTipo = '';
+  if (tipoMotivo === 'AUSENCIA') {
+    contenidoSegunTipo = `
       <div class="dia-grid">
         <div class="field">
           <label>Ficha</label>
@@ -2270,8 +2365,44 @@ function renderAusenteBox(diaClave, n, ausente) {
           <option value="">— Selecciona motivo —</option>
           ${opcionesMotivo}
         </select>
+      </div>`;
+  } else if (tipoMotivo === 'PLAZA_SIN_COBERTURA') {
+    contenidoSegunTipo = `
+      <div class="field">
+        <label>Comentario (ej. número de plaza sin cubrir)</label>
+        <input type="text" value="${ausente.comentarioPlaza || ''}" placeholder="ej. Plaza 1234" onchange="onAusenteChange('${diaClave}',${n},'comentarioPlaza',this.value)">
+      </div>`;
+  } else {
+    // CAMBIO_ROL no necesita ningun dato adicional
+    contenidoSegunTipo = `<p style="font-size:0.78rem;color:var(--gray);margin:0;">No requiere datos adicionales.</p>`;
+  }
+
+  return `
+    <div class="ausente-box">
+      <div class="abx-title">🚫 Motivo del Doblete ${n}</div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Tipo de motivo</label>
+        <select onchange="onAusenteTipoMotivoChange('${diaClave}',${n},this.value)">
+          <option value="AUSENCIA" ${tipoMotivo==='AUSENCIA'?'selected':''}>Ausencia de un trabajador</option>
+          <option value="CAMBIO_ROL" ${tipoMotivo==='CAMBIO_ROL'?'selected':''}>Cambio de Rol de Guardia</option>
+          <option value="PLAZA_SIN_COBERTURA" ${tipoMotivo==='PLAZA_SIN_COBERTURA'?'selected':''}>Plaza sin Cobertura</option>
+        </select>
       </div>
+      ${contenidoSegunTipo}
     </div>`;
+}
+
+function onAusenteTipoMotivoChange(diaClave, n, tipo) {
+  const ausente = capturaState.dias[diaClave]['ausente'+n];
+  ausente.tipoMotivo = tipo;
+  if (tipo !== 'AUSENCIA') {
+    // Al cambiar de tipo, se limpian los datos de ausencia para no dejar basura
+    ausente.ficha = ''; ausente.nombre = ''; ausente.motivo = '';
+  }
+  if (tipo !== 'PLAZA_SIN_COBERTURA') {
+    ausente.comentarioPlaza = '';
+  }
+  renderDias();
 }
 
 function onAusenteFichaChange(diaClave, n, ficha) {
@@ -2343,13 +2474,24 @@ function onAusenteChange(diaClave, n, campo, valor) {
   capturaState.dias[diaClave]['ausente'+n][campo] = valor;
 }
 
+function razonTexto(ausente) {
+  if (ausente.tipoMotivo === 'CAMBIO_ROL') {
+    return 'CAMBIO DE ROL DE GUARDIA';
+  }
+  if (ausente.tipoMotivo === 'PLAZA_SIN_COBERTURA') {
+    return `FALTA DE COBERTURA DE PLAZA${ausente.comentarioPlaza ? ' ' + ausente.comentarioPlaza : ''}`;
+  }
+  // Por defecto: AUSENCIA de un trabajador especifico
+  return `LA AUSENCIA DE: F. ${ausente.ficha} ${ausente.nombre} DE: ${ausente.horario}`;
+}
+
 function sugerirLabores(diaClave) {
   const data = capturaState.dias[diaClave];
   let texto = '';
   if (data.dobletes === 1) {
-    texto = `DOBLA POR LA AUSENCIA DE: F. ${data.ausente1.ficha} ${data.ausente1.nombre} DE: ${data.ausente1.horario}`;
+    texto = `DOBLA POR ${razonTexto(data.ausente1)}`;
   } else if (data.dobletes === 2) {
-    texto = `DOBLA POR LA AUSENCIA DE: F. ${data.ausente1.ficha} ${data.ausente1.nombre} DE: ${data.ausente1.horario} Y LA AUSENCIA DE F. ${data.ausente2.ficha} ${data.ausente2.nombre} DE: ${data.ausente2.horario}`;
+    texto = `DOBLA POR ${razonTexto(data.ausente1)} Y ${razonTexto(data.ausente2)}`;
   }
   data.labores = texto;
   document.getElementById('lab-' + diaClave).value = texto;
@@ -2475,11 +2617,11 @@ async function editarFolio(folioId) {
       fecha: diaGuardado.fecha, horario: diaGuardado.horario || '', iniRaw, finRaw,
       dobletes: diaGuardado.dobletes || 0, comidas: diaGuardado.comidas || 0,
       horas: diaGuardado.horas || 0, minutos: diaGuardado.minutos || 0,
-      ausente1: { ficha: diaGuardado.ausente1_ficha || '', nombre: diaGuardado.ausente1_nombre || '', motivo: diaGuardado.ausente1_motivo || '', horario: diaGuardado.ausente1_horario || diaGuardado.horario || '' },
-      ausente2: { ficha: diaGuardado.ausente2_ficha || '', nombre: diaGuardado.ausente2_nombre || '', motivo: '', horario: diaGuardado.ausente2_horario || diaGuardado.horario || '' },
+      ausente1: { ficha: diaGuardado.ausente1_ficha || '', nombre: diaGuardado.ausente1_nombre || '', motivo: diaGuardado.ausente1_motivo || '', horario: diaGuardado.ausente1_horario || diaGuardado.horario || '', tipoMotivo: diaGuardado.ausente1_tipo || 'AUSENCIA', comentarioPlaza: diaGuardado.ausente1_comentario || '' },
+      ausente2: { ficha: diaGuardado.ausente2_ficha || '', nombre: diaGuardado.ausente2_nombre || '', motivo: '', horario: diaGuardado.ausente2_horario || diaGuardado.horario || '', tipoMotivo: diaGuardado.ausente2_tipo || 'AUSENCIA', comentarioPlaza: diaGuardado.ausente2_comentario || '' },
       labores: diaGuardado.labores_desarrolladas || ''
     } : { fecha: '', horario: '', iniRaw: '', finRaw: '', dobletes: 0, comidas: 0, horas: 0, minutos: 0,
-      ausente1: {ficha:'',nombre:'',motivo:'',horario:''}, ausente2: {ficha:'',nombre:'',motivo:'',horario:''}, labores: '' };
+      ausente1: {ficha:'',nombre:'',motivo:'',horario:'',tipoMotivo:'AUSENCIA',comentarioPlaza:''}, ausente2: {ficha:'',nombre:'',motivo:'',horario:'',tipoMotivo:'AUSENCIA',comentarioPlaza:''}, labores: '' };
   });
 
   // Saltar directo al paso 4 (dias) para editar, con opcion de avanzar/regresar a los demas
@@ -2495,7 +2637,11 @@ async function editarFolio(folioId) {
 
   document.getElementById('subareaCapturaNombre').textContent = subareaActual;
   document.getElementById('selTrabajador').innerHTML =
-    capturaState.trabajadoresCat.map(t => `<option value="${t.ficha}" ${String(t.ficha)===String(folio.ficha)?'selected':''}>${t.ficha} — ${t.nombre}</option>`).join('');
+    capturaState.trabajadoresCat.map(t => {
+      const etiqueta = t.etiqueta_puesto || 'BASE';
+      const etiquetaTxt = etiqueta !== 'BASE' ? ` — ${etiqueta} ($${t.salario})` : (t.salario ? ` — $${t.salario}` : '');
+      return `<option value="${t.ficha}|||${etiqueta}" ${String(t.ficha)===String(folio.ficha) && Number(t.salario)===Number(folio.salario) ?'selected':''}>${t.ficha} — ${t.nombre}${etiquetaTxt}</option>`;
+    }).join('');
   onTrabajadorChange();
 
   irPaso(4);
@@ -2592,8 +2738,10 @@ async function guardarFolio() {
         horas: data.horas||0, minutos: data.minutos||0,
         ausente1_ficha: data.ausente1.ficha || null, ausente1_nombre: data.ausente1.nombre || null,
         ausente1_motivo: data.ausente1.motivo || null, ausente1_horario: data.ausente1.horario || null,
+        ausente1_tipo: data.ausente1.tipoMotivo || 'AUSENCIA', ausente1_comentario: data.ausente1.comentarioPlaza || null,
         ausente2_ficha: data.ausente2.ficha || null, ausente2_nombre: data.ausente2.nombre || null,
         ausente2_motivo: data.ausente2.motivo || null, ausente2_horario: data.ausente2.horario || null,
+        ausente2_tipo: data.ausente2.tipoMotivo || 'AUSENCIA', ausente2_comentario: data.ausente2.comentarioPlaza || null,
         labores_desarrolladas: data.labores || null
       };
     });
