@@ -1526,7 +1526,10 @@ async function cargarDesdeSB(){
     const pendTotal=soloProg.length+soloPer.length+soloSA.length+soloLC.length+soloAB.length+progActualizar.length;
     mostrarSyncBanner(pendTotal>0?`✅ Sincronizado — ${pendTotal} registro(s) enviado(s) al servidor`:'✅ Sincronizado correctamente',false);
     setTimeout(()=>ocultarSyncBanner(),3000);
-    aplicarFiltros();renderProgramasTab();renderCatalogos();renderOrgTree();renderPersonas();renderTendencia();cargarProgramasEjec();
+    aplicarFiltros();renderProgramasTab();
+    [renderCatalogos,renderOrgTree,renderPersonas,renderTendencia,cargarProgramasEjec].forEach(function(fn){
+      try{fn();}catch(e){console.error('Error refrescando '+(fn.name||'función'),e);}
+    });
 
   }catch(e){
     console.error('cargarDesdeSB ERROR:',e);
@@ -1611,9 +1614,10 @@ window.addEventListener('DOMContentLoaded',async ()=>{
   mostrarSyncBanner('Conectando a la base de datos...',true);
   await cargarDesdeSB();
   initDefaults();
-  aplicarFiltros();renderProgramasTab();
-  renderCatalogos();renderOrgTree();renderPersonas();renderTendencia();cargarProgramasEjec();
-  refrescarDatalistDom();
+  const _pasosInit=[aplicarFiltros,renderProgramasTab,renderCatalogos,renderOrgTree,renderPersonas,renderTendencia,cargarProgramasEjec,refrescarDatalistDom];
+  _pasosInit.forEach(function(fn){
+    try{fn();}catch(e){console.error('Error inicializando '+(fn.name||'función'),e);}
+  });
 });
 
 function initDefaults(){
@@ -2738,7 +2742,7 @@ function renderPersonas(){
   const avClsMap={'CABO_AV':'av-av','CABO_DOM':'av-dom','CABO_RB':'av-rb','MANDO':'av-m'};
   const card=(p)=>{
     const avCls=avClsMap[p.rol]||'av-av';
-    return `<div style="background:var(--wh);border:1.5px solid var(--bd);border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:10px;">
+    return `<div style="background:var(--wh);border:1.5px solid var(--bd);border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:10px;margin-bottom:8px;">
       <div class="av ${avCls}">${initials(p.nombre)}</div>
       <div style="flex:1;"><div style="font-size:.88rem;font-weight:700;color:var(--gd);">${p.nombre}</div><div style="font-size:.72rem;color:var(--gray);">${p.cargo}${p.area?' · '+p.area:''}${p.ficha?' · '+p.ficha:''}</div></div>
       <div style="display:flex;gap:4px;">
@@ -2747,10 +2751,11 @@ function renderPersonas(){
       </div>
     </div>`;
   };
-  document.getElementById('listaCabosAV').innerHTML=cav.length?cav.map(p=>card(p)).join(''):`<p style="font-size:.78rem;color:var(--gray);padding:6px 0;">Sin registros.</p>`;
-  document.getElementById('listaCabosDOM').innerHTML=cdom.length?cdom.map(p=>card(p)).join(''):`<p style="font-size:.78rem;color:var(--gray);padding:6px 0;">Sin registros.</p>`;
-  document.getElementById('listaCabosRB').innerHTML=crb.length?crb.map(p=>card(p)).join(''):`<p style="font-size:.78rem;color:var(--gray);padding:6px 0;">Sin registros.</p>`;
-  document.getElementById('listaMandos').innerHTML=mnd.length?mnd.map(p=>card(p)).join(''):`<p style="font-size:.78rem;color:var(--gray);padding:6px 0;">Sin registros.</p>`;
+  const grupo=(titulo,arr)=>`<div style="margin-bottom:16px;"><div style="font-size:.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${titulo} (${arr.length})</div>${arr.length?arr.map(p=>card(p)).join(''):'<p style="font-size:.78rem;color:var(--gray);padding:6px 0;">Sin registros.</p>'}</div>`;
+  const cont=document.getElementById('persTabla');
+  if(cont){
+    cont.innerHTML=grupo('Cabos Áreas Verdes',cav)+grupo('Cabos Domésticos',cdom)+grupo('Cabos Recolección de Basura',crb)+grupo('Mandos Medios',mnd);
+  }
 }
 
 function editarPersonaModal(id){
@@ -3699,8 +3704,9 @@ async function recargarDesdeSB(){
   mostrarSyncBanner('Sincronizando...',true);
   await cargarDesdeSB();
   aplicarFiltros();renderProgramasTab();
-  renderCatalogos();renderOrgTree();renderPersonas();renderTendencia();cargarProgramasEjec();
-  refrescarDatalistDom();
+  [renderCatalogos,renderOrgTree,renderPersonas,renderTendencia,cargarProgramasEjec,refrescarDatalistDom].forEach(function(fn){
+    try{fn();}catch(e){console.error('Error refrescando '+(fn.name||'función'),e);}
+  });
 }
 
 // ── Auto-refresh cada 60 segundos ──
@@ -3773,8 +3779,9 @@ function cargarDatosSesion(d){
   if(d.personas)PE=d.personas;
   saveLocal(LS.P,PROG);saveLocal(LS.PE,PE);saveLocal(LS.SA,SA);saveLocal(LS.LC,LC);saveLocal(LS.AB,AB);
   aplicarFiltros();renderProgramasTab();
-  renderCatalogos();renderOrgTree();renderPersonas();renderTendencia();cargarProgramasEjec();
-  refrescarDatalistDom();
+  [renderCatalogos,renderOrgTree,renderPersonas,renderTendencia,cargarProgramasEjec,refrescarDatalistDom].forEach(function(fn){
+    try{fn();}catch(e){console.error('Error refrescando '+(fn.name||'función'),e);}
+  });
   toast('✅ Sesión restaurada correctamente.');
 }
 
