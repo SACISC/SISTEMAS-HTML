@@ -168,7 +168,7 @@ def main():
 
     reemplazar_textos(TEMPLATE_PATH, out_path, reemplazos)
 
-    filas_tabla = [[f"{i+1:03d}.", f["ficha"], titulo(f["nombre_trabajador"])] for i, f in enumerate(folios)]
+    filas_tabla = [[f"{f['folio']:03d}.", f["ficha"], titulo(f["nombre_trabajador"])] for f in folios]
     reconstruir_tabla(out_path, tabla_idx=1, fila_referencia_idx=1, filas_nuevas=filas_tabla)
 
     bucket = "oficios-rh-generados"
