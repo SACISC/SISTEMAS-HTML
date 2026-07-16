@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SACISC · Módulo de Pagos Extraordinarios</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CjxyZWN0IHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgcng9IjYiIGZpbGw9IiMxZTViNGYiLz4KPHBhdGggZD0iTTkgMy41aDZhMSAxIDAgMCAxIDEgMVY1aDFhMSAxIDAgMCAxIDEgMXYxNGExIDEgMCAwIDEtMSAxSDdhMSAxIDAgMCAxLTEtMVY2YTEgMSAwIDAgMSAxLTFoMXYtLjVhMSAxIDAgMCAxIDEtMXoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBvbHlsaW5lIHBvaW50cz0iOC4zIDEyLjIgMTAuNCAxNC4zIDE1LjIgOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEuOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPg==">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -1598,6 +1597,45 @@ function mostrarInfoAreaCompleta(area) {
   }).join('');
   document.getElementById('infoAreaSubarea').innerHTML =
     `Sub-áreas registradas para <strong style="color:var(--green-mid);">${AREA_NOMBRES[area]}</strong>: <span>${subareasHtml}</span>`;
+  verificarVencimientoToken();
+}
+
+// El token de GitHub (organizacion SACISC) vence en esta fecha. Cuando falten
+// 7 dias o menos, se muestra un aviso con instrucciones directo en el panel,
+// solo al supervisor (unico que puede regenerarlo). Actualiza esta fecha cada
+// vez que se genere un token nuevo.
+const TOKEN_EXPIRA_FECHA = '2027-07-16';
+
+function verificarVencimientoToken() {
+  const hoy = new Date();
+  const expira = new Date(TOKEN_EXPIRA_FECHA + 'T00:00:00');
+  const diasRestantes = Math.ceil((expira - hoy) / (1000 * 60 * 60 * 24));
+
+  const avisoViejo = document.getElementById('avisoVencimientoToken');
+  if (avisoViejo) avisoViejo.remove();
+
+  if (diasRestantes > 7) return; // todavia falta tiempo, no molestar
+
+  const urgente = diasRestantes <= 0;
+  const aviso = document.createElement('div');
+  aviso.id = 'avisoVencimientoToken';
+  aviso.style.cssText = `background:${urgente ? '#fde8e8' : '#fff3cd'}; border:1.5px solid ${urgente ? '#e0a0a0' : '#ffe08a'}; border-radius:12px; padding:16px 20px; margin-bottom:20px;`;
+  aviso.innerHTML = `
+    <div style="font-weight:800; color:${urgente ? '#8a2c2c' : '#7a5c00'}; margin-bottom:8px; font-family:'Barlow Condensed',sans-serif; font-size:1.05rem;">
+      ${urgente ? '🔴 El token de GitHub ya venció (o vence hoy)' : `🟡 El token de GitHub vence en ${diasRestantes} día(s) — ${TOKEN_EXPIRA_FECHA}`}
+    </div>
+    <div style="font-size:0.83rem; color:#555; line-height:1.6;">
+      Cuando venza, "Generar Formato 7" y "Generar Oficio RH" van a dejar de funcionar hasta que lo renueves. Son 4 pasos, ~5 minutos:
+      <ol style="margin:8px 0 0 20px; padding:0;">
+        <li>Ve a <code>github.com/settings/tokens?type=beta</code> → <strong>Generate new token</strong></li>
+        <li><strong>Resource owner:</strong> elige <strong>SACISC</strong> (la organización, no tu usuario) → Repository access: <code>SISTEMAS-HTML</code> → Permissions: Actions + Contents en "Read and write"</li>
+        <li>Copia el token nuevo <strong>de inmediato</strong></li>
+        <li>Pégalo en Supabase → Edge Functions → Secrets → edita <code>GITHUB_TOKEN</code> → Guarda</li>
+      </ol>
+      <span style="display:block;margin-top:8px;">Después, avísame la nueva fecha de vencimiento para que actualice este aviso.</span>
+    </div>`;
+  const panelBody = document.querySelector('#pantallaPrincipal .panel-body');
+  if (panelBody) panelBody.insertBefore(aviso, panelBody.firstChild);
 }
 
 // ── PIN DE SUB-ÁREA (segundo nivel de acceso) ──────────────────
@@ -1702,7 +1740,7 @@ const CAT_CONFIG = {
     opciones: {
       regimen: ['PS', 'TS'],
       sociedad: ['PMXC'],
-      jornada: ['0', '1', '2']
+      jornada: ['0', '1', '2', '3', '4', '5', '6', '7']
     }
   },
   semanas: {
