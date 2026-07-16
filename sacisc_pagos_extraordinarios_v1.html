@@ -1968,6 +1968,7 @@ function parsearPegado(cat) {
     });
 
     autoEtiquetarTrabajadores();
+    autoCalcularSociedad();
   } else {
     const keyCols = config.conflict
       ? config.conflict.split(',').filter(c => c !== 'area' && c !== 'subarea').map(c => config.cols.indexOf(c))
@@ -2038,6 +2039,20 @@ function autoEtiquetarTrabajadores() {
     ordenados.forEach((i, pos) => {
       CAT_DATA.trabajadores[i][idxEtiqueta] = pos === 0 ? 'BASE' : (pos === 1 ? 'ASCENDIDO' : `ASCENDIDO ${pos}`);
     });
+  });
+}
+
+// La columna Sociedad del catalogo de Trabajadores se calcula sola a partir
+// del Regimen: PS -> 10, TS -> 16. Esto es INDEPENDIENTE de la columna
+// "Sociedad" del Formato 7 (esa siempre es la constante fija "PMXC").
+function autoCalcularSociedad() {
+  const config = CAT_CONFIG.trabajadores;
+  const idxRegimen = config.cols.indexOf('regimen');
+  const idxSociedad = config.cols.indexOf('sociedad');
+  CAT_DATA.trabajadores.forEach(fila => {
+    const regimen = String(fila[idxRegimen] || '').trim().toUpperCase();
+    if (regimen === 'PS') fila[idxSociedad] = '10';
+    else if (regimen === 'TS') fila[idxSociedad] = '16';
   });
 }
 
@@ -2149,6 +2164,7 @@ async function guardarCatalogo(cat) {
     // sin importar si los datos llegaron pegados, con "+ Fila manual",
     // o editando una celda a mano.
     autoEtiquetarTrabajadores();
+    autoCalcularSociedad();
     renderTabla('trabajadores');
   }
 
@@ -2229,6 +2245,7 @@ async function guardarCatalogo(cat) {
     if (config.cols.includes('fecha_inicio') && !r.fecha_inicio) problemas.push(`fila ${i+1}: fecha_inicio no reconocida`);
     if (config.cols.includes('fecha_termino') && !r.fecha_termino) problemas.push(`fila ${i+1}: fecha_termino no reconocida`);
     if (config.cols.includes('rol') && !['ELABORO','VOBO','AUTORIZA','CCP1'].includes(r.rol)) problemas.push(`fila ${i+1}: rol "${r.rol}" no reconocido`);
+    if (config.cols.includes('ficha') && (r.ficha === null || r.ficha === undefined || isNaN(r.ficha))) problemas.push(`fila ${i+1}: falta la ficha (o no es un número válido) — revisa si quedó una fila vacía`);
   });
   if (problemas.length > 0) {
     statusEl.className = 'cat-status err';
