@@ -363,15 +363,15 @@ hr.fd{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0;}
   </div>
 </header>
 <nav class="nav-tabs">
-  <button class="ntab active" onclick="switchTab('tablero')" id="tab-tablero"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg><span>Tablero</span></button>
-  <button class="ntab" onclick="switchTab('programas')" id="tab-programas"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg><span>Programas</span></button>
+  <button class="ntab" onclick="switchTab('tablero')" id="tab-tablero"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg><span>Tablero</span></button>
+  <button class="ntab active" onclick="switchTab('programas')" id="tab-programas"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg><span>Programas</span></button>
   <button class="ntab" onclick="switchTab('catalogo')" id="tab-catalogo"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>Catálogos</span></button>
   <button class="ntab" onclick="switchTab('frecuencias')" id="tab-frecuencias"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Frecuencias</span></button>
 </nav>
 <main>
 
 <!-- TAB TABLERO -->
-<div class="tp active" id="pane-tablero">
+<div class="tp" id="pane-tablero">
   <div class="panel">
     <div class="ph"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg> Filtros de Consulta</div>
     <div class="pb">
@@ -406,7 +406,7 @@ hr.fd{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0;}
 </div>
 
 <!-- TAB PROGRAMAS -->
-<div class="tp" id="pane-programas">
+<div class="tp active" id="pane-programas">
   <div class="panel">
     <div class="ph"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line></svg> Listado de Programas
       <div class="phr">
@@ -1701,8 +1701,16 @@ function poblarSemanasG(a){
     if(desde){
       wrap.style.display='inline-flex';
       sh.innerHTML='<option value="">— Semana fin —</option>';
-      semsAnio(a).filter(n=>n>=desde).forEach(n=>{const f=semDates(a,n);const o=document.createElement('option');o.value=n;o.textContent='Sem. '+n+' — '+f.ini;sh.appendChild(o);});
-      if(prevH&&parseInt(prevH)>=desde)sh.value=prevH;
+      const semanasDisp=semsAnio(a).filter(n=>n>=desde);
+      semanasDisp.forEach(n=>{const f=semDates(a,n);const o=document.createElement('option');o.value=n;o.textContent='Sem. '+n+' — '+f.ini;sh.appendChild(o);});
+      if(prevH&&parseInt(prevH)>=desde){
+        sh.value=prevH;
+      } else {
+        // Rango estándar por defecto: 7 semanas (inicio + 6), ajustado al máximo disponible en el año
+        const maxDisp=semanasDisp.length?semanasDisp[semanasDisp.length-1]:desde;
+        const hastaSugerida=Math.min(desde+6,maxDisp);
+        sh.value=hastaSugerida;
+      }
     } else {
       wrap.style.display='none';
       sh.value='';
@@ -2589,6 +2597,20 @@ function abrirEjecucion(id){
     html+=`</div>`;
   });
   document.getElementById('mejContent').innerHTML=html+`
+    ${(p.extras&&p.extras.length)?`
+    <div style="margin-top:6px;margin-bottom:16px;">
+      <div style="font-family:Barlow Condensed,sans-serif;font-size:.82rem;font-weight:700;color:#3730a3;background:#f5f3ff;border-left:3px solid #7e22ce;padding:7px 12px;border-radius:0 7px 7px 0;margin-bottom:8px;">
+        ⭐ Actividades No Programadas ya registradas (${p.extras.length})
+      </div>
+      ${p.extras.map((ex,i)=>`<div style="background:#faf9ff;border:1.5px solid #ddd6fe;border-radius:9px;padding:10px 15px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700;font-size:.86rem;color:#3730a3;">⭐ ${ex.locNom}</div>
+          <div style="font-size:.71rem;color:var(--gray);margin-top:2px;">📅 ${ex.dia}${ex.fecha?' — '+ex.fecha:''}${ex.dom?' · 👤 '+ex.dom:''}</div>
+          <div style="font-size:.72rem;color:#555;margin-top:2px;">${ex.motivo}${ex.autoridad?' · Autorizó: '+ex.autoridad:''}</div>
+        </div>
+        <button class="btn sm bdng" onclick="if(confirm('¿Eliminar esta actividad extra?'))eliminarActExtra('${id}',${i})" title="Eliminar esta actividad extra">🗑</button>
+      </div>`).join('')}
+    </div>`:''}
     <div style="margin-top:16px;padding-top:14px;border-top:1.5px solid var(--bd);text-align:center;">
       <button class="btn" style="background:#f0f4ff;color:#3730a3;border:1.5px solid #c7d2fe;display:inline-flex;align-items:center;gap:6px;padding:8px 18px;font-size:.82rem;" onclick="abrirActExtra('${id}')">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
