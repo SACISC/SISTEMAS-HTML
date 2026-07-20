@@ -19345,51 +19345,63 @@ function renderPronostico() {
             if (!v.vol || v.vol<=0) return;
             const _es = String(v.estatus||'').toUpperCase().trim();
             if (_es==='SURTIDO') _entSurtidoVR += v.vol;
-            if (_es==='PENDIENTE'||_es.includes('EN SURT')) _entPendVR += v.vol;
+            // Pendientes: se ejercerán en julio (no se transfieren a agosto)
+            if ((_es==='PENDIENTE'||_es.includes('EN SURT')) && _es!=='CANCELADO') _entPendVR += v.vol;
           });
         }
         const _entHoja5 = (_blkMon.surtimientos||[]).reduce((s,x)=>s+x.vol,0);
-        entMes    = (_vblkPron?.vales?.length>0) ? _entSurtidoVR : _entHoja5;
         invIniMes = _blkMon.invInicial||0;
 
-        // ── Para el mes en curso: proyectar al cierre del mes ────────────
-        // No basta con el consumo real hasta hoy — hay días restantes por consumir
-        const _hoy      = new Date();
-        const _mesHoy   = _hoy.getMonth()+1;
-        const _diaHoy   = _hoy.getDate();
+        const _hoy     = new Date();
+        const _mesHoy  = _hoy.getMonth()+1;
+        const _diaHoy  = _hoy.getDate();
         const _esMesAct = mesBase === _mesHoy;
 
         if (_esMesAct) {
-          // Consumo real acumulado hasta hoy
+          // ── Mes en curso: proyectar nivel físico al día 31 ──────────────
+          // Entradas reales del mes = surtidas. Los vales pendientes SE EJERCERÁN
+          // en julio (se detonan antes del 31) — forman parte del balance de julio.
+          // El saldo arrastre es lo que FÍSICAMENTE queda en tanque al día 31.
+          const _entTotalJulio = (_vblkPron?.vales?.length>0)
+            ? _entSurtidoVR + _entPendVR   // todo lo que entrará físicamente en julio
+            : _entHoja5;
+
+          // Consumo real hasta hoy
           const _consReal = realSerie[mesBase]||0;
-          // Promedio diario real (días con despacho del mes actual)
-          const _consMapKey = est+'||'+prod;
-          const _bAct = consMap[_consMapKey]?.[mesBase];
-          const _diasDesp = _bAct?.dias?.size || _diaHoy || 1;
-          const _promDia  = _diasDesp > 0 ? _consReal / _diasDesp : 0;
-          // Días restantes del mes
+          // Promedio diario desde RAW
+          const _rawMesAct = RAW.filter(r => {
+            const _e = String(r.estacion||'').trim().replace(/\.0$/,'').replace(/^E0*/,'');
+            return _e===est && String(r.producto||'').toUpperCase().trim()===prod && Number(r.mes)===mesBase;
+          });
+          const _diasDesp = new Set(_rawMesAct.map(r => {
+            const f = String(r.fecha||'').split('T')[0];
+            const p = f.includes('-') ? f.split('-') : f.split('/').reverse();
+            return parseInt(p[2]||0);
+          }).filter(d=>d>0)).size || _diaHoy || 1;
+          const _promDia = _diasDesp > 0 ? _consReal / _diasDesp : 0;
+
+          // Consumo proyectado al día 31 completo
           const _diasEnMes  = new Date(_hoy.getFullYear(), mesBase, 0).getDate();
-          const _diasRest   = Math.max(0, _diasEnMes - _diaHoy);
-          // Entradas proyectadas = surtidas + pendientes (llegarán antes del 31)
-          const _entProyect = entMes + _entPendVR;
-          // Consumo proyectado al cierre del mes
-          const _consProyect = _consReal + (_promDia * _diasRest);
-          consMesBase   = _consProyect;
-          entMes        = _entProyect;
+          const _consTotal  = _promDia * _diasEnMes; // consumo mes completo proyectado
+
+          // Saldo arrastre = nivel físico en tanque al cierre del mes
+          entMes        = _entTotalJulio;
+          consMesBase   = _consTotal;
           saldoArrastre = invIniMes + entMes - consMesBase;
         } else {
-          // Mes cerrado — usar datos reales directamente
+          // Mes cerrado — datos reales definitivos
+          entMes        = (_vblkPron?.vales?.length>0) ? _entSurtidoVR : _entHoja5;
           consMesBase   = realSerie[mesBase]||0;
           saldoArrastre = invIniMes + entMes - consMesBase;
         }
         hayArrastre = true;
       }
 
-      // ── Vales comprometidos pendientes de surtir (PENDIENTE + EN SURTIMIENTO) ──
-      // Ese producto ya fue solicitado y va a llegar tarde o temprano —
-      // debe descontarse del pronóstico para evitar sobreprogramación
+      // ── Vales comprometidos para el MES SIGUIENTE (mesSig), no mesBase ──
+      // Los vales de julio YA se ejercen en julio — no se descuentan de agosto.
+      // Solo se descuentan vales que ya fueron programados para agosto (mesSig).
       let valesPendientes = 0;
-      const _vblkComp = VALES_RETIRO[est+'||'+prod]?.meses?.[mesBase];
+      const _vblkComp = VALES_RETIRO[est+'||'+prod]?.meses?.[mesSig];
       if (_vblkComp?.vales?.length) {
         _vblkComp.vales.forEach(v => {
           if (!v.vol || v.vol<=0) return;
