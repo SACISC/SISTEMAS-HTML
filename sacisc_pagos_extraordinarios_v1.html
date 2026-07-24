@@ -3098,8 +3098,23 @@ function realizarOtroFolio() {
   document.getElementById('btnNavPaso5').classList.remove('hidden');
   document.getElementById('postGuardadoAcciones').classList.add('hidden');
   document.getElementById('statusFolio').textContent = '';
-  resetCaptura();
-  renderTipoPagoCards();
+
+  editandoFolioId = null;
+  modoFolioActual = 'auto';
+  const avisoViejo = document.getElementById('avisoModoEdicion');
+  if (avisoViejo) avisoViejo.remove();
+
+  // Se entiende que es OTRO pago de la MISMA semana y el MISMO tipo de pago
+  // que el folio recien guardado -- se conservan ambos, y solo se reinicia
+  // el trabajador y los dias, saltando directo al Paso 3.
+  capturaState.trabajador = null;
+  capturaState.dias = {};
+
+  document.getElementById('selTrabajador').value = '';
+  document.getElementById('trabajadorInfo').innerHTML = '';
+  document.getElementById('btnPaso3Next').disabled = true;
+
+  irPaso(3);
 }
 
 function terminarCaptura() {
