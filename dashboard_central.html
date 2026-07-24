@@ -591,6 +591,7 @@ var qrcode = function() {
 const SUPABASE_URL = "https://epqyabsdgsthbtuluarq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const EDGE_FUNCTION_CREAR_USUARIO = `${SUPABASE_URL}/functions/v1/crear-usuario`;
 
 let currentUser = null;
 let currentPerfil = null;
@@ -970,9 +971,12 @@ const CATALOGOS = {
     campos: [
       { id: "nombre", label: "Nombre", type: "text", required: true },
       { id: "correo_pemex", label: "Correo PEMEX", type: "email", required: true },
-      { id: "coordinacion_id", label: "Coordinación", type: "coordinacion-select", required: true }
+      { id: "coordinacion_id", label: "Coordinación", type: "coordinacion-select", required: true },
+      { id: "password", label: "Contraseña temporal", type: "text", required: true }
     ],
-    nota: "Después de crear el registro aquí, da de alta a esta persona en Supabase → Authentication con el mismo correo, para que pueda iniciar sesión en SACISC."
+    usaEdgeFunction: true,
+    tipoEdge: "usuario_area",
+    nota: "Esto crea la cuenta de acceso Y el registro en un solo paso — la persona ya puede iniciar sesión de inmediato con este correo y esta contraseña temporal (puede cambiarla después)."
   },
   guardias: {
     tabla: "acc_guardias",
@@ -1007,9 +1011,12 @@ const CATALOGOS = {
       { id: "nombre", label: "Nombre", type: "text", required: true },
       { id: "correo_pemex", label: "Correo PEMEX", type: "email", required: true },
       { id: "rol", label: "Rol", type: "select", required: true,
-        options: [["vigilancia", "Vigilancia"], ["jefe_area", "Jefe de Área"], ["admin_sistema", "Admin. del Sistema"]] }
+        options: [["vigilancia", "Vigilancia"], ["jefe_area", "Jefe de Área"], ["admin_sistema", "Admin. del Sistema"]] },
+      { id: "password", label: "Contraseña temporal", type: "text", required: true }
     ],
-    nota: "Después de crear el registro aquí, da de alta a esta persona en Supabase → Authentication con el mismo correo, para que pueda iniciar sesión en este dashboard."
+    usaEdgeFunction: true,
+    tipoEdge: "perfil_central",
+    nota: "Esto crea la cuenta de acceso Y el registro en un solo paso — la persona ya puede iniciar sesión de inmediato con este correo y esta contraseña temporal (puede cambiarla después)."
   },
   restriccion: {
     tabla: "acc_lista_restriccion",
@@ -1120,6 +1127,38 @@ async function cargarCatalogo(key) {
       if (campo.required && !val) { msg.innerHTML = `<div class="msg error">Falta llenar: ${campo.label}</div>`; return; }
       if (val) payload[campo.id] = val;
     }
+
+    if (cfg.usaEdgeFunction) {
+      const btnSubmit = e.target.querySelector("button[type=submit]");
+      btnSubmit.disabled = true; btnSubmit.textContent = "Creando…";
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        const resp = await fetch(EDGE_FUNCTION_CREAR_USUARIO, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            correo: payload.correo_pemex,
+            nombre: payload.nombre,
+            password: payload.password,
+            tipo: cfg.tipoEdge,
+            coordinacion_id: payload.coordinacion_id,
+            rol: payload.rol
+          })
+        });
+        const resultado = await resp.json();
+        if (!resp.ok) throw new Error(resultado.error || "Error desconocido");
+        msg.innerHTML = `<div class="msg ok">Usuario creado — ya puede iniciar sesión con su correo y la contraseña temporal.</div>`;
+        await cargarCatalogo(key);
+      } catch (err) {
+        msg.innerHTML = `<div class="msg error">No se pudo crear: ${err.message}</div>`;
+        btnSubmit.disabled = false; btnSubmit.textContent = "Agregar";
+      }
+      return;
+    }
+
     const { error: errIns } = await sb.from(cfg.tabla).insert(payload);
     if (errIns) { msg.innerHTML = `<div class="msg error">No se pudo guardar: ${errIns.message}</div>`; return; }
     msg.innerHTML = `<div class="msg ok">Registro agregado.</div>`;
