@@ -86,6 +86,23 @@
   .filter-bar{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
   .filter-bar select, .filter-bar input{padding:8px 10px; border:1.4px solid var(--line); border-radius:8px; font-size:13px;}
 
+  .subtabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:18px;}
+  .subtab-btn{
+    background:#fff; border:1.4px solid var(--line); color:var(--gray);
+    padding:7px 14px; border-radius:16px; font-weight:600; font-size:12.5px; cursor:pointer; font-family:'Barlow';
+  }
+  .subtab-btn.active{background:var(--green); border-color:var(--green); color:#fff;}
+  .cat-form{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; align-items:end; margin-bottom:18px;}
+  .cat-form .field label{display:block; font-size:11px; font-weight:700; color:var(--dark); margin-bottom:4px; text-transform:uppercase; letter-spacing:.3px;}
+  .cat-form .field input, .cat-form .field select{width:100%; padding:9px 10px; border:1.4px solid var(--line); border-radius:8px; font-size:13px; font-family:'Barlow';}
+  .cat-form button{background:var(--dark); color:#fff; border:none; border-radius:8px; padding:10px 18px; font-weight:700; font-size:13px; cursor:pointer; height:38px;}
+  table.catalogo{width:100%; border-collapse:collapse; font-size:12.8px;}
+  table.catalogo th{text-align:left; background:var(--tint); color:var(--dark); font-size:11px; text-transform:uppercase; letter-spacing:.4px; padding:8px 10px; border-bottom:1px solid var(--line);}
+  table.catalogo td{padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  .toggle-activo{border:none; border-radius:14px; padding:4px 12px; font-size:11px; font-weight:700; cursor:pointer;}
+  .toggle-activo.si{background:var(--tint); color:var(--dark);}
+  .toggle-activo.no{background:#ececec; color:var(--gray);}
+
   /* ---------- Modal QR ---------- */
   .modal-overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center;}
   .modal-overlay.show{display:flex;}
@@ -143,6 +160,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="pendientes">Pendientes</button>
       <button class="tab-btn" data-tab="historial">Historial</button>
+      <button class="tab-btn" data-tab="catalogos">Catálogos</button>
     </div>
 
     <div id="tab-content"></div>
@@ -686,7 +704,8 @@ document.addEventListener("click", (e) => {
 
 function cambiarTab(tab) {
   if (tab === "pendientes") renderPendientes();
-  else renderHistorial();
+  else if (tab === "historial") renderHistorial();
+  else if (tab === "catalogos") renderCatalogos();
 }
 
 /* ---------------------------------------------------------------------
@@ -918,6 +937,204 @@ async function cargarHistorial() {
 function formatFecha(f) { if (!f) return "—"; const [y,m,d] = f.split("-"); return `${d}/${m}/${y}`; }
 function etiquetaEstatus(e) {
   return { pendiente:"Pendiente", autorizado:"Autorizado", rechazado:"Rechazado", expirado:"Expirado", cerrado:"Cerrado" }[e] || e;
+}
+
+/* =====================================================================
+   CATÁLOGOS — usuarios de área, guardias, coordinaciones, compañías,
+   perfiles de oficina central y lista de restricción
+   ===================================================================== */
+const CATALOGOS = {
+  coordinaciones: {
+    tabla: "acc_coordinaciones",
+    titulo: "Coordinaciones",
+    select: "id, nombre, activo",
+    columnas: [{ get: r => r.nombre, label: "Nombre" }],
+    campos: [{ id: "nombre", label: "Nombre", type: "text", required: true }]
+  },
+  companias: {
+    tabla: "acc_companias",
+    titulo: "Compañías / Proveedores",
+    select: "id, nombre, activo",
+    columnas: [{ get: r => r.nombre, label: "Nombre" }],
+    campos: [{ id: "nombre", label: "Nombre", type: "text", required: true }]
+  },
+  usuarios_area: {
+    tabla: "acc_usuarios_area",
+    titulo: "Usuarios de Área",
+    select: "id, correo_pemex, nombre, coordinacion_id, activo, acc_coordinaciones(nombre)",
+    columnas: [
+      { get: r => r.nombre, label: "Nombre" },
+      { get: r => r.correo_pemex, label: "Correo" },
+      { get: r => r.acc_coordinaciones?.nombre || "—", label: "Coordinación" }
+    ],
+    campos: [
+      { id: "nombre", label: "Nombre", type: "text", required: true },
+      { id: "correo_pemex", label: "Correo PEMEX", type: "email", required: true },
+      { id: "coordinacion_id", label: "Coordinación", type: "coordinacion-select", required: true }
+    ],
+    nota: "Después de crear el registro aquí, da de alta a esta persona en Supabase → Authentication con el mismo correo, para que pueda iniciar sesión en SACISC."
+  },
+  guardias: {
+    tabla: "acc_guardias",
+    titulo: "Guardias y Cabos",
+    select: "id, ficha, nombre, puesto, caseta_asignada, activo",
+    columnas: [
+      { get: r => r.ficha, label: "Ficha" },
+      { get: r => r.nombre, label: "Nombre" },
+      { get: r => r.puesto === "cabo" ? "Cabo" : "Guardia", label: "Puesto" },
+      { get: r => nombreCasetaCatalogo(r.caseta_asignada), label: "Caseta" }
+    ],
+    campos: [
+      { id: "ficha", label: "Ficha", type: "text", required: true },
+      { id: "nombre", label: "Nombre", type: "text", required: true },
+      { id: "puesto", label: "Puesto", type: "select", required: true,
+        options: [["guardia", "Guardia"], ["cabo", "Cabo"]] },
+      { id: "pin_hash", label: "PIN (4 dígitos)", type: "text", required: true },
+      { id: "caseta_asignada", label: "Caseta asignada", type: "select", required: false,
+        options: [["peatonal", "Peatonal"], ["vehicular_ligero", "Vehicular Ligero"], ["vehicular_pesado", "Vehicular Pesado"]] }
+    ]
+  },
+  perfiles: {
+    tabla: "acc_perfiles_centrales",
+    titulo: "Usuarios de Sistema (Oficina Central)",
+    select: "id, correo_pemex, nombre, rol, activo",
+    columnas: [
+      { get: r => r.nombre, label: "Nombre" },
+      { get: r => r.correo_pemex, label: "Correo" },
+      { get: r => etiquetaRol(r.rol), label: "Rol" }
+    ],
+    campos: [
+      { id: "nombre", label: "Nombre", type: "text", required: true },
+      { id: "correo_pemex", label: "Correo PEMEX", type: "email", required: true },
+      { id: "rol", label: "Rol", type: "select", required: true,
+        options: [["vigilancia", "Vigilancia"], ["jefe_area", "Jefe de Área"], ["admin_sistema", "Admin. del Sistema"]] }
+    ],
+    nota: "Después de crear el registro aquí, da de alta a esta persona en Supabase → Authentication con el mismo correo, para que pueda iniciar sesión en este dashboard."
+  },
+  restriccion: {
+    tabla: "acc_lista_restriccion",
+    titulo: "Lista de Restricción",
+    select: "id, tipo, valor, motivo, activo",
+    columnas: [
+      { get: r => ({ persona: "Persona", empresa: "Empresa", vehiculo: "Vehículo" }[r.tipo] || r.tipo), label: "Tipo" },
+      { get: r => r.valor, label: "Valor" },
+      { get: r => r.motivo || "—", label: "Motivo" }
+    ],
+    campos: [
+      { id: "tipo", label: "Tipo", type: "select", required: true,
+        options: [["persona", "Persona"], ["empresa", "Empresa"], ["vehiculo", "Vehículo"]] },
+      { id: "valor", label: "Valor (nombre o placa)", type: "text", required: true },
+      { id: "motivo", label: "Motivo", type: "text", required: false }
+    ]
+  }
+};
+
+function nombreCasetaCatalogo(c) {
+  return { peatonal: "Peatonal", vehicular_ligero: "Vehicular Ligero", vehicular_pesado: "Vehicular Pesado" }[c] || "—";
+}
+
+let catalogoActivo = "coordinaciones";
+
+function renderCatalogos() {
+  const el = document.getElementById("tab-content");
+  el.innerHTML = `
+    <div class="subtabs" id="cat-subtabs">
+      ${Object.entries(CATALOGOS).map(([key, c]) =>
+        `<button class="subtab-btn ${key === catalogoActivo ? "active" : ""}" data-cat="${key}">${c.titulo}</button>`
+      ).join("")}
+    </div>
+    <div id="cat-content"></div>
+  `;
+  document.getElementById("cat-subtabs").querySelectorAll(".subtab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      catalogoActivo = btn.dataset.cat;
+      document.querySelectorAll(".subtab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      cargarCatalogo(catalogoActivo);
+    });
+  });
+  cargarCatalogo(catalogoActivo);
+}
+
+async function construirCampoFormulario(campo) {
+  if (campo.type === "coordinacion-select") {
+    const { data } = await sb.from("acc_coordinaciones").select("id, nombre").eq("activo", true).order("nombre");
+    const opciones = (data || []).map(c => `<option value="${c.id}">${c.nombre}</option>`).join("");
+    return `<div class="field"><label>${campo.label}</label>
+      <select id="cf-${campo.id}" ${campo.required ? "required" : ""}><option value="">Selecciona…</option>${opciones}</select></div>`;
+  }
+  if (campo.type === "select") {
+    const opciones = campo.options.map(([v, l]) => `<option value="${v}">${l}</option>`).join("");
+    return `<div class="field"><label>${campo.label}</label>
+      <select id="cf-${campo.id}" ${campo.required ? "required" : ""}><option value="">Selecciona…</option>${opciones}</select></div>`;
+  }
+  return `<div class="field"><label>${campo.label}</label>
+    <input type="${campo.type}" id="cf-${campo.id}" ${campo.required ? "required" : ""}></div>`;
+}
+
+async function cargarCatalogo(key) {
+  const cfg = CATALOGOS[key];
+  const box = document.getElementById("cat-content");
+  box.innerHTML = `<div class="card"><div class="empty-state">Cargando…</div></div>`;
+
+  const camposHtml = (await Promise.all(cfg.campos.map(construirCampoFormulario))).join("");
+
+  const { data, error } = await sb.from(cfg.tabla).select(cfg.select).order("id", { ascending: false });
+
+  const filas = error ? "" : (data || []).map(r => `
+    <tr>
+      ${cfg.columnas.map(c => `<td>${c.get(r)}</td>`).join("")}
+      <td><button class="toggle-activo ${r.activo ? "si" : "no"}" data-toggle="${r.id}" data-tabla="${cfg.tabla}" data-valor="${r.activo}">${r.activo ? "Activo" : "Inactivo"}</button></td>
+    </tr>
+  `).join("");
+
+  box.innerHTML = `
+    <div class="card">
+      <h2>${cfg.titulo}</h2>
+      <p class="card-sub">Agrega un nuevo registro. Para dar de baja algo, usa el botón Activo/Inactivo — nunca se borra, para no afectar el histórico.</p>
+      ${cfg.nota ? `<p class="card-sub" style="color:var(--amber);">⚠️ ${cfg.nota}</p>` : ""}
+      <form class="cat-form" id="cat-form">
+        ${camposHtml}
+        <button type="submit">Agregar</button>
+      </form>
+      <div id="cat-form-msg"></div>
+      ${error
+        ? `<div class="empty-state">Error al cargar: ${error.message}</div>`
+        : (!data || data.length === 0)
+          ? `<div class="empty-state">Aún no hay registros.</div>`
+          : `<table class="catalogo">
+               <thead><tr>${cfg.columnas.map(c => `<th>${c.label}</th>`).join("")}<th>Estatus</th></tr></thead>
+               <tbody>${filas}</tbody>
+             </table>`
+      }
+    </div>
+  `;
+
+  document.getElementById("cat-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById("cat-form-msg");
+    msg.innerHTML = "";
+    const payload = {};
+    for (const campo of cfg.campos) {
+      const val = document.getElementById(`cf-${campo.id}`).value.trim();
+      if (campo.required && !val) { msg.innerHTML = `<div class="msg error">Falta llenar: ${campo.label}</div>`; return; }
+      if (val) payload[campo.id] = val;
+    }
+    const { error: errIns } = await sb.from(cfg.tabla).insert(payload);
+    if (errIns) { msg.innerHTML = `<div class="msg error">No se pudo guardar: ${errIns.message}</div>`; return; }
+    msg.innerHTML = `<div class="msg ok">Registro agregado.</div>`;
+    await cargarCatalogo(key);
+  });
+
+  box.querySelectorAll("[data-toggle]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const nuevoValor = !(btn.dataset.valor === "true");
+      btn.disabled = true;
+      const { error: errUpd } = await sb.from(btn.dataset.tabla).update({ activo: nuevoValor }).eq("id", btn.dataset.toggle);
+      if (errUpd) { alert("No se pudo actualizar: " + errUpd.message); btn.disabled = false; return; }
+      await cargarCatalogo(key);
+    });
+  });
 }
 </script>
 </body>
