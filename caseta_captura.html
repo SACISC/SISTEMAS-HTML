@@ -323,6 +323,7 @@ const SUPABASE_URL = "https://epqyabsdgsthbtuluarq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0";
 const FOTOS_BUCKET = "acc-fotos-peatonal";
 const ADJUNTOS_BUCKET = "acc-adjuntos";
+const FOTOS_VEHICULAR_BUCKET = "acc-fotos-vehicular";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ---------------------------------------------------------------------
@@ -868,19 +869,57 @@ async function procesarQR(qrTexto) {
       <div class="sr-meta">${s.marca || ''} ${s.color || ''} · Placa ${s.placa || '—'}</div>
       <div class="sr-meta">Conductor: ${s.conductor || '—'}</div>
       <div class="sr-meta">Destino: ${s.lugar_presentacion || '—'} · ${s.motivo || ''}</div>
+
+      <label>Foto del vehículo — de frente</label>
+      <input type="file" accept="image/*" capture="environment" class="p-foto-id" style="display:none;" id="foto-veh-frente">
+      <button type="button" class="photo-btn" id="btn-foto-veh-frente">📷 Tomar foto de frente</button>
+      <img class="photo-preview" id="prev-veh-frente">
+
+      <label>Foto del vehículo — lateral</label>
+      <input type="file" accept="image/*" capture="environment" class="p-foto-id" style="display:none;" id="foto-veh-lateral">
+      <button type="button" class="photo-btn" id="btn-foto-veh-lateral">📷 Tomar foto lateral</button>
+      <img class="photo-preview" id="prev-veh-lateral">
+
       <button class="big-btn" id="btn-confirmar-entrada-veh">Confirmar entrada</button>
     </div>`;
+
+  setupPhotoInput("foto-veh-frente", "prev-veh-frente", "btn-foto-veh-frente");
+  setupPhotoInput("foto-veh-lateral", "prev-veh-lateral", "btn-foto-veh-lateral");
+
   document.getElementById("btn-confirmar-entrada-veh").addEventListener("click", async () => {
-    const payload = { p_solicitud_id: s.id, p_caseta: CASETA, p_guardia_id: GUARDIA.id };
+    const btnConfirmar = document.getElementById("btn-confirmar-entrada-veh");
+    btnConfirmar.disabled = true; btnConfirmar.textContent = "Guardando…";
     try {
+      const fFrente = document.getElementById("foto-veh-frente").files[0];
+      const fLateral = document.getElementById("foto-veh-lateral").files[0];
+      let fotoFrenteUrl = null, fotoLateralUrl = null;
+      if (fFrente) fotoFrenteUrl = await subirFotoVehiculo("frente", fFrente, s.folio);
+      if (fLateral) fotoLateralUrl = await subirFotoVehiculo("lateral", fLateral, s.folio);
+
+      const payload = {
+        p_solicitud_id: s.id, p_caseta: CASETA, p_guardia_id: GUARDIA.id,
+        p_foto_frente_url: fotoFrenteUrl, p_foto_lateral_url: fotoLateralUrl
+      };
       if (!navigator.onLine) encolarOffline("acc_confirmar_entrada_vehicular", payload);
-      else await sb.rpc("acc_confirmar_entrada_vehicular", payload);
+      else {
+        const { error: errConf } = await sb.rpc("acc_confirmar_entrada_vehicular", payload);
+        if (errConf) throw errConf;
+      }
       box.innerHTML = `<div class="result-msg ok">Entrada confirmada para folio ${s.folio}.</div>`;
     } catch (err) {
       box.innerHTML = `<div class="result-msg error">${err.message}</div>`;
     }
     actualizarPendientes();
   });
+}
+
+async function subirFotoVehiculo(tipo, file, folio) {
+  const blob = await comprimirImagen(file);
+  const ruta = `${folio}/${tipo}-${Date.now()}.jpg`;
+  const { error } = await sb.storage.from(FOTOS_VEHICULAR_BUCKET).upload(ruta, blob, { contentType: "image/jpeg" });
+  if (error) throw error;
+  const { data } = sb.storage.from(FOTOS_VEHICULAR_BUCKET).getPublicUrl(ruta);
+  return data.publicUrl;
 }
 
 /* =====================================================================
@@ -913,6 +952,10 @@ async function buscarAccesoVehicular() {
     <div class="search-result">
       <div class="sr-name">${a.placa}</div>
       <div class="sr-meta">${a.conductor || ''} · Folio ${a.folio}</div>
+      <div class="sr-photos">
+        ${a.foto_frente_url ? `<img src="${a.foto_frente_url}">` : ''}
+        ${a.foto_lateral_url ? `<img src="${a.foto_lateral_url}">` : ''}
+      </div>
       <button class="big-btn secondary" data-acceso-id="${a.acceso_id}">Confirmar salida</button>
     </div>
   `).join("");
@@ -924,18 +967,25 @@ async function buscarAccesoVehicular() {
         if (!navigator.onLine) {
           encolarOffline("acc_confirmar_salida_vehicular", payload);
         } else {
-          const { data: solicitudId, error } = await sb.rpc("acc_confirmar_salida_vehicular", payload);
+          const { data: resultado, error } = await sb.rpc("acc_confirmar_salida_vehicular", payload);
           if (error) throw error;
           // Borrado inmediato de los PDF de evidencia (tarjeta, licencia, INE, póliza)
           // El comprobante firmado NUNCA se borra aquí — lo excluye la función en la base de datos.
+          const solicitudId = resultado?.solicitud_id;
           if (solicitudId) {
             const { data: rutas } = await sb.rpc("acc_finalizar_adjuntos_solicitud", { p_solicitud_id: solicitudId });
             if (rutas && rutas.length > 0) {
               try { await sb.storage.from(ADJUNTOS_BUCKET).remove(rutas); } catch (e) { /* no bloquear el flujo */ }
             }
           }
+          // Borrado inmediato de las fotos del vehículo
+          const rutasFotos = [resultado?.foto_frente_url, resultado?.foto_lateral_url]
+            .filter(Boolean).map(u => extraerRutaStorage(u, FOTOS_VEHICULAR_BUCKET)).filter(Boolean);
+          if (rutasFotos.length > 0) {
+            try { await sb.storage.from(FOTOS_VEHICULAR_BUCKET).remove(rutasFotos); } catch (e) { /* no bloquear el flujo */ }
+          }
         }
-        btn.closest(".search-result").innerHTML = `<div class="result-msg ok">Salida confirmada. Documentos de evidencia eliminados del sistema.</div>`;
+        btn.closest(".search-result").innerHTML = `<div class="result-msg ok">Salida confirmada. Documentos y fotos eliminados del sistema.</div>`;
       } catch (err) { btn.disabled = false; }
       actualizarPendientes();
     });
