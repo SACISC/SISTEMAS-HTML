@@ -183,6 +183,16 @@
   </div>
 </div>
 
+<!-- ================= MODAL DOCUMENTOS ================= -->
+<div class="modal-overlay" id="docs-modal">
+  <div class="modal-box" style="max-width:420px; text-align:left;">
+    <h3 id="docs-modal-folio" style="text-align:center;">Folio</h3>
+    <p style="text-align:center;">Documentos de evidencia subidos para esta solicitud.</p>
+    <div id="docs-modal-list"><div class="empty-state">Cargando…</div></div>
+    <button class="btn secondary full" style="margin-top:16px;" id="btn-cerrar-docs-modal">Cerrar</button>
+  </div>
+</div>
+
 <script>
 //---------------------------------------------------------------------
 // QR Code Generator for JavaScript (Kazuhiko Arase, MIT license)
@@ -886,6 +896,7 @@ async function renderPendientes() {
             <td>${s.lugar_presentacion || "—"}</td>
             <td>
               <div class="row-actions">
+                <button style="background:var(--tint);color:var(--dark);" data-ver-docs="${s.id}" data-doc-folio="${s.folio}">Ver documentos</button>
                 <button style="background:var(--dark);color:#fff;" data-autorizar="${s.id}" data-folio="${s.folio}" data-correo="${s.acc_usuarios_area?.correo_pemex || ''}" data-nombre="${s.acc_usuarios_area?.nombre || ''}">Autorizar</button>
                 <button style="background:#fbeceb;color:var(--red);" data-rechazar="${s.id}">Rechazar</button>
               </div>
@@ -895,6 +906,10 @@ async function renderPendientes() {
       </tbody>
     </table>
   `;
+
+  box.querySelectorAll("[data-ver-docs]").forEach(btn => {
+    btn.addEventListener("click", () => mostrarModalDocumentos(btn.dataset.verDocs, btn.dataset.docFolio));
+  });
 
   box.querySelectorAll("[data-autorizar]").forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -996,6 +1011,62 @@ document.getElementById("btn-descargar-qr").addEventListener("click", () => {
 });
 
 /* ---------------------------------------------------------------------
+   MODAL DE DOCUMENTOS ADJUNTOS (los 4 de evidencia + comprobante firmado)
+   --------------------------------------------------------------------- */
+const ADJUNTOS_BUCKET = "acc-adjuntos";
+const ETIQUETAS_ADJUNTO = {
+  tarjeta_circulacion: "Tarjeta de circulación",
+  licencia: "Licencia de conducir",
+  ine: "INE",
+  poliza: "Póliza de seguro",
+  comprobante_firmado: "Comprobante firmado (formato de solicitud)",
+  otro: "Otro documento"
+};
+
+async function mostrarModalDocumentos(solicitudId, folio) {
+  document.getElementById("docs-modal-folio").textContent = folio;
+  const box = document.getElementById("docs-modal-list");
+  box.innerHTML = `<div class="empty-state">Cargando…</div>`;
+  document.getElementById("docs-modal").classList.add("show");
+
+  const { data, error } = await sb
+    .from("acc_solicitud_adjuntos")
+    .select("tipo, ruta_archivo, subido_en")
+    .eq("solicitud_id", solicitudId);
+
+  if (error) { box.innerHTML = `<div class="empty-state">Error: ${error.message}</div>`; return; }
+  if (!data || data.length === 0) {
+    box.innerHTML = `<div class="empty-state">Aún no se ha subido ningún documento para esta solicitud.</div>`;
+    return;
+  }
+
+  const filas = await Promise.all(data.map(async (a) => {
+    const { data: signed } = await sb.storage.from(ADJUNTOS_BUCKET).createSignedUrl(a.ruta_archivo, 300);
+    const url = signed?.signedUrl;
+    return `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line);">
+        <span style="font-size:13px; font-weight:600; color:var(--ink);">${ETIQUETAS_ADJUNTO[a.tipo] || a.tipo}</span>
+        ${url
+          ? `<a href="${url}" target="_blank" class="btn secondary" style="padding:6px 14px; font-size:12px; text-decoration:none;">Ver / Descargar</a>`
+          : `<span style="font-size:12px; color:var(--gray);">No disponible</span>`}
+      </div>`;
+  }));
+
+  const tiposSubidos = data.map(a => a.tipo);
+  const faltantes = ["tarjeta_circulacion", "licencia", "ine", "poliza", "comprobante_firmado"]
+    .filter(t => !tiposSubidos.includes(t));
+
+  box.innerHTML = filas.join("") + (faltantes.length > 0 ? `
+    <p style="font-size:12px; color:var(--amber); margin-top:12px;">
+      ⚠️ Aún faltan: ${faltantes.map(t => ETIQUETAS_ADJUNTO[t]).join(", ")}
+    </p>` : "");
+}
+
+document.getElementById("btn-cerrar-docs-modal").addEventListener("click", () => {
+  document.getElementById("docs-modal").classList.remove("show");
+});
+
+/* ---------------------------------------------------------------------
    HISTORIAL
    --------------------------------------------------------------------- */
 async function renderHistorial() {
@@ -1029,7 +1100,7 @@ async function cargarHistorial() {
   const estatus = document.getElementById("filtro-estatus").value;
   const texto = document.getElementById("filtro-texto").value.trim();
   let query = sb.from("acc_solicitudes_vehicular")
-    .select("folio, fecha_inicio, fecha_termino, motivo, placa, estatus, qr_codigo, creado_en, acc_usuarios_area(correo_pemex, nombre)")
+    .select("id, folio, fecha_inicio, fecha_termino, motivo, placa, estatus, qr_codigo, creado_en, acc_usuarios_area(correo_pemex, nombre)")
     .order("creado_en", { ascending: false })
     .limit(100);
   if (estatus) query = query.eq("estatus", estatus);
@@ -1042,7 +1113,7 @@ async function cargarHistorial() {
 
   box.innerHTML = `
     <table class="solicitudes">
-      <thead><tr><th>Folio</th><th>Vigencia</th><th>Motivo</th><th>Placa</th><th>Estatus</th><th>QR</th></tr></thead>
+      <thead><tr><th>Folio</th><th>Vigencia</th><th>Motivo</th><th>Placa</th><th>Estatus</th><th>QR</th><th>Documentos</th></tr></thead>
       <tbody>
         ${data.map(s => `
           <tr>
@@ -1054,6 +1125,7 @@ async function cargarHistorial() {
             <td>${s.estatus === "autorizado" && s.qr_codigo
               ? `<button style="background:var(--tint);color:var(--dark);padding:6px 12px;border:none;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;" data-ver-qr="${s.qr_codigo}" data-ver-folio="${s.folio}" data-ver-correo="${s.acc_usuarios_area?.correo_pemex || ''}" data-ver-nombre="${s.acc_usuarios_area?.nombre || ''}">Ver QR</button>`
               : "—"}</td>
+            <td><button style="background:var(--tint);color:var(--dark);padding:6px 12px;border:none;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;" data-ver-docs="${s.id}" data-doc-folio="${s.folio}">Ver documentos</button></td>
           </tr>
         `).join("")}
       </tbody>
@@ -1064,6 +1136,10 @@ async function cargarHistorial() {
     btn.addEventListener("click", () => {
       mostrarModalQR(btn.dataset.verFolio, btn.dataset.verQr, btn.dataset.verCorreo, btn.dataset.verNombre);
     });
+  });
+
+  box.querySelectorAll("[data-ver-docs]").forEach(btn => {
+    btn.addEventListener("click", () => mostrarModalDocumentos(btn.dataset.verDocs, btn.dataset.docFolio));
   });
 }
 
