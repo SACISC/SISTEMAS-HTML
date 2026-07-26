@@ -325,6 +325,22 @@ const FOTOS_BUCKET = "acc-fotos-peatonal";
 const ADJUNTOS_BUCKET = "acc-adjuntos";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ---------------------------------------------------------------------
+   Forzar MAYÚSCULAS en todos los campos de texto
+   --------------------------------------------------------------------- */
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  const tipo = (el.type || "").toLowerCase();
+  const esTexto = el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && (tipo === "text" || tipo === "search"));
+  if (!esTexto) return;
+  const inicio = el.selectionStart, fin = el.selectionEnd;
+  const mayus = el.value.toUpperCase();
+  if (mayus !== el.value) {
+    el.value = mayus;
+    if (inicio !== null && inicio !== undefined) el.setSelectionRange(inicio, fin);
+  }
+}, true);
+
 const HORARIOS_CIERRE = ["07:50", "15:50", "23:50"];
 const QUEUE_KEY = "acc_offline_queue_v1";
 

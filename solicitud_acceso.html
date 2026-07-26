@@ -47,7 +47,7 @@
   }
   .topbar button.logout:hover{background:rgba(255,255,255,.12);}
 
-  .wrap{max-width:1100px; margin:0 auto; padding:20px 16px 60px; flex:1; width:100%;}
+  .wrap{max-width:1500px; margin:0 auto; padding:20px 16px 60px; flex:1; width:100%;}
 
   /* ---------- Login ---------- */
   #login-screen{
@@ -207,6 +207,8 @@ footer{background:var(--green-dark);color:rgba(255,255,255,0.7);padding:28px 40p
 
 <!-- ================= APP ================= -->
 <div id="app">
+<datalist id="historial-nombres"></datalist>
+<datalist id="historial-companias"></datalist>
 <div class="modal-overlay" id="qr-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center;">
   <div style="background:#fff; border-radius:14px; padding:28px; max-width:340px; text-align:center;">
     <h3 id="qr-modal-folio" style="color:var(--dark); margin:0 0 6px; font-family:'Barlow Condensed'; font-size:19px;">Folio</h3>
@@ -1387,6 +1389,24 @@ const STORAGE_BUCKET = "acc-adjuntos"; // crear este bucket en Supabase Storage
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ---------------------------------------------------------------------
+   Forzar MAYÚSCULAS en todos los campos de texto (no aplica a correo,
+   contraseña, fecha, hora ni archivos) — se captura a nivel documento
+   para que también funcione en campos agregados dinámicamente.
+   --------------------------------------------------------------------- */
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  const tipo = (el.type || "").toLowerCase();
+  const esTexto = el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && (tipo === "text" || tipo === "search"));
+  if (!esTexto) return;
+  const inicio = el.selectionStart, fin = el.selectionEnd;
+  const mayus = el.value.toUpperCase();
+  if (mayus !== el.value) {
+    el.value = mayus;
+    if (inicio !== null && inicio !== undefined) el.setSelectionRange(inicio, fin);
+  }
+}, true);
+
 let currentUser = null;      // sesión de Supabase Auth
 let currentUsuarioArea = null; // fila de acc_usuarios_area ligada al correo
 
@@ -1442,6 +1462,22 @@ async function afterLogin(user) {
   agregarFilaPersona(); // primera fila por default
   await cargarMisSolicitudes();
   await revisarAvisoAutorizadas();
+  await cargarHistorialPersonas();
+}
+
+async function cargarHistorialPersonas() {
+  const { data, error } = await sb
+    .from("acc_solicitud_personal")
+    .select("nombre_completo, compania");
+  if (error || !data) return;
+
+  const nombres = [...new Set(data.map(p => p.nombre_completo).filter(Boolean))].sort();
+  const companias = [...new Set(data.map(p => p.compania).filter(Boolean))].sort();
+
+  document.getElementById("historial-nombres").innerHTML =
+    nombres.map(n => `<option value="${n}">`).join("");
+  document.getElementById("historial-companias").innerHTML =
+    companias.map(c => `<option value="${c}">`).join("");
 }
 
 async function revisarAvisoAutorizadas() {
@@ -1537,11 +1573,11 @@ function agregarFilaPersona() {
   row.innerHTML = `
     <div class="field" style="margin-bottom:0;">
       <label>Compañía / Proveedor</label>
-      <input type="text" class="p-compania" placeholder="Nombre de la compañía">
+      <input type="text" class="p-compania" placeholder="Nombre de la compañía" list="historial-companias">
     </div>
     <div class="field" style="margin-bottom:0;">
       <label>Nombre completo</label>
-      <input type="text" class="p-nombre" placeholder="Nombre del personal" required>
+      <input type="text" class="p-nombre" placeholder="Nombre del personal" list="historial-nombres" required>
     </div>
     <button type="button" class="remove-btn" title="Quitar">×</button>
   `;
@@ -1566,11 +1602,11 @@ function agregarFilaPersonaEdit(compania, nombre) {
   row.innerHTML = `
     <div class="field" style="margin-bottom:0;">
       <label>Compañía / Proveedor</label>
-      <input type="text" class="ep-compania" placeholder="Nombre de la compañía" value="${compania || ""}">
+      <input type="text" class="ep-compania" placeholder="Nombre de la compañía" list="historial-companias" value="${compania || ""}">
     </div>
     <div class="field" style="margin-bottom:0;">
       <label>Nombre completo</label>
-      <input type="text" class="ep-nombre" placeholder="Nombre del personal" value="${nombre || ""}">
+      <input type="text" class="ep-nombre" placeholder="Nombre del personal" list="historial-nombres" value="${nombre || ""}">
     </div>
     <button type="button" class="remove-btn" title="Quitar">×</button>
   `;
@@ -1746,7 +1782,8 @@ document.getElementById("form-solicitud").addEventListener("submit", async (e) =
         cajon: document.getElementById("f-cajon").value,
         aseguradora: document.getElementById("f-aseguradora").value,
         polizaInicio: document.getElementById("f-poliza-inicio").value,
-        polizaFin: document.getElementById("f-poliza-fin").value
+        polizaFin: document.getElementById("f-poliza-fin").value,
+        solicitanteNombre: currentUsuarioArea?.nombre || ""
       });
     } catch (errPdf) { /* no bloquear el flujo si falla la generación del PDF */ }
 
@@ -1847,7 +1884,8 @@ async function cargarMisSolicitudes() {
   const rows = data.map(s => {
     const personal = personalPorSolicitud[s.id] || [];
     const companiaMostrar = personal[0]?.compania || "—";
-    const numAcompanantes = personal.length;
+    // El chofer/visitante principal cuenta como la primera persona de la lista, no como acompañante
+    const numAcompanantes = Math.max(personal.length - 1, 0);
     const puedeEditar = s.estatus === "pendiente";
     return `
     <tr>
@@ -1913,7 +1951,8 @@ async function cargarMisSolicitudes() {
           lugar: s.lugar_presentacion, motivo: s.motivo, personas: personas || [],
           marca: s.marca, placa: s.placa, color: s.color, serie: s.serie, conductor: s.conductor,
           cajon: s.cajon_asignado, aseguradora: s.aseguradora,
-          polizaInicio: s.poliza_fecha_inicial, polizaFin: s.poliza_fecha_final
+          polizaInicio: s.poliza_fecha_inicial, polizaFin: s.poliza_fecha_final,
+          solicitanteNombre: currentUsuarioArea?.nombre || ""
         });
       } catch (err) {
         alert("No se pudo generar el PDF: " + err.message);
@@ -2030,13 +2069,32 @@ function generarPDFSolicitud(d) {
   P("DATOS DEL PERSONAL A INGRESAR (Proveedor, Contratista, Prestador de servicios, Personal de Pemex, etc)", W / 2, y + 10, { align: "center" });
   y += 15;
 
-  // columnas de la tabla de personal
-  const cFecha = CONTENT_W * 0.10, cHora = CONTENT_W * 0.09, cComp = CONTENT_W * 0.22,
-        cNom = CONTENT_W * 0.19, cLugar = CONTENT_W * 0.20, cMotivo = CONTENT_W * 0.20;
+  // columnas de la tabla de personal (anchos ajustados para que quepa el texto sin encimarse)
+  const cFecha = CONTENT_W * 0.14, cHora = CONTENT_W * 0.08, cComp = CONTENT_W * 0.19,
+        cNom = CONTENT_W * 0.17, cLugar = CONTENT_W * 0.21, cMotivo = CONTENT_W * 0.21;
   const xFecha = M, xHora = xFecha + cFecha, xComp = xHora + cHora, xNom = xComp + cComp,
         xLugar = xNom + cNom, xMotivo = xLugar + cLugar;
 
-  const headRowH = 28;
+  // wrapCentro ahora regresa cuántas líneas ocupó, para calcular la altura del encabezado
+  const HEAD_FONT = 6.5;
+  doc.setFont(undefined, "bold"); doc.setFontSize(HEAD_FONT);
+  const calcLineas = (txt, w) => doc.splitTextToSize(txt, w - 8);
+
+  const textosHeader = {
+    hora: "Hora de\ningreso",
+    comp: "Nombre de la Compañía (Proveedor, Contratista, Prestador de servicios), nombre del trabajador de Pemex, etc)",
+    nom: "Nombre completo del personal que ingresará",
+    lugar: "Lugar a donde se presentará (POR EJEMPLO Oficinas de GMOPI, Oficinas de SIPA, Oficinas de Patrimonial, etc)",
+    motivo: "Motivo del ingreso"
+  };
+  const liHora = doc.splitTextToSize(textosHeader.hora, cHora - 8);
+  const liComp = calcLineas(textosHeader.comp, cComp);
+  const liNom = calcLineas(textosHeader.nom, cNom);
+  const liLugar = calcLineas(textosHeader.lugar, cLugar);
+  const liMotivo = calcLineas(textosHeader.motivo, cMotivo);
+  const maxLineas = Math.max(liHora.length, liComp.length, liNom.length, liLugar.length, liMotivo.length, 2);
+  const headRowH = 14 + maxLineas * 7.2;
+
   doc.setFillColor(...grayHead);
   doc.rect(xFecha, y, cFecha, headRowH, "F");
   doc.rect(xHora, y, cHora, headRowH, "F");
@@ -2044,10 +2102,11 @@ function generarPDFSolicitud(d) {
   doc.rect(xNom, y, cNom, headRowH, "F");
   doc.rect(xLugar, y, cLugar, headRowH, "F");
   doc.rect(xMotivo, y, cMotivo, headRowH, "F");
-  rectGrid(xFecha, y, cFecha, 14);
-  doc.line(xFecha, y + 14, xFecha + cFecha, y + 14);
-  rectGrid(xFecha, y + 14, cFecha / 2, 14);
-  rectGrid(xFecha + cFecha / 2, y + 14, cFecha / 2, 14);
+  const fechaSubH = headRowH - 13;
+  rectGrid(xFecha, y, cFecha, 13);
+  doc.line(xFecha, y + 13, xFecha + cFecha, y + 13);
+  rectGrid(xFecha, y + 13, cFecha / 2, fechaSubH);
+  rectGrid(xFecha + cFecha / 2, y + 13, cFecha / 2, fechaSubH);
   rectGrid(xHora, y, cHora, headRowH);
   rectGrid(xComp, y, cComp, headRowH);
   rectGrid(xNom, y, cNom, headRowH);
@@ -2055,43 +2114,44 @@ function generarPDFSolicitud(d) {
   rectGrid(xMotivo, y, cMotivo, headRowH);
 
   doc.setFont(undefined, "bold"); doc.setFontSize(7.2);
-  P("FECHA", xFecha + cFecha / 2, y + 10, { align: "center" });
-  P("Inicio", xFecha + cFecha / 4, y + 24, { align: "center" });
-  P("Término", xFecha + cFecha * 0.75, y + 24, { align: "center" });
+  P("FECHA", xFecha + cFecha / 2, y + 9.5, { align: "center" });
   doc.setFontSize(6.6);
-  const wrapCentro = (txt, x, w, yy) => {
-    const lines = doc.splitTextToSize(txt, w - 6);
-    let ty = yy - (lines.length - 1) * 4;
-    lines.forEach(ln => { P(ln, x, ty, { align: "center" }); ty += 8; });
+  P("Inicio", xFecha + cFecha / 4, y + 13 + fechaSubH / 2 + 2, { align: "center" });
+  P("Término", xFecha + cFecha * 0.75, y + 13 + fechaSubH / 2 + 2, { align: "center" });
+
+  const imprimirBloque = (lineas, cx, colTop, colH) => {
+    doc.setFont(undefined, "bold"); doc.setFontSize(HEAD_FONT);
+    const totalH = lineas.length * 7.2;
+    let ty = colTop + (colH - totalH) / 2 + 5.5;
+    lineas.forEach(ln => { P(ln, cx, ty, { align: "center" }); ty += 7.2; });
   };
-  wrapCentro("Hora de ingreso", xHora + cHora / 2, cHora, y + 14);
-  wrapCentro("Nombre de la Compañía (Proveedor, Contratista, Prestador de servicios), nombre del trabajador de Pemex, etc)", xComp + cComp / 2, cComp, y + 10);
-  wrapCentro("Nombre completo del personal que ingresará", xNom + cNom / 2, cNom, y + 10);
-  wrapCentro("Lugar a donde se presentará (POR EJEMPLO Oficinas de GMOPI, Oficinas de SIPA, Oficinas de Patrimonial, etc)", xLugar + cLugar / 2, cLugar, y + 10);
-  wrapCentro("Motivo del ingreso", xMotivo + cMotivo / 2, cMotivo, y + 14);
+  imprimirBloque(liHora, xHora + cHora / 2, y, headRowH);
+  imprimirBloque(liComp, xComp + cComp / 2, y, headRowH);
+  imprimirBloque(liNom, xNom + cNom / 2, y, headRowH);
+  imprimirBloque(liLugar, xLugar + cLugar / 2, y, headRowH);
+  imprimirBloque(liMotivo, xMotivo + cMotivo / 2, y, headRowH);
   y += headRowH;
 
-  const rowH = 15;
-  const personas = (d.personas && d.personas.length > 0) ? d.personas : [{ compania: "", nombre_completo: "" }];
-  doc.setFont(undefined, "normal"); doc.setFontSize(7.6);
-  personas.forEach((p) => {
+  const rowH = 16;
+  const personasOriginal = d.personas || [];
+  const personas = personasOriginal.length > 0 ? personasOriginal : [{ compania: "", nombre_completo: "" }];
+  const TOTAL_FILAS = Math.max(personas.length, 5); // hasta 5 visitantes (chofer/principal + 4 acompañantes)
+
+  doc.setFont(undefined, "normal"); doc.setFontSize(7.3);
+  for (let i = 0; i < TOTAL_FILAS; i++) {
+    const p = personas[i];
     rectGrid(xFecha, y, cFecha / 2, rowH); rectGrid(xFecha + cFecha / 2, y, cFecha / 2, rowH);
     rectGrid(xHora, y, cHora, rowH); rectGrid(xComp, y, cComp, rowH);
     rectGrid(xNom, y, cNom, rowH); rectGrid(xLugar, y, cLugar, rowH); rectGrid(xMotivo, y, cMotivo, rowH);
-    P(fmtFechaCorta(d.fechaInicio), xFecha + cFecha / 4, y + 10, { align: "center" });
-    P(fmtFechaCorta(d.fechaTermino), xFecha + cFecha * 0.75, y + 10, { align: "center" });
-    P(d.hora || "—", xHora + cHora / 2, y + 10, { align: "center" });
-    P(p.compania || "—", xComp + cComp / 2, y + 10, { align: "center" });
-    P(p.nombre_completo || "—", xNom + cNom / 2, y + 10, { align: "center" });
-    P(d.lugar || "—", xLugar + cLugar / 2, y + 10, { align: "center" });
-    P(d.motivo || "—", xMotivo + cMotivo / 2, y + 10, { align: "center" });
-    y += rowH;
-  });
-  // un par de filas en blanco, como en el formato original
-  for (let i = 0; i < 2; i++) {
-    rectGrid(xFecha, y, cFecha / 2, rowH); rectGrid(xFecha + cFecha / 2, y, cFecha / 2, rowH);
-    rectGrid(xHora, y, cHora, rowH); rectGrid(xComp, y, cComp, rowH);
-    rectGrid(xNom, y, cNom, rowH); rectGrid(xLugar, y, cLugar, rowH); rectGrid(xMotivo, y, cMotivo, rowH);
+    if (p) {
+      P(fmtFechaCorta(d.fechaInicio), xFecha + cFecha / 4, y + 10.5, { align: "center" });
+      P(fmtFechaCorta(d.fechaTermino), xFecha + cFecha * 0.75, y + 10.5, { align: "center" });
+      P(d.hora || "—", xHora + cHora / 2, y + 10.5, { align: "center" });
+      P(doc.splitTextToSize(p.compania || "—", cComp - 8)[0] || "—", xComp + cComp / 2, y + 10.5, { align: "center" });
+      P(doc.splitTextToSize(p.nombre_completo || "—", cNom - 8)[0] || "—", xNom + cNom / 2, y + 10.5, { align: "center" });
+      P(doc.splitTextToSize(d.lugar || "—", cLugar - 8)[0] || "—", xLugar + cLugar / 2, y + 10.5, { align: "center" });
+      P(doc.splitTextToSize(d.motivo || "—", cMotivo - 8)[0] || "—", xMotivo + cMotivo / 2, y + 10.5, { align: "center" });
+    }
     y += rowH;
   }
 
@@ -2134,7 +2194,7 @@ function generarPDFSolicitud(d) {
   doc.rect(xRight, y, rightW, 15, "F"); rectGrid(xRight, y, rightW, 15);
   doc.setFont(undefined, "bold"); doc.setFontSize(7.8);
   P("DATOS DE LA PÓLIZA DE SEGURO", M + leftW / 2, y + 10, { align: "center" });
-  P("NOMBRE Y FIRMA DEL PERSONAL QUE AUTORIZA", xRight + rightW / 2, y + 10, { align: "center" });
+  P("NOMBRE Y FIRMA DEL PERSONAL QUE SOLICITA", xRight + rightW / 2, y + 10, { align: "center" });
   const sigTop = y;
   y += 15;
 
@@ -2162,6 +2222,8 @@ function generarPDFSolicitud(d) {
 
   // Caja de firma a la derecha, con la altura acumulada de la columna de póliza
   rectGrid(xRight, sigTop + 15, rightW, leftBottom - (sigTop + 15));
+  doc.setFont(undefined, "normal"); doc.setFontSize(7.8); doc.setTextColor(0, 0, 0);
+  P(d.solicitanteNombre || "—", xRight + rightW / 2, sigTop + 28, { align: "center" });
 
   y = leftBottom + 14;
 

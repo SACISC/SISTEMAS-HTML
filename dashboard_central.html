@@ -601,6 +601,23 @@ var qrcode = function() {
 const SUPABASE_URL = "https://epqyabsdgsthbtuluarq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------------------------------------------------------------------
+   Forzar MAYÚSCULAS en todos los campos de texto (no aplica a correo,
+   contraseña, fecha, hora ni archivos)
+   --------------------------------------------------------------------- */
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  const tipo = (el.type || "").toLowerCase();
+  const esTexto = el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && (tipo === "text" || tipo === "search"));
+  if (!esTexto) return;
+  const inicio = el.selectionStart, fin = el.selectionEnd;
+  const mayus = el.value.toUpperCase();
+  if (mayus !== el.value) {
+    el.value = mayus;
+    if (inicio !== null && inicio !== undefined) el.setSelectionRange(inicio, fin);
+  }
+}, true);
 const EDGE_FUNCTION_CREAR_USUARIO = `${SUPABASE_URL}/functions/v1/crear-usuario`;
 
 let currentUser = null;
@@ -933,7 +950,7 @@ async function renderPendientes() {
       if (motivo === null) return;
       btn.disabled = true;
       try {
-        const { error } = await sb.rpc("acc_rechazar_solicitud", { p_solicitud_id: btn.dataset.rechazar, p_motivo: motivo });
+        const { error } = await sb.rpc("acc_rechazar_solicitud", { p_solicitud_id: btn.dataset.rechazar, p_motivo: motivo.toUpperCase() });
         if (error) throw error;
         await renderPendientes();
         await cargarKpis();
