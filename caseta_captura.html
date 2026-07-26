@@ -322,6 +322,7 @@
 const SUPABASE_URL = "https://epqyabsdgsthbtuluarq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0";
 const FOTOS_BUCKET = "acc-fotos-peatonal";
+const ADJUNTOS_BUCKET = "acc-adjuntos";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const HORARIOS_CIERRE = ["07:50", "15:50", "23:50"];
@@ -744,15 +745,36 @@ async function buscarFoliosPeatonal() {
         if (!navigator.onLine) {
           encolarOffline("acc_cerrar_persona_folio", { p_persona_id: btn.dataset.personaId, p_guardia_id: GUARDIA.id });
         } else {
-          await sb.rpc("acc_cerrar_persona_folio", { p_persona_id: btn.dataset.personaId, p_guardia_id: GUARDIA.id });
+          const { data: resultado, error } = await sb.rpc("acc_cerrar_persona_folio", { p_persona_id: btn.dataset.personaId, p_guardia_id: GUARDIA.id });
+          if (error) throw error;
+          // Borrado inmediato de las fotos reales del Storage (ya no hay plazo de retención)
+          await borrarFotosStorage([
+            resultado?.foto_identificacion_url,
+            resultado?.foto_equipo_frente_url,
+            resultado?.foto_equipo_reverso_url
+          ]);
         }
-        btn.closest(".search-result").innerHTML = `<div class="result-msg ok">Salida registrada. Verifica equipo y entrega identificación.</div>`;
+        btn.closest(".search-result").innerHTML = `<div class="result-msg ok">Salida registrada. Fotos eliminadas del sistema. Verifica equipo y entrega identificación.</div>`;
       } catch (err) {
         btn.disabled = false; btn.textContent = "Confirmar salida y devolver identificación";
       }
       actualizarPendientes();
     });
   });
+}
+
+function extraerRutaStorage(url, bucket) {
+  if (!url) return null;
+  const marcador = `/object/public/${bucket}/`;
+  const idx = url.indexOf(marcador);
+  if (idx === -1) return null;
+  return url.substring(idx + marcador.length);
+}
+
+async function borrarFotosStorage(urls) {
+  const rutas = urls.filter(Boolean).map(u => extraerRutaStorage(u, FOTOS_BUCKET)).filter(Boolean);
+  if (rutas.length === 0) return;
+  try { await sb.storage.from(FOTOS_BUCKET).remove(rutas); } catch (e) { /* no bloquear el flujo si falla el borrado */ }
 }
 
 /* =====================================================================
@@ -883,9 +905,21 @@ async function buscarAccesoVehicular() {
       btn.disabled = true;
       const payload = { p_acceso_id: btn.dataset.accesoId, p_guardia_id: GUARDIA.id };
       try {
-        if (!navigator.onLine) encolarOffline("acc_confirmar_salida_vehicular", payload);
-        else await sb.rpc("acc_confirmar_salida_vehicular", payload);
-        btn.closest(".search-result").innerHTML = `<div class="result-msg ok">Salida confirmada.</div>`;
+        if (!navigator.onLine) {
+          encolarOffline("acc_confirmar_salida_vehicular", payload);
+        } else {
+          const { data: solicitudId, error } = await sb.rpc("acc_confirmar_salida_vehicular", payload);
+          if (error) throw error;
+          // Borrado inmediato de los PDF de evidencia (tarjeta, licencia, INE, póliza)
+          // El comprobante firmado NUNCA se borra aquí — lo excluye la función en la base de datos.
+          if (solicitudId) {
+            const { data: rutas } = await sb.rpc("acc_finalizar_adjuntos_solicitud", { p_solicitud_id: solicitudId });
+            if (rutas && rutas.length > 0) {
+              try { await sb.storage.from(ADJUNTOS_BUCKET).remove(rutas); } catch (e) { /* no bloquear el flujo */ }
+            }
+          }
+        }
+        btn.closest(".search-result").innerHTML = `<div class="result-msg ok">Salida confirmada. Documentos de evidencia eliminados del sistema.</div>`;
       } catch (err) { btn.disabled = false; }
       actualizarPendientes();
     });
