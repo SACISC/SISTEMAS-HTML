@@ -164,9 +164,12 @@
     cursor:pointer; font-size:16px; line-height:1;
   }
   .add-link{
-    background:none; border:none; color:var(--green); font-weight:600; font-size:13px; cursor:pointer;
-    padding:6px 0; font-family:'Inter';
+    display:inline-flex; align-items:center; gap:7px;
+    background:var(--tint); border:1.4px solid var(--tint2); color:var(--dark);
+    font-weight:700; font-size:13px; cursor:pointer; padding:9px 16px; border-radius:9px;
+    font-family:'Inter'; transition:background .15s, border-color .15s;
   }
+  .add-link:hover{background:var(--tint2); border-color:var(--green);}
 
   .file-drop{
     border:1.6px dashed var(--line); border-radius:9px; padding:12px; font-size:12.5px; color:var(--gray);
@@ -271,7 +274,10 @@ footer{background:var(--green-dark);color:rgba(255,255,255,0.7);padding:28px 40p
 
     <div class="section-label">Personal que ingresa</div>
     <div id="edit-personal-rows"></div>
-    <button type="button" class="add-link" id="edit-btn-add-persona">+ Agregar persona</button>
+    <button type="button" class="add-link" id="edit-btn-add-persona">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Agregar persona
+    </button>
 
     <div class="section-label">Unidad y conductor</div>
     <div class="grid cols-3">
@@ -365,8 +371,17 @@ footer{background:var(--green-dark);color:rgba(255,255,255,0.7);padding:28px 40p
     <div id="aviso-autorizadas"></div>
     <div class="tabs" style="justify-content:space-between; display:flex; align-items:center;">
       <div style="display:flex; gap:10px;">
-        <button class="tab-btn active" data-tab="nueva">Nueva solicitud</button>
-        <button class="tab-btn" data-tab="mias">Mis solicitudes</button>
+        <button class="tab-btn active" data-tab="nueva">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px; margin-right:6px;">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+          </svg>Nueva solicitud
+        </button>
+        <button class="tab-btn" data-tab="mias">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px; margin-right:6px;">
+            <path d="M6 4h9l4 4v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M14 4v4h4M8 12h8M8 16h8M8 9h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>Mis solicitudes
+        </button>
       </div>
       <button class="btn secondary" id="btn-actualizar-solicitudes" style="display:flex; align-items:center; gap:6px;">
         ⟳ Actualizar <span id="ultima-actualizacion-sol" style="font-weight:400; font-size:11px; color:var(--gray);"></span>
@@ -388,7 +403,7 @@ footer{background:var(--green-dark);color:rgba(255,255,255,0.7);padding:28px 40p
             </div>
             <div class="field">
               <label>Lugar a donde se presentará</label>
-              <input type="text" id="f-lugar" placeholder="Ej. Oficinas de GMOPI" required>
+              <input type="text" id="f-lugar" placeholder="Ej. Oficinas administrativas" required>
             </div>
           </div>
           <div class="grid cols-3">
@@ -416,7 +431,10 @@ footer{background:var(--green-dark);color:rgba(255,255,255,0.7);padding:28px 40p
           <h2>Personal que ingresa</h2>
           <p class="card-sub">Agrega una fila por cada persona (proveedor, contratista o personal Pemex).</p>
           <div id="personal-rows"></div>
-          <button type="button" class="add-link" id="btn-add-persona">+ Agregar persona</button>
+          <button type="button" class="add-link" id="btn-add-persona">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+            Agregar persona
+          </button>
         </div>
 
         <div class="card">
