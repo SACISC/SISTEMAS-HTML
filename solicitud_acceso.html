@@ -452,7 +452,13 @@ footer{background:var(--green-dark);color:rgba(255,255,255,0.7);padding:28px 40p
           </select>
           <input type="month" id="mis-filtro-mes" style="padding:8px 10px; border:1.4px solid var(--line); border-radius:8px; font-size:13px;">
           <input type="search" id="mis-filtro-texto" placeholder="Buscar por folio, placa o chofer…" style="padding:8px 10px; border:1.4px solid var(--line); border-radius:8px; font-size:13px; flex:1; min-width:180px;">
-          <button type="button" class="btn secondary" id="btn-generar-excel">Generar Excel</button>
+          <button type="button" class="btn secondary" id="btn-generar-excel" style="display:flex; align-items:center; gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="20" height="20" rx="3" fill="#1D6F42"/>
+              <path d="M7 7l4 5-4 5M14 7h3M14 12h3M14 17h3" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Generar Excel
+          </button>
         </div>
         <div id="solicitudes-container"><div class="empty-state">Cargando…</div></div>
       </div>

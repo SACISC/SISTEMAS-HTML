@@ -324,7 +324,9 @@ const SUPABASE_ANON_KEY = "sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0";
 const FOTOS_BUCKET = "acc-fotos-peatonal";
 const ADJUNTOS_BUCKET = "acc-adjuntos";
 const FOTOS_VEHICULAR_BUCKET = "acc-fotos-vehicular";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { storageKey: "sacisc-caseta-auth" }
+});
 
 /* ---------------------------------------------------------------------
    Forzar MAYÚSCULAS en todos los campos de texto
@@ -862,6 +864,13 @@ async function procesarQR(qrTexto) {
     return;
   }
   const s = data[0];
+  const personal = s.personal || [];
+  const acompanantesHtml = personal.length > 0
+    ? `<div class="sr-meta" style="margin-top:6px;">
+         <strong>Personal que ingresa (${personal.length}):</strong><br>
+         ${personal.map(p => `• ${p.nombre_completo}${p.compania ? ' — ' + p.compania : ''}`).join("<br>")}
+       </div>`
+    : `<div class="sr-meta" style="margin-top:6px; color:var(--amber);">Sin personal registrado en esta solicitud.</div>`;
   box.innerHTML = `
     <div class="section-card">
       <h2>Solicitud encontrada</h2>
@@ -869,6 +878,7 @@ async function procesarQR(qrTexto) {
       <div class="sr-meta">${s.marca || ''} ${s.color || ''} · Placa ${s.placa || '—'}</div>
       <div class="sr-meta">Conductor: ${s.conductor || '—'}</div>
       <div class="sr-meta">Destino: ${s.lugar_presentacion || '—'} · ${s.motivo || ''}</div>
+      ${acompanantesHtml}
 
       <label>Foto del vehículo — de frente</label>
       <input type="file" accept="image/*" capture="environment" class="p-foto-id" style="display:none;" id="foto-veh-frente">
