@@ -2400,7 +2400,6 @@ function generarPDFSolicitud(d) {
 /* ---------------------------------------------------------------------
    COMPROBANTE FIRMADO — subir y ver
    --------------------------------------------------------------------- */
-/* =====================================================================
 async function subirComprobanteFirmado(solicitudId, folio, file) {
   const ruta = `${folio}/comprobante-firmado-${Date.now()}.pdf`;
   const { error: errUpload } = await sb.storage.from(STORAGE_BUCKET).upload(ruta, file, { contentType: "application/pdf" });
