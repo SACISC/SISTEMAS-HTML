@@ -98,12 +98,44 @@
 
   /* ---------- App ---------- */
   #app{display:none; flex-direction:column; flex:1; min-height:100vh;}
-  .tabs{display:flex; gap:8px; margin:18px 0 20px;}
+  .tabs{display:flex; gap:10px; margin:20px 0 24px; padding:6px; background:#eef3f1; border-radius:16px; width:fit-content;}
   .tab-btn{
-    background:#fff; border:1.4px solid var(--line); color:var(--gray);
-    padding:9px 18px; border-radius:20px; font-weight:600; font-size:13px; cursor:pointer; font-family:'Inter';
+    background:transparent; border:none; color:var(--gray);
+    padding:11px 24px; border-radius:12px; font-weight:600; font-size:13.5px; cursor:pointer; font-family:'Inter';
+    letter-spacing:.2px; transition:all .22s ease; position:relative;
   }
-  .tab-btn.active{background:var(--dark); border-color:var(--dark); color:#fff;}
+  .tab-btn:hover{color:var(--dark); background:rgba(30,91,79,.08);}
+  .tab-btn.active{
+    background:linear-gradient(135deg, var(--dark) 0%, var(--dark2) 100%); color:#fff;
+    box-shadow:0 4px 14px rgba(30,91,79,.28), 0 1px 3px rgba(0,0,0,.08);
+    transform:translateY(-1px);
+  }
+
+  /* ---------- Tooltip de acompañantes ---------- */
+  .acomp-wrap{position:relative; display:inline-flex; cursor:help;}
+  .acomp-num{
+    display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:26px;
+    padding:0 8px; border-radius:13px; background:var(--tint); color:var(--dark); font-weight:700; font-size:12.5px;
+    border:1px solid var(--tint2); transition:background .15s;
+  }
+  .acomp-wrap:hover .acomp-num{background:var(--tint2);}
+  .acomp-tooltip{
+    position:absolute; bottom:calc(100% + 10px); left:50%; transform:translateX(-50%) translateY(4px);
+    background:var(--dark2); color:#fff; border-radius:10px; padding:12px 14px; min-width:170px; max-width:260px;
+    box-shadow:0 10px 30px rgba(0,0,0,.28), 0 2px 8px rgba(0,0,0,.15);
+    opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, transform .18s ease; z-index:50;
+    text-align:left;
+  }
+  .acomp-tooltip::after{
+    content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+    border:6px solid transparent; border-top-color:var(--dark2);
+  }
+  .acomp-wrap:hover .acomp-tooltip{opacity:1; visibility:visible; transform:translateX(-50%) translateY(0);}
+  .acomp-tooltip-title{
+    font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    color:var(--green); margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,.15); padding-bottom:6px;
+  }
+  .acomp-tooltip-item{font-size:12.5px; line-height:1.6; color:#e8f5f1; white-space:nowrap;}
 
   .card{
     background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px 24px; margin-bottom:20px;
@@ -461,17 +493,6 @@ footer{background:var(--green-dark);color:rgba(255,255,255,0.7);padding:28px 40p
           </button>
         </div>
         <div id="solicitudes-container"><div class="empty-state">Cargando…</div></div>
-      </div>
-
-      <div class="card">
-        <h2>Reporte de histórico de visitas</h2>
-        <p class="card-sub">Genera un PDF impreso con las entradas y salidas registradas en caseta, exclusivo de tu coordinación.</p>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
-          <input type="month" id="reporte-coord-mes">
-          <select id="reporte-coord-compania"><option value="">Todas las compañías</option></select>
-          <button type="button" class="btn" id="btn-generar-reporte-coord-pdf">Generar reporte PDF</button>
-        </div>
-        <div id="reporte-coord-msg"></div>
       </div>
     </div>
 
@@ -1588,7 +1609,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     const tab = btn.dataset.tab;
     document.getElementById("tab-nueva").style.display = tab === "nueva" ? "block" : "none";
     document.getElementById("tab-mias").style.display = tab === "mias" ? "block" : "none";
-    if (tab === "mias") { cargarMisSolicitudes(); marcarAutorizadasComoVistas(); poblarFiltroCompaniaReporte(); }
+    if (tab === "mias") { cargarMisSolicitudes(); marcarAutorizadasComoVistas(); }
   });
 });
 
@@ -1962,6 +1983,13 @@ async function cargarMisSolicitudes() {
     // El chofer/visitante principal cuenta como la primera persona de la lista, no como acompañante
     const numAcompanantes = Math.max(personal.length - 1, 0);
     const puedeEditar = s.estatus === "pendiente";
+    const nombresAcompanantes = personal.slice(1).map(p => p.nombre_completo).filter(Boolean);
+    const tooltipAcompanantes = nombresAcompanantes.length > 0
+      ? `<div class="acomp-tooltip">
+           <div class="acomp-tooltip-title">Acompañantes (${nombresAcompanantes.length})</div>
+           ${nombresAcompanantes.map(n => `<div class="acomp-tooltip-item">${n}</div>`).join("")}
+         </div>`
+      : "";
     return `
     <tr>
       <td><span class="folio-chip">${s.folio}</span></td>
@@ -1969,7 +1997,12 @@ async function cargarMisSolicitudes() {
       <td>${formatFecha(s.fecha_inicio)} – ${formatFecha(s.fecha_termino)}</td>
       <td>${companiaMostrar}</td>
       <td>${s.conductor || "—"}</td>
-      <td style="text-align:center;">${numAcompanantes}</td>
+      <td style="text-align:center;">
+        <span class="acomp-wrap">
+          <span class="acomp-num">${numAcompanantes}</span>
+          ${tooltipAcompanantes}
+        </span>
+      </td>
       <td>${s.motivo || "—"}</td>
       <td>${s.placa || "—"}</td>
       <td><span class="badge ${s.estatus}">${etiquetaEstatus(s.estatus)}</span></td>
@@ -1998,7 +2031,7 @@ async function cargarMisSolicitudes() {
     <div style="overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:8px;">
     <table class="solicitudes">
       <thead>
-        <tr><th>Folio</th><th>Capturó</th><th>Vigencia</th><th>Compañía</th><th>Chofer</th><th>Acompañantes</th><th>Motivo</th><th>Placa</th><th>Estatus</th><th>QR</th><th>Formato</th><th>Comprobante firmado</th><th>Editar</th><th>Documentos</th></tr>
+        <tr><th>Folio</th><th>Capturó</th><th>Vigencia</th><th>Compañía</th><th>Conductor</th><th>Acompañantes</th><th>Motivo</th><th>Placa</th><th>Estatus</th><th>QR</th><th>Formato</th><th>Comprobante firmado</th><th>Editar</th><th>Documentos</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
@@ -2332,186 +2365,6 @@ function generarPDFSolicitud(d) {
    COMPROBANTE FIRMADO — subir y ver
    --------------------------------------------------------------------- */
 /* =====================================================================
-   REPORTE PDF DE HISTÓRICO — exclusivo de la coordinación del usuario
-   ===================================================================== */
-async function poblarFiltroCompaniaReporte() {
-  const sel = document.getElementById("reporte-coord-compania");
-  if (sel.dataset.cargado === "1") return;
-  const { data } = await sb.from("acc_companias").select("nombre").eq("activo", true).order("nombre");
-  (data || []).forEach(c => sel.insertAdjacentHTML("beforeend", `<option value="${c.nombre}">${c.nombre}</option>`));
-  sel.dataset.cargado = "1";
-}
-
-function fmtFechaHoraCortaCoord(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${dd}/${mm}/${d.getFullYear()} ${hh}:${mi}`;
-}
-
-document.getElementById("btn-generar-reporte-coord-pdf").addEventListener("click", async () => {
-  const btn = document.getElementById("btn-generar-reporte-coord-pdf");
-  const msg = document.getElementById("reporte-coord-msg");
-  btn.disabled = true; btn.textContent = "Generando…";
-  msg.innerHTML = "";
-
-  try {
-    const mes = document.getElementById("reporte-coord-mes").value;
-    const compania = document.getElementById("reporte-coord-compania").value;
-
-    let query = sb.from("acc_accesos_vehiculares")
-      .select(`
-        hora_entrada, hora_salida, caseta,
-        acc_solicitudes_vehicular!inner(
-          folio, placa, conductor, marca, color, coordinacion_id,
-          acc_usuarios_area(nombre),
-          acc_solicitud_personal(compania)
-        )
-      `)
-      .eq("acc_solicitudes_vehicular.coordinacion_id", currentUsuarioArea.coordinacion_id)
-      .order("hora_entrada", { ascending: false })
-      .limit(1000);
-
-    if (mes) {
-      const [anio, m] = mes.split("-").map(Number);
-      const inicio = `${mes}-01`;
-      const fin = new Date(anio, m, 1).toISOString().slice(0, 10);
-      query = query.gte("hora_entrada", inicio).lt("hora_entrada", fin);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    let filas = (data || []).filter(a => a.acc_solicitudes_vehicular);
-    if (compania) {
-      filas = filas.filter(a => {
-        const personal = a.acc_solicitudes_vehicular.acc_solicitud_personal || [];
-        return personal.some(p => p.compania === compania);
-      });
-    }
-
-    if (filas.length === 0) {
-      msg.innerHTML = `<div class="msg error">No hay registros que coincidan con el filtro seleccionado.</div>`;
-      return;
-    }
-
-    dibujarReporteCoordinacionPDF(filas, {
-      mes, compania,
-      coordinacionNombre: document.getElementById("f-coordinacion-display").value
-    });
-    msg.innerHTML = `<div class="msg ok">Reporte generado con ${filas.length} registro(s).</div>`;
-  } catch (err) {
-    msg.innerHTML = `<div class="msg error">No se pudo generar el reporte: ${err.message}</div>`;
-  } finally {
-    btn.disabled = false; btn.textContent = "Generar reporte PDF";
-  }
-});
-
-function dibujarReporteCoordinacionPDF(filas, filtros) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
-  const W = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
-  const M = 30;
-  const dark = [0, 47, 42], ink = [28, 43, 40], gray = [91, 107, 104];
-  const grayHead = [232, 245, 241];
-
-  const cols = [
-    { label: "Folio", w: 100 },
-    { label: "Fecha/Hora entrada", w: 95 },
-    { label: "Fecha/Hora salida", w: 95 },
-    { label: "Caseta", w: 75 },
-    { label: "Compañía", w: 130 },
-    { label: "Conductor", w: 100 },
-    { label: "Placa", w: 60 },
-    { label: "Capturó", w: 105 }
-  ];
-  const tableW = cols.reduce((a, c) => a + c.w, 0);
-  const startX = M;
-
-  function encabezadoPagina(esPrimera) {
-    let y = 24;
-    try { doc.addImage(LOGO_PEMEX_DATAURI, "JPEG", M, 10, 100, 21); } catch (e) {}
-    doc.setFont(undefined, "bold"); doc.setFontSize(8); doc.setTextColor(...gray);
-    doc.text(`Generado: ${fmtFechaHoraCortaCoord(new Date().toISOString())}`, W - M, 16, { align: "right" });
-
-    if (esPrimera) {
-      y = 44;
-      doc.setFillColor(...dark);
-      doc.rect(M, y, W - 2 * M, 28, "F");
-      doc.setTextColor(255, 255, 255); doc.setFont(undefined, "bold"); doc.setFontSize(13);
-      doc.text("SACISC · Reporte de Histórico de Visitas", W / 2, y + 18, { align: "center" });
-      y += 28 + 10;
-
-      doc.setTextColor(...ink); doc.setFont(undefined, "normal"); doc.setFontSize(9);
-      const filtroTxt = [
-        `Coordinación: ${filtros.coordinacionNombre}`,
-        filtros.mes ? `Mes: ${filtros.mes}` : null,
-        filtros.compania ? `Compañía: ${filtros.compania}` : null
-      ].filter(Boolean).join("   ·   ");
-      doc.text(filtroTxt, M, y);
-      y += 16;
-    } else { y = 44; }
-    return y;
-  }
-
-  function encabezadoTabla(y) {
-    doc.setFillColor(...grayHead);
-    doc.rect(startX, y, tableW, 20, "F");
-    doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.5);
-    doc.rect(startX, y, tableW, 20);
-    doc.setFont(undefined, "bold"); doc.setFontSize(7.6); doc.setTextColor(...ink);
-    let x = startX;
-    cols.forEach(c => { doc.line(x, y, x, y + 20); doc.text(c.label, x + c.w / 2, y + 13, { align: "center" }); x += c.w; });
-    doc.line(x, y, x, y + 20);
-    return y + 20;
-  }
-
-  let y = encabezadoPagina(true);
-  y = encabezadoTabla(y);
-  const rowH = 18;
-  doc.setFont(undefined, "normal"); doc.setFontSize(7.4);
-
-  filas.forEach((a) => {
-    if (y + rowH > H - 30) {
-      doc.addPage();
-      y = encabezadoPagina(false);
-      y = encabezadoTabla(y);
-      doc.setFont(undefined, "normal"); doc.setFontSize(7.4);
-    }
-    const s = a.acc_solicitudes_vehicular;
-    const compania = (s.acc_solicitud_personal && s.acc_solicitud_personal[0]?.compania) || "—";
-    const valores = [
-      s.folio, fmtFechaHoraCortaCoord(a.hora_entrada), fmtFechaHoraCortaCoord(a.hora_salida),
-      { peatonal: "Peatonal", vehicular_ligero: "Veh. Ligero", vehicular_pesado: "Veh. Pesado" }[a.caseta] || a.caseta,
-      compania, s.conductor || "—", s.placa || "—", s.acc_usuarios_area?.nombre || "—"
-    ];
-    let x = startX;
-    doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.4);
-    doc.rect(startX, y, tableW, rowH);
-    valores.forEach((val, i) => {
-      doc.line(x, y, x, y + rowH);
-      const txt = doc.splitTextToSize(String(val), cols[i].w - 6)[0] || "—";
-      doc.text(txt, x + cols[i].w / 2, y + 12, { align: "center" });
-      x += cols[i].w;
-    });
-    doc.line(x, y, x, y + rowH);
-    y += rowH;
-  });
-
-  const totalPaginas = doc.internal.getNumberOfPages();
-  for (let p = 1; p <= totalPaginas; p++) {
-    doc.setPage(p);
-    doc.setFontSize(7.5); doc.setTextColor(...gray); doc.setFont(undefined, "normal");
-    doc.text(`SACISC · Control de Accesos — Página ${p} de ${totalPaginas}`, W / 2, H - 14, { align: "center" });
-  }
-
-  doc.save(`SACISC_Reporte_${filtros.coordinacionNombre.replace(/\s+/g, "_")}_${filtros.mes || "todo"}.pdf`);
-}
-
 async function subirComprobanteFirmado(solicitudId, folio, file) {
   const ruta = `${folio}/comprobante-firmado-${Date.now()}.pdf`;
   const { error: errUpload } = await sb.storage.from(STORAGE_BUCKET).upload(ruta, file, { contentType: "application/pdf" });
