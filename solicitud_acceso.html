@@ -363,9 +363,14 @@ footer{background:var(--green-dark);color:rgba(255,255,255,0.7);padding:28px 40p
 </header>
 <div class="wrap">
     <div id="aviso-autorizadas"></div>
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="nueva">Nueva solicitud</button>
-      <button class="tab-btn" data-tab="mias">Mis solicitudes</button>
+    <div class="tabs" style="justify-content:space-between; display:flex; align-items:center;">
+      <div style="display:flex; gap:10px;">
+        <button class="tab-btn active" data-tab="nueva">Nueva solicitud</button>
+        <button class="tab-btn" data-tab="mias">Mis solicitudes</button>
+      </div>
+      <button class="btn secondary" id="btn-actualizar-solicitudes" style="display:flex; align-items:center; gap:6px;">
+        ⟳ Actualizar <span id="ultima-actualizacion-sol" style="font-weight:400; font-size:11px; color:var(--gray);"></span>
+      </button>
     </div>
 
     <!-- ---------- TAB: NUEVA SOLICITUD ---------- -->
@@ -1916,6 +1921,31 @@ document.getElementById("btn-reset").addEventListener("click", () => {
    --------------------------------------------------------------------- */
 let misSolicitudesActuales = [];
 
+async function purgarAdjuntosVencidos() {
+  try {
+    const { data: rutas } = await sb.rpc("acc_purgar_adjuntos_folios_cerrados");
+    if (rutas && rutas.length > 0) {
+      await sb.storage.from(STORAGE_BUCKET).remove(rutas);
+    }
+  } catch (e) { /* no bloquear el flujo si falla la limpieza */ }
+}
+
+document.getElementById("btn-actualizar-solicitudes").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-actualizar-solicitudes");
+  btn.disabled = true;
+  await cargarMisSolicitudes();
+  const ahora = new Date();
+  document.getElementById("ultima-actualizacion-sol").textContent =
+    `Actualizado ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+  btn.disabled = false;
+});
+
+setInterval(() => {
+  if (currentUsuarioArea && document.getElementById("tab-mias").style.display !== "none") {
+    cargarMisSolicitudes();
+  }
+}, 60000);
+
 async function cargarMisSolicitudes() {
   const cont = document.getElementById("solicitudes-container");
   cont.innerHTML = '<div class="empty-state">Cargando…</div>';
@@ -1923,6 +1953,7 @@ async function cargarMisSolicitudes() {
   // Recalcula expirado/cerrado/en_ejecucion aquí también, para no depender
   // de que alguien tenga abierto el dashboard de oficina central.
   try { await sb.rpc("acc_actualizar_estatus_solicitudes"); } catch (e) { /* no bloquear si falla */ }
+  await purgarAdjuntosVencidos();
 
   const filtroEstatus = document.getElementById("mis-filtro-estatus")?.value || "";
   const filtroMes = document.getElementById("mis-filtro-mes")?.value || "";
@@ -1983,6 +2014,7 @@ async function cargarMisSolicitudes() {
     // El chofer/visitante principal cuenta como la primera persona de la lista, no como acompañante
     const numAcompanantes = Math.max(personal.length - 1, 0);
     const puedeEditar = s.estatus === "pendiente";
+    const esTerminal = ["cerrado", "expirado", "rechazado"].includes(s.estatus);
     const nombresAcompanantes = personal.slice(1).map(p => p.nombre_completo).filter(Boolean);
     const tooltipAcompanantes = nombresAcompanantes.length > 0
       ? `<div class="acomp-tooltip">
@@ -2009,11 +2041,15 @@ async function cargarMisSolicitudes() {
       <td>${(s.estatus === "autorizado" || s.estatus === "en_ejecucion") && s.qr_codigo
         ? `<button type="button" class="btn secondary" style="padding:6px 12px; font-size:12px;" data-ver-qr="${s.qr_codigo}" data-ver-folio="${s.folio}">Ver QR</button>`
         : "—"}</td>
-      <td><button type="button" class="btn secondary" style="padding:6px 12px; font-size:12px;" data-descargar-formato="${s.id}">Descargar formato</button></td>
+      <td>${esTerminal
+        ? '<span style="font-size:11px; color:var(--gray);">—</span>'
+        : `<button type="button" class="btn secondary" style="padding:6px 12px; font-size:12px;" data-descargar-formato="${s.id}">Descargar formato</button>`}</td>
       <td>
         ${conComprobante.has(s.id)
           ? `<span class="badge autorizado">Subido ✓</span>`
-          : `<label class="btn secondary" style="padding:6px 12px; font-size:12px; cursor:pointer;">
+          : esTerminal
+            ? '<span style="font-size:11px; color:var(--gray);">—</span>'
+            : `<label class="btn secondary" style="padding:6px 12px; font-size:12px; cursor:pointer;">
                Subir firmado
                <input type="file" accept="application/pdf" style="display:none;" data-subir-comprobante="${s.id}" data-subir-folio="${s.folio}">
              </label>`
@@ -2022,7 +2058,7 @@ async function cargarMisSolicitudes() {
       <td>${puedeEditar
         ? `<button type="button" class="btn secondary" style="padding:6px 12px; font-size:12px;" data-editar="${s.id}">Editar</button>`
         : `<span style="font-size:11px; color:var(--gray);">No editable</span>`}</td>
-      <td><button type="button" class="btn secondary" style="padding:6px 12px; font-size:12px;" data-ver-docs="${s.id}" data-doc-folio="${s.folio}" data-puede-editar="${puedeEditar}">Ver documentos</button></td>
+      <td><button type="button" class="btn secondary" style="padding:6px 12px; font-size:12px;" data-ver-docs="${s.id}" data-doc-folio="${s.folio}" data-puede-editar="${puedeEditar}" data-es-terminal="${esTerminal}">Ver documentos</button></td>
     </tr>
   `;
   }).join("");
@@ -2096,7 +2132,7 @@ async function cargarMisSolicitudes() {
 
   cont.querySelectorAll("[data-ver-docs]").forEach(btn => {
     btn.addEventListener("click", () => {
-      mostrarModalDocumentos(btn.dataset.verDocs, btn.dataset.docFolio, btn.dataset.puedeEditar === "true");
+      mostrarModalDocumentos(btn.dataset.verDocs, btn.dataset.docFolio, btn.dataset.puedeEditar === "true", btn.dataset.esTerminal === "true");
     });
   });
 }
@@ -2387,7 +2423,7 @@ const ETIQUETAS_ADJUNTO = {
   otro: "Otro documento"
 };
 
-async function mostrarModalDocumentos(solicitudId, folio, puedeEditar) {
+async function mostrarModalDocumentos(solicitudId, folio, puedeEditar, esTerminal) {
   document.getElementById("docs-modal-folio").textContent = folio;
   const box = document.getElementById("docs-modal-list");
   box.innerHTML = `<div class="empty-state">Cargando…</div>`;
@@ -2403,7 +2439,11 @@ async function mostrarModalDocumentos(solicitudId, folio, puedeEditar) {
   const porTipo = {};
   (data || []).forEach(a => { porTipo[a.tipo] = a; });
 
-  const tipos = ["tarjeta_circulacion", "licencia", "ine", "poliza", "comprobante_firmado"];
+  // Una vez cerrado/expirado/rechazado, los 4 documentos de evidencia ya se
+  // autoborraron — solo queda mostrar el comprobante firmado (si existe).
+  const tipos = esTerminal
+    ? ["comprobante_firmado"]
+    : ["tarjeta_circulacion", "licencia", "ine", "poliza", "comprobante_firmado"];
   const filas = await Promise.all(tipos.map(async (tipo) => {
     const adj = porTipo[tipo];
     let verLink = "—";

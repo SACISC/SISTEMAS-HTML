@@ -193,7 +193,7 @@
 <div class="modal-overlay" id="docs-modal">
   <div class="modal-box" style="max-width:420px; text-align:left;">
     <h3 id="docs-modal-folio" style="text-align:center;">Folio</h3>
-    <p style="text-align:center;">Documentos de evidencia subidos para esta solicitud.</p>
+    <p id="docs-modal-subtitulo" style="text-align:center;">Documentos de evidencia subidos para esta solicitud.</p>
     <div id="docs-modal-list"><div class="empty-state">Cargando…</div></div>
     <button class="btn secondary full" style="margin-top:16px;" id="btn-cerrar-docs-modal">Cerrar</button>
   </div>
@@ -1044,6 +1044,15 @@ document.getElementById("btn-login").addEventListener("click", async () => {
   await afterLogin(data.user);
 });
 
+async function purgarAdjuntosVencidos() {
+  try {
+    const { data: rutas } = await sb.rpc("acc_purgar_adjuntos_folios_cerrados");
+    if (rutas && rutas.length > 0) {
+      await sb.storage.from("acc-adjuntos").remove(rutas);
+    }
+  } catch (e) { /* no bloquear el flujo si falla la limpieza */ }
+}
+
 async function afterLogin(user) {
   currentUser = user;
   const { data: perfil, error } = await sb
@@ -1064,6 +1073,7 @@ async function afterLogin(user) {
   renderHeader();
   renderFooter();
   try { await sb.rpc("acc_actualizar_estatus_solicitudes"); } catch (e) {}
+  await purgarAdjuntosVencidos();
   await cargarKpis();
   cambiarTab("pendientes");
 }
@@ -1284,6 +1294,7 @@ function cambiarTab(tab) {
 
 async function actualizarDashboard() {
   try { await sb.rpc("acc_actualizar_estatus_solicitudes"); } catch (e) { /* no bloquear el refresco si falla */ }
+  await purgarAdjuntosVencidos();
   await cargarKpis();
   // No refrescamos "Catálogos" automáticamente para no borrar un formulario
   // que la persona pueda estar llenando en ese momento.
@@ -1323,6 +1334,7 @@ async function cargarKpis() {
 
 async function mostrarModalVehiculosDentro() {
   document.getElementById("docs-modal-folio").textContent = "Vehículos dentro de la instalación";
+  document.getElementById("docs-modal-subtitulo").textContent = "Placa, conductor, caseta y fotos capturadas al ingresar.";
   const box = document.getElementById("docs-modal-list");
   box.innerHTML = `<div class="empty-state">Cargando…</div>`;
   document.getElementById("docs-modal").classList.add("show");
@@ -1518,6 +1530,7 @@ const ETIQUETAS_ADJUNTO = {
 
 async function mostrarModalDocumentos(solicitudId, folio) {
   document.getElementById("docs-modal-folio").textContent = folio;
+  document.getElementById("docs-modal-subtitulo").textContent = "Documentos de evidencia subidos para esta solicitud.";
   const box = document.getElementById("docs-modal-list");
   box.innerHTML = `<div class="empty-state">Cargando…</div>`;
   document.getElementById("docs-modal").classList.add("show");
