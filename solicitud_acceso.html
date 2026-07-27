@@ -1899,6 +1899,10 @@ async function cargarMisSolicitudes() {
   const cont = document.getElementById("solicitudes-container");
   cont.innerHTML = '<div class="empty-state">Cargando…</div>';
 
+  // Recalcula expirado/cerrado/en_ejecucion aquí también, para no depender
+  // de que alguien tenga abierto el dashboard de oficina central.
+  try { await sb.rpc("acc_actualizar_estatus_solicitudes"); } catch (e) { /* no bloquear si falla */ }
+
   const filtroEstatus = document.getElementById("mis-filtro-estatus")?.value || "";
   const filtroMes = document.getElementById("mis-filtro-mes")?.value || "";
   const filtroTexto = document.getElementById("mis-filtro-texto")?.value.trim() || "";
