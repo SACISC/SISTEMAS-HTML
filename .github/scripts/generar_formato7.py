@@ -77,6 +77,8 @@ def generar_excel(folio, out_path):
     p.set_value("Y10", folio["ficha"])
 
     tot_dobletes, tot_comidas = 0, 0
+    tot_horas_te, tot_minutos_te = 0, 0
+    tot_horas_insal, tot_minutos_insal = 0, 0
     for dia in folio.get("pe_folio_dias", []):
         r = DIA_ROWS.get(dia["dia_semana"])
         if not r:
@@ -107,6 +109,8 @@ def generar_excel(folio, out_path):
                     p.set_value(f"H{r}", partes[1])
             p.set_value(f"K{r}", dia.get("horas") or None)
             p.set_value(f"L{r}", dia.get("minutos") or None)
+            tot_horas_te += dia.get("horas") or 0
+            tot_minutos_te += dia.get("minutos") or 0
         elif folio["tipo_pago"] == "INSALUBRE":
             if dia.get("horario"):
                 partes = dia["horario"].split("-")
@@ -115,6 +119,8 @@ def generar_excel(folio, out_path):
                     p.set_value(f"H{r}", partes[1])
             p.set_value(f"Q{r}", dia.get("horas") or None)
             p.set_value(f"R{r}", dia.get("minutos") or None)
+            tot_horas_insal += dia.get("horas") or 0
+            tot_minutos_insal += dia.get("minutos") or 0
 
         p.set_value(f"U{r}", dia.get("comidas") or None)
         p.set_value(f"W{r}", "PMXC")  # dato institucional fijo, nunca variable
@@ -126,6 +132,18 @@ def generar_excel(folio, out_path):
 
     p.set_value("I24", tot_dobletes or None)
     p.set_value("U24", tot_comidas or None)
+
+    # Normaliza el acarreo de minutos a horas (ej. 125 min -> 2h 05min) antes de
+    # escribir los totales de Tiempo Extra e Insalubre en la fila de TOTALES.
+    tot_horas_te += tot_minutos_te // 60
+    tot_minutos_te = tot_minutos_te % 60
+    tot_horas_insal += tot_minutos_insal // 60
+    tot_minutos_insal = tot_minutos_insal % 60
+
+    p.set_value("K24", tot_horas_te or None)
+    p.set_value("L24", tot_minutos_te or None)
+    p.set_value("Q24", tot_horas_insal or None)
+    p.set_value("R24", tot_minutos_insal or None)
 
     p.set_value("G26", CIUDAD_POR_AREA.get(folio["area"], ""))
     if folio.get("fecha_reporte"):
@@ -151,6 +169,11 @@ def subir_a_storage(local_path, bucket, dest_name):
     headers = dict(HEADERS)
     headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     headers["x-upsert"] = "true"
+    # Le decimos explicitamente a Supabase que sirva este archivo SIEMPRE fresco,
+    # sin que ningun intermediario (CDN, proxy, el visor de Office) lo guarde en cache.
+    # Sin esto, el visor de Office podia mostrar una version vieja aunque el
+    # archivo real ya estuviera corregido.
+    headers["cache-control"] = "no-cache, no-store, must-revalidate, max-age=0"
     resp = requests.post(url, headers=headers, data=data)
     resp.raise_for_status()
     return f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{dest_name}"
