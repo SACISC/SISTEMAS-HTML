@@ -378,6 +378,21 @@
   }
   .paste-box:focus { outline:none; border-color:var(--green-mid); background:#fff; }
   .paste-hint { font-size:0.75rem; color:var(--gray); margin:6px 0 14px 0; }
+  .ficha-resultados { position:relative; margin-top:2px; }
+  .ficha-resultado-item {
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:10px 14px; border:1px solid var(--border); border-top:none;
+    cursor:pointer; background:var(--white); font-size:0.85rem;
+  }
+  .ficha-resultado-item:hover { background:#f0f9f6; }
+  .ficha-resultado-item:first-child { border-top:1px solid var(--border); }
+  .ficha-resultado-item .fr-nombre { font-weight:600; color:#333; }
+  .ficha-resultado-item .fr-etq { font-size:0.72rem; color:var(--green-mid); font-weight:700; }
+  .folio-existente-box {
+    background:#fff3cd; border:1.5px solid #ffe08a; border-radius:10px;
+    padding:14px 18px; margin-top:16px; font-size:0.85rem;
+  }
+  .folio-existente-box button { margin-top:10px; }
   .cat-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
 
   .cat-table-wrap { overflow-x:auto; border-radius:10px; border:1.5px solid var(--border); max-height:480px; overflow-y:auto; }
@@ -948,9 +963,16 @@
         <div class="wizard-panel hidden" id="wpanel-3">
           <div class="field" style="max-width:460px;margin-bottom:16px;">
             <label>Trabajador (sub-área: <span id="subareaCapturaNombre" style="color:var(--green-mid);font-weight:700;"></span>)</label>
+            <!-- Solo para Doblete: buscador por ficha, tipo "autocompletar" -->
+            <div id="buscadorFichaWrap" class="hidden">
+              <input type="text" id="fichaBuscarInput" placeholder="Escribe la ficha completa..." autocomplete="off" oninput="onFichaBuscarInput(this.value)">
+              <div id="resultadosFichaBusqueda" class="ficha-resultados"></div>
+            </div>
+            <!-- Para Tiempo Extra/Insalubre: selector normal -->
             <select id="selTrabajador" onchange="onTrabajadorChange()"></select>
           </div>
           <div id="trabajadorInfo"></div>
+          <div id="folioExistenteWrap"></div>
           <div class="btn-nav">
             <button class="btn-secondary" onclick="irPaso(2)">← Atrás</button>
             <button class="btn-primary" onclick="irPaso(4)" id="btnPaso3Next" disabled>Siguiente →</button>
@@ -2381,6 +2403,7 @@ function irPaso(n) {
   document.getElementById('wpanel-'+n).classList.remove('hidden');
   document.getElementById('wstep-'+n).classList.add('active');
 
+  if (n === 3) prepararPaso3();
   if (n === 4) renderDias();
   if (n === 5) prepararPaso5();
 }
@@ -2485,6 +2508,13 @@ function onTrabajadorChange() {
   const valor = document.getElementById('selTrabajador').value;
   const [ficha, etiqueta] = valor.split('|||');
   const t = capturaState.trabajadoresCat.find(x => String(x.ficha) === ficha && (x.etiqueta_puesto || 'BASE') === etiqueta);
+  seleccionarTrabajador(t || null);
+}
+
+// Muestra los datos del trabajador elegido y habilita "Siguiente" -- se usa
+// tanto desde el selector normal (Tiempo Extra/Insalubre) como desde el
+// buscador por ficha (Doblete).
+function seleccionarTrabajador(t) {
   capturaState.trabajador = t || null;
   const info = document.getElementById('trabajadorInfo');
   if (t) {
@@ -2497,9 +2527,78 @@ function onTrabajadorChange() {
         <div class="stat-item"><div class="stat-label">Puesto</div><div class="stat-value" style="font-size:1.1rem;">${t.etiqueta_puesto || 'BASE'}</div></div>
       </div>`;
     document.getElementById('btnPaso3Next').disabled = false;
+    if (capturaState.tipoPago === 'DOBLETE') verificarFolioExistente(t.ficha);
   } else {
     info.innerHTML = '';
     document.getElementById('btnPaso3Next').disabled = true;
+    document.getElementById('folioExistenteWrap').innerHTML = '';
+  }
+}
+
+// ── Buscador de ficha por texto (solo Doblete) ─────────────────
+function prepararPaso3() {
+  const esDoblete = capturaState.tipoPago === 'DOBLETE';
+  document.getElementById('buscadorFichaWrap').classList.toggle('hidden', !esDoblete);
+  document.getElementById('selTrabajador').classList.toggle('hidden', esDoblete);
+  document.getElementById('folioExistenteWrap').innerHTML = '';
+  if (esDoblete) {
+    document.getElementById('fichaBuscarInput').value = '';
+    document.getElementById('resultadosFichaBusqueda').innerHTML = '';
+  }
+}
+
+function onFichaBuscarInput(texto) {
+  const cont = document.getElementById('resultadosFichaBusqueda');
+  const limpio = texto.trim();
+  if (!limpio) { cont.innerHTML = ''; seleccionarTrabajador(null); return; }
+
+  const coincidencias = capturaState.trabajadoresCat
+    .filter(t => String(t.ficha).startsWith(limpio))
+    .slice(0, 8);
+
+  if (coincidencias.length === 0) {
+    cont.innerHTML = `<div class="ficha-resultado-item" style="cursor:default;color:var(--gray);">Sin coincidencias</div>`;
+    seleccionarTrabajador(null);
+    return;
+  }
+
+  cont.innerHTML = coincidencias.map(t => {
+    const etq = t.etiqueta_puesto || 'BASE';
+    const etqTxt = etq !== 'BASE' ? `<span class="fr-etq">${etq}</span>` : '';
+    return `<div class="ficha-resultado-item" onclick="elegirDeBusquedaFicha('${t.ficha}','${etq}')">
+      <span><strong>${t.ficha}</strong> — <span class="fr-nombre">${t.nombre}</span> · $${t.salario ?? '—'}</span>
+      ${etqTxt}
+    </div>`;
+  }).join('');
+}
+
+function elegirDeBusquedaFicha(ficha, etiqueta) {
+  const t = capturaState.trabajadoresCat.find(x => String(x.ficha) === String(ficha) && (x.etiqueta_puesto || 'BASE') === etiqueta);
+  document.getElementById('fichaBuscarInput').value = `${ficha} — ${t ? t.nombre : ''}`;
+  document.getElementById('resultadosFichaBusqueda').innerHTML = '';
+  seleccionarTrabajador(t || null);
+}
+
+// ── Deteccion de folio ya existente para este trabajador+semana+tipo ──
+async function verificarFolioExistente(ficha) {
+  const wrap = document.getElementById('folioExistenteWrap');
+  wrap.innerHTML = '';
+  if (!capturaState.semana || !capturaState.tipoPago) return;
+  try {
+    const q = `select=id,folio,anio,num_semana,pe_folio_dias(dia_semana)&area=eq.${encodeURIComponent(areaValidada)}&subarea=eq.${encodeURIComponent(subareaActual)}&tipo_pago=eq.${capturaState.tipoPago}&anio=eq.${capturaState.anio}&num_semana=eq.${capturaState.semana.num_semana}&ficha=eq.${ficha}&limit=1`;
+    const res = await sbGet('pe_folios', q);
+    if (res.length === 0) return;
+    const f = res[0];
+    const diasCapturados = (f.pe_folio_dias || []).length;
+    wrap.innerHTML = `
+      <div class="folio-existente-box">
+        ⚠️ Este trabajador <strong>ya tiene el Folio Nº ${f.folio}</strong> capturado en esta misma semana
+        (${diasCapturados} día(s) ya registrados). Si quieres agregar otro día o modificar algo,
+        edítalo directamente en vez de crear un folio nuevo.
+        <br><button class="btn-secondary" onclick="editarFolio(${f.id})">✏️ Ir a editar este folio</button>
+      </div>`;
+  } catch (e) {
+    // Si falla la verificacion, no se bloquea la captura normal
   }
 }
 
@@ -2759,8 +2858,12 @@ function razonTexto(ausente) {
   if (ausente.tipoMotivo === 'PLAZA_SIN_COBERTURA') {
     return `FALTA DE COBERTURA DE PLAZA${ausente.comentarioPlaza ? ' ' + ausente.comentarioPlaza : ''}`;
   }
-  // Por defecto: AUSENCIA de un trabajador especifico
-  return `LA AUSENCIA DE: F. ${ausente.ficha} ${ausente.nombre} DE: ${ausente.horario}`;
+  // AUSENCIA de un trabajador especifico. Si el motivo capturado es distinto
+  // a "AUSENCIA" (ej. VACACIONES, AMPARO MEDICO), se menciona para dar mas
+  // contexto -- si el motivo literalmente es "AUSENCIA", no se repite la palabra.
+  const motivo = (ausente.motivo || '').trim().toUpperCase();
+  const fraseMotivo = (motivo && motivo !== 'AUSENCIA') ? ` POR ${motivo}` : '';
+  return `LA AUSENCIA${fraseMotivo} DE: F. ${ausente.ficha} ${ausente.nombre} DE: ${ausente.horario}`;
 }
 
 function sugerirLabores(diaClave) {
