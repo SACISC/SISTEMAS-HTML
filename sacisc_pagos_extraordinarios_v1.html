@@ -2691,12 +2691,6 @@ function renderDiaCard(d, idx, fecha) {
 }
 
 function renderAusenteBox(diaClave, n, ausente) {
-  // Deduplicar por ficha (un trabajador puede aparecer 2 veces: BASE y ASCENDIDO,
-  // pero para saber QUIEN falto no importa cual version de salario tenia)
-  const fichasUnicas = [...new Map(capturaState.trabajadoresCat.map(t => [String(t.ficha), t])).values()];
-  const opcionesFicha = fichasUnicas
-    .map(t => `<option value="${t.ficha}" ${String(ausente.ficha)===String(t.ficha)?'selected':''}>${t.ficha} — ${t.nombre}</option>`)
-    .join('');
   const tiposUnicos = [...new Map(capturaState.ausenciasCat.map(a => [a.tipo, a])).values()];
   const opcionesMotivo = tiposUnicos
     .map(a => `<option value="${a.tipo}" ${ausente.motivo===a.tipo?'selected':''}>${a.tipo}</option>`)
@@ -2706,14 +2700,13 @@ function renderAusenteBox(diaClave, n, ausente) {
 
   let contenidoSegunTipo = '';
   if (tipoMotivo === 'AUSENCIA') {
+    const valorBuscador = ausente.ficha ? `${ausente.ficha} — ${ausente.nombre}` : '';
     contenidoSegunTipo = `
       <div class="dia-grid">
         <div class="field">
           <label>Ficha</label>
-          <select onchange="onAusenteFichaChange('${diaClave}',${n},this.value)">
-            <option value="">— Selecciona ficha —</option>
-            ${opcionesFicha}
-          </select>
+          <input type="text" id="ausenteFichaBuscar-${diaClave}-${n}" value="${valorBuscador}" placeholder="Escribe la ficha completa..." autocomplete="off" oninput="onFichaAusenteBuscarInput('${diaClave}',${n},this.value)">
+          <div id="ausenteFichaResultados-${diaClave}-${n}" class="ficha-resultados"></div>
         </div>
         <div class="field">
           <label>Nombre</label>
@@ -2776,6 +2769,37 @@ function onAusenteFichaChange(diaClave, n, ficha) {
   const split = DOBLETE_SPLIT[data.horario];
   data['ausente'+n].horario = split ? split[n - 1] : data.horario;
   renderDias();
+}
+
+// ── Buscador de ficha por texto para el AUSENTE (mismo patron que Paso 3) ──
+function onFichaAusenteBuscarInput(diaClave, n, texto) {
+  const contId = `ausenteFichaResultados-${diaClave}-${n}`;
+  const cont = document.getElementById(contId);
+  const limpio = texto.trim();
+  if (!limpio) { cont.innerHTML = ''; return; }
+
+  // Deduplicar por ficha -- para saber QUIEN falto no importa si tiene
+  // version BASE o ASCENDIDO, solo se necesita ficha + nombre.
+  const fichasUnicas = [...new Map(capturaState.trabajadoresCat.map(t => [String(t.ficha), t])).values()];
+  const coincidencias = fichasUnicas.filter(t => String(t.ficha).startsWith(limpio)).slice(0, 8);
+
+  if (coincidencias.length === 0) {
+    cont.innerHTML = `<div class="ficha-resultado-item" style="cursor:default;color:var(--gray);">Sin coincidencias</div>`;
+    return;
+  }
+
+  cont.innerHTML = coincidencias.map(t =>
+    `<div class="ficha-resultado-item" onclick="elegirDeBusquedaFichaAusente('${diaClave}',${n},'${t.ficha}')">
+      <span><strong>${t.ficha}</strong> — <span class="fr-nombre">${t.nombre}</span></span>
+    </div>`
+  ).join('');
+}
+
+function elegirDeBusquedaFichaAusente(diaClave, n, ficha) {
+  const t = capturaState.trabajadoresCat.find(x => String(x.ficha) === String(ficha));
+  document.getElementById(`ausenteFichaBuscar-${diaClave}-${n}`).value = `${ficha} — ${t ? t.nombre : ''}`;
+  document.getElementById(`ausenteFichaResultados-${diaClave}-${n}`).innerHTML = '';
+  onAusenteFichaChange(diaClave, n, ficha);
 }
 
 // Cuando un doblete cubre 2 ausencias distintas, cada una corresponde a un
