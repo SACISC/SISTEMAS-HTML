@@ -786,6 +786,10 @@
             <span class="cat-count" id="count-trabajadores">0</span>
             <span class="cat-status" id="status-trabajadores"></span>
           </div>
+          <div class="field" style="max-width:340px;margin-bottom:10px;">
+            <label>🔎 Buscar en la tabla (ficha o nombre)</label>
+            <input type="text" id="buscarTrabajadorTabla" placeholder="Escribe para filtrar..." oninput="filtrarTablaTrabajadores(this.value)">
+          </div>
           <div class="cat-table-wrap">
             <table class="cat-table">
               <thead><tr><th>Ficha</th><th>Nombre</th><th>Régimen</th><th>Sociedad</th><th>Nivel</th><th>Salario</th><th>Jornada</th><th>Etiqueta</th><th></th></tr></thead>
@@ -2142,6 +2146,17 @@ async function eliminarFila(cat, idx) {
   renderTabla(cat);
 }
 
+// Filtra visualmente las filas de la tabla de Trabajadores por ficha o nombre,
+// sin tocar los datos reales -- solo esconde/muestra filas ya renderizadas.
+function filtrarTablaTrabajadores(texto) {
+  const filtro = texto.trim().toLowerCase();
+  const filas = document.querySelectorAll('#body-trabajadores tr');
+  filas.forEach(tr => {
+    const coincide = !filtro || tr.textContent.toLowerCase().includes(filtro);
+    tr.style.display = coincide ? '' : 'none';
+  });
+}
+
 function renderTabla(cat) {
   const tbody = document.getElementById('body-' + cat);
   const config = CAT_CONFIG[cat];
@@ -2162,6 +2177,10 @@ function renderTabla(cat) {
     return `<tr>${tds}<td class="row-del" onclick="eliminarFila('${cat}',${idx})">✕</td></tr>`;
   }).join('');
   document.getElementById('count-' + cat).textContent = CAT_DATA[cat].length;
+  if (cat === 'trabajadores') {
+    const buscador = document.getElementById('buscarTrabajadorTabla');
+    if (buscador && buscador.value) filtrarTablaTrabajadores(buscador.value);
+  }
 }
 
 function actualizarCelda(cat, fila, col, val) {
