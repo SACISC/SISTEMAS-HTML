@@ -2599,7 +2599,7 @@ function onFichaBuscarInput(texto) {
     const etq = t.etiqueta_puesto || 'BASE';
     const etqTxt = etq !== 'BASE' ? `<span class="fr-etq">${etq}</span>` : '';
     return `<div class="ficha-resultado-item" onclick="elegirDeBusquedaFicha('${t.ficha}','${etq}')">
-      <span><strong>${t.ficha}</strong> — <span class="fr-nombre">${t.nombre}</span> · $${t.salario ?? '—'}</span>
+      <span><strong>${t.ficha}</strong> — <span class="fr-nombre">${t.nombre}</span> · $${t.salario ?? '—'} · Nivel ${t.nivel ?? '—'} · Jornada ${t.jornada ?? '—'}</span>
       ${etqTxt}
     </div>`;
   }).join('');
