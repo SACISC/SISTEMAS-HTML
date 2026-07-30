@@ -1955,12 +1955,15 @@ function parsearPegado(cat) {
 
   if (cat === 'trabajadores') {
     // Caso especial: la ficha SOLA no basta para saber si es "la misma fila"
-    // porque un trabajador puede tener 2 salarios (base y ascendido). Aqui se
-    // empareja por FICHA + SALARIO -- si coincide, se actualiza; si la ficha
-    // ya existe pero con OTRO salario, se agrega como una fila nueva (una
-    // segunda version de ese trabajador), y luego se etiqueta automaticamente.
+    // porque un trabajador puede tener varias versiones: cambia el salario
+    // (ASCENDIDO) o cambia la jornada sin cambiar el salario (RECATEGORIZADO).
+    // Aqui se empareja por FICHA + SALARIO + JORNADA -- si los 3 coinciden, se
+    // actualiza la misma fila; si cualquiera de los 3 es distinto, se agrega
+    // como una fila nueva (una version adicional de ese trabajador), y luego
+    // se etiqueta automaticamente segun cual dato fue el que cambio.
     const idxFicha = config.cols.indexOf('ficha');
     const idxSalario = config.cols.indexOf('salario');
+    const idxJornada = config.cols.indexOf('jornada');
     const idxEtiqueta = config.cols.indexOf('etiqueta_puesto');
 
     filas.forEach(f => {
@@ -1969,11 +1972,13 @@ function parsearPegado(cat) {
         const filaLimpia = f.slice(0, config.cols.length);
         const fichaNorm = parseInt(String(filaLimpia[idxFicha]).trim(), 10);
         const salarioNorm = limpiarNumero(filaLimpia[idxSalario]);
+        const jornadaNorm = String(filaLimpia[idxJornada]).trim();
 
         const idxExistente = CAT_DATA[cat].findIndex(existing => {
           const efFicha = parseInt(String(existing[idxFicha]).trim(), 10);
           const efSalario = limpiarNumero(existing[idxSalario]);
-          return efFicha === fichaNorm && efSalario === salarioNorm;
+          const efJornada = String(existing[idxJornada]).trim();
+          return efFicha === fichaNorm && efSalario === salarioNorm && efJornada === jornadaNorm;
         });
 
         if (idxExistente >= 0) {
@@ -2039,6 +2044,7 @@ function autoEtiquetarTrabajadores() {
   const config = CAT_CONFIG.trabajadores;
   const idxFicha = config.cols.indexOf('ficha');
   const idxSalario = config.cols.indexOf('salario');
+  const idxJornada = config.cols.indexOf('jornada');
   const idxEtiqueta = config.cols.indexOf('etiqueta_puesto');
 
   const grupos = {};
@@ -2049,18 +2055,45 @@ function autoEtiquetarTrabajadores() {
   });
 
   Object.values(grupos).forEach(indices => {
-    if (indices.length < 2) return;
+    if (indices.length < 2) {
+      // Solo 1 version de esta ficha -- se queda BASE por default
+      if (indices.length === 1) CAT_DATA.trabajadores[indices[0]][idxEtiqueta] = CAT_DATA.trabajadores[indices[0]][idxEtiqueta] || 'BASE';
+      return;
+    }
+
+    // La fila "base" de referencia: la de menor salario (y si empatan, menor jornada)
     const ordenados = indices.slice().sort((a, b) => {
       const sa = limpiarNumero(CAT_DATA.trabajadores[a][idxSalario]) || 0;
       const sb = limpiarNumero(CAT_DATA.trabajadores[b][idxSalario]) || 0;
-      return sa - sb;
+      if (sa !== sb) return sa - sb;
+      const ja = parseFloat(CAT_DATA.trabajadores[a][idxJornada]) || 0;
+      const jb = parseFloat(CAT_DATA.trabajadores[b][idxJornada]) || 0;
+      return ja - jb;
     });
-    const salarios = ordenados.map(i => limpiarNumero(CAT_DATA.trabajadores[i][idxSalario]) || 0);
-    const distintos = new Set(salarios).size > 1;
-    if (!distintos) return;
+    const baseIdx = ordenados[0];
+    const salarioBase = limpiarNumero(CAT_DATA.trabajadores[baseIdx][idxSalario]) || 0;
+    const jornadaBase = String(CAT_DATA.trabajadores[baseIdx][idxJornada] ?? '').trim();
 
-    ordenados.forEach((i, pos) => {
-      CAT_DATA.trabajadores[i][idxEtiqueta] = pos === 0 ? 'BASE' : (pos === 1 ? 'ASCENDIDO' : `ASCENDIDO ${pos}`);
+    CAT_DATA.trabajadores[baseIdx][idxEtiqueta] = 'BASE';
+
+    let contAscendido = 0, contRecategorizado = 0;
+    ordenados.slice(1).forEach(i => {
+      const salarioFila = limpiarNumero(CAT_DATA.trabajadores[i][idxSalario]) || 0;
+      const jornadaFila = String(CAT_DATA.trabajadores[i][idxJornada] ?? '').trim();
+
+      if (salarioFila !== salarioBase) {
+        // Cambio de salario -- es un ascenso, sin importar si tambien cambio la jornada
+        contAscendido++;
+        CAT_DATA.trabajadores[i][idxEtiqueta] = contAscendido === 1 ? 'ASCENDIDO' : `ASCENDIDO ${contAscendido}`;
+      } else if (jornadaFila !== jornadaBase) {
+        // Mismo salario, pero cambio la jornada -- es una recategorizacion
+        contRecategorizado++;
+        CAT_DATA.trabajadores[i][idxEtiqueta] = contRecategorizado === 1 ? 'RECATEGORIZADO' : `RECATEGORIZADO ${contRecategorizado}`;
+      } else {
+        // No deberia pasar (mismo salario y jornada ya se habrian fusionado al pegar),
+        // pero por seguridad se deja como BASE para no perder el registro.
+        CAT_DATA.trabajadores[i][idxEtiqueta] = 'BASE';
+      }
     });
   });
 }
@@ -2412,7 +2445,7 @@ function irPaso(n) {
 // Regla de negocio: que tipo de pago admite cada tipo de sub-area
 const TIPOS_PAGO_PERMITIDOS = {
   vigilancia: ['DOBLETE'],
-  hospital: ['DOBLETE', 'INSALUBRE'],
+  hospital: ['DOBLETE', 'INSALUBRE', 'TIEMPO_EXTRA'],
   areas_verdes: ['TIEMPO_EXTRA', 'INSALUBRE'],
   combustion_interna: ['TIEMPO_EXTRA'],
 };
