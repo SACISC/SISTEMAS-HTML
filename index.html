@@ -460,140 +460,206 @@ function renderSaldoSobrante() {
   const sel = document.getElementById('ssSelectorPeriodo');
   const val = sel?.value || '';
   const [mesAntStr, mesActStr] = val.split('|');
-  const mesAnt = parseInt(mesAntStr) || (new Date().getMonth()); // fallback mes anterior
+  const mesAnt = parseInt(mesAntStr) || (new Date().getMonth());
   const mesAct = parseInt(mesActStr) || (new Date().getMonth() + 1);
 
   const fmt  = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
   const fmtM = n => '$'+Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
 
   const analisis = [];
-  let grandTotal = 0, grandFuga = 0;
+  let grandDif = 0, grandImporte = 0;
 
   _SS_EST_IDS.forEach(est => {
     ['MAGNA','DIESEL'].forEach(prod => {
-      const blkAnt  = PROGRAMACION_TANQUES[est]?.[mesAnt];
+      // ── Saldo final del tanque al cierre del mes anterior ─────────────
+      // = invInicial + entradas - consumo real del mes anterior
+      // Se usa INVENTARIO_TANQUES[est||prod].meses[mesAnt].invInicial como base
+      // más los surtimientos reales de Hoja5, menos el consumo real de RAW
+      const blkAnt = INVENTARIO_TANQUES[`${est}||${prod}`]?.meses?.[mesAnt];
+      if (!blkAnt) return;
 
-      // ── Surtido real: VALES_RETIRO (Hoja2) — Inicial + Ampliación, solo SURTIDO ──
-      // Más confiable que PROGRAMACION_TANQUES que puede no reflejar ampliaciones
-      const _vblkSS = VALES_RETIRO[est+'||'+prod]?.meses?.[mesAnt];
-      let _surtRealSS = 0;
-      if (_vblkSS?.vales?.length) {
-        _vblkSS.vales.forEach(v => {
-          if (!v.vol || v.vol<=0) return;
-          if (String(v.estatus||'').toUpperCase().trim()==='SURTIDO') _surtRealSS += v.vol;
-        });
-      }
-      const surtAnt = _surtRealSS>0 ? _surtRealSS : (blkAnt?.[prod+'_SURT'] || 0);
-
-      const realAnt = RAW.filter(r =>
+      const invIniMesAnt   = blkAnt.invInicial || 0;
+      const surtMesAnt     = (blkAnt.surtimientos||[]).reduce((s,x)=>s+x.vol,0);
+      const consumoRealAnt = RAW.filter(r =>
         String(r.estacion||'').trim() === est &&
         Number(r.mes) === mesAnt &&
         String(r.producto||'').toUpperCase().trim() === prod
       ).reduce((s,r) => s+(r.litros||0), 0);
 
-      const saldoSob = surtAnt - realAnt;
-      if (surtAnt === 0 && realAnt === 0) return;
+      // Saldo físico real al cierre del mes anterior (día 30/31)
+      const saldoCierre = invIniMesAnt + surtMesAnt - consumoRealAnt;
 
-      const blkActKey = `${est}||${prod}`;
-      const invActual = INVENTARIO_TANQUES[blkActKey]?.meses?.[mesAct]?.invInicial || 0;
+      // ── Existencia inicial declarada por el gasolinero al día 1 ───────
+      const blkSig   = INVENTARIO_TANQUES[`${est}||${prod}`]?.meses?.[mesAct];
+      const invIniSig = blkSig?.invInicial || 0;
 
-      const diferencia = saldoSob - invActual;
-      const hasFuga    = diferencia > 50;
+      // Omitir si no hay datos en ninguno de los dos meses
+      if (invIniMesAnt === 0 && consumoRealAnt === 0 && invIniSig === 0) return;
 
+      // ── Diferencia: lo que el gasolinero debería reportar vs lo que reportó ──
+      // Positivo = gasolinero se queda con litros (posible retención/fuga)
+      // Negativo = gasolinero reporta más de lo esperado (absorción de deuda)
+      const diferencia = saldoCierre - invIniSig;
+      const hasFuga    = diferencia > 50;    // gasolinero retiene litros
+      const hayAbsorc  = diferencia < -50;   // gasolinero reporta más
+
+      // Costo unitario promedio para calcular importe
       const cuRows = RAW.filter(r =>
         String(r.estacion||'').trim()===est && Number(r.mes)===mesAnt &&
         String(r.producto||'').toUpperCase().trim()===prod && (r.costoUnitario||0)>0
       );
-      const cuProm = cuRows.length ? cuRows.reduce((s,r)=>s+(r.costoUnitario||0),0)/cuRows.length : 0;
-      const importeFuga = hasFuga && cuProm > 0 ? diferencia * cuProm : 0;
+      const cuProm   = cuRows.length ? cuRows.reduce((s,r)=>s+(r.costoUnitario||0),0)/cuRows.length : 0;
+      const importeDif = hasFuga && cuProm > 0 ? diferencia * cuProm : 0;
 
-      grandTotal += Math.max(0, saldoSob);
-      grandFuga  += importeFuga;
+      if (hasFuga)    { grandDif += diferencia; grandImporte += importeDif; }
 
-      analisis.push({est, prod, surtAnt, realAnt, saldoSob,
-                     invActual, diferencia, hasFuga, cuProm, importeFuga});
+      analisis.push({ est, prod, invIniMesAnt, surtMesAnt, consumoRealAnt,
+                      saldoCierre, invIniSig, diferencia, hasFuga, hayAbsorc,
+                      cuProm, importeDif });
     });
   });
 
+  // ── Cards ─────────────────────────────────────────────────────────────
   const cards = analisis.map(a => {
-    const col  = a.hasFuga ? '#c0392b' : a.diferencia < -50 ? '#e67e22' : '#27ae60';
-    const icon = a.hasFuga ? '🚨' : a.diferencia < -50 ? '⚠️' : '✅';
+    const col  = a.hasFuga ? '#c0392b' : a.hayAbsorc ? '#e67e22' : '#27ae60';
+    const icon = a.hasFuga ? '🚨' : a.hayAbsorc ? '⚠️' : '✅';
     const msg  = a.hasFuga
-      ? `Posible fuga de ${fmt(a.diferencia)} L`
-      : a.diferencia < -50
-      ? `Existencia inicial mayor al sobrante (${fmt(Math.abs(a.diferencia))} L extra)`
+      ? `El gasolinero retiene ${fmt(a.diferencia)} L`
+      : a.hayAbsorc
+      ? `Absorción de deuda: ${fmt(Math.abs(a.diferencia))} L extra reportados`
       : 'Cuadre correcto';
+
     return `
     <div style="background:#fff;border:1.5px solid ${col}44;border-left:4px solid ${col};
       border-radius:12px;padding:16px 20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
         <div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:800;
-            color:${_SS_EST_COL[a.est]};">${_SS_EST_NOM[a.est]}</div>
+            color:${_SS_EST_COL[a.est]};letter-spacing:0.02em;">${_SS_EST_NOM[a.est]}</div>
           <span style="background:${a.prod==='MAGNA'?'#e8f5e9':'#e3f2fd'};
             color:${a.prod==='MAGNA'?'#2e7d32':'#1565c0'};border-radius:6px;
             padding:1px 8px;font-size:0.68rem;font-weight:700;">${a.prod}</span>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:1.2rem;">${icon}</div>
-          <div style="font-size:0.72rem;font-weight:700;color:${col};">${msg}</div>
+          <div style="font-size:1.3rem;">${icon}</div>
+          <div style="font-size:0.68rem;font-weight:700;color:${col};max-width:140px;
+            text-align:right;line-height:1.3;">${msg}</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-        <div style="background:#f8f8f8;border-radius:8px;padding:8px 10px;">
-          <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;">
-            Surtido ${_SS_MES_N[mesAnt]||''}
+
+      <!-- Fórmula visual: Inventario + Entradas - Consumo = Saldo cierre -->
+      <div style="background:#f8fbf9;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+        <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;
+          color:#888;margin-bottom:6px;font-weight:700;">
+          Balance ${_SS_MES_N[mesAnt]||'Mes ant.'} — Saldo al cierre
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;">Inv. inicial</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;
+              font-weight:800;color:#1e5b4f;">${fmt(a.invIniMesAnt)} L</div>
           </div>
-          <div style="font-size:0.88rem;font-weight:700;color:var(--green-dark);">${fmt(a.surtAnt)} L</div>
-        </div>
-        <div style="background:#f8f8f8;border-radius:8px;padding:8px 10px;">
-          <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;">Consumido</div>
-          <div style="font-size:0.88rem;font-weight:700;color:#555;">${fmt(a.realAnt)} L</div>
-        </div>
-        <div style="background:${a.saldoSob<0?'#fde8e8':'#e8f5e9'};border-radius:8px;padding:8px 10px;">
-          <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;">Saldo sobrante</div>
-          <div style="font-size:0.88rem;font-weight:800;color:${a.saldoSob<0?'#c0392b':'#27ae60'};">${fmt(a.saldoSob)} L</div>
-        </div>
-        <div style="background:${a.hasFuga?'#fde8e8':'#f8f8f8'};border-radius:8px;padding:8px 10px;">
-          <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;">
-            Exist. inicial ${_SS_MES_N[mesAct]||''} del proveedor
+          <span style="font-size:0.85rem;color:#aaa;font-weight:700;">+</span>
+          <div style="text-align:center;">
+            <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;">Entradas</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;
+              font-weight:800;color:#1565c0;">${fmt(a.surtMesAnt)} L</div>
           </div>
-          <div style="font-size:0.88rem;font-weight:800;color:${a.hasFuga?'#c0392b':'#555'};">${fmt(a.invActual)} L</div>
+          <span style="font-size:0.85rem;color:#aaa;font-weight:700;">−</span>
+          <div style="text-align:center;">
+            <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;">Consumo real</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;
+              font-weight:800;color:#555;">${fmt(a.consumoRealAnt)} L</div>
+          </div>
+          <span style="font-size:0.85rem;color:#aaa;font-weight:700;">=</span>
+          <div style="background:${a.saldoCierre<0?'#fde8e8':'#e8f5e9'};border-radius:6px;
+            padding:4px 10px;text-align:center;">
+            <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;">Saldo día 31</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;
+              font-weight:900;color:${a.saldoCierre<0?'#c0392b':'#27ae60'};">
+              ${fmt(a.saldoCierre)} L</div>
+          </div>
         </div>
       </div>
-      ${a.importeFuga > 0 ? `
+
+      <!-- Comparación: Saldo cierre vs Existencia inicial proveedor -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="background:#e8f5e9;border-radius:8px;padding:8px 10px;border-left:3px solid #27ae60;">
+          <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.06em;
+            color:#666;margin-bottom:3px;">Saldo físico día 31</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.0rem;
+            font-weight:900;color:#27ae60;">${fmt(a.saldoCierre)} L</div>
+          <div style="font-size:0.6rem;color:#888;margin-top:2px;">Lo que queda en tanque</div>
+        </div>
+        <div style="background:${a.invIniSig===0?'#fde8e8':'#f0f4ff'};border-radius:8px;
+          padding:8px 10px;border-left:3px solid ${a.invIniSig===0?'#c0392b':'#1565c0'};">
+          <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.06em;
+            color:#666;margin-bottom:3px;">Exist. inicial día 1 ${_SS_MES_N[mesAct]||''}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.0rem;
+            font-weight:900;color:${a.invIniSig===0?'#c0392b':'#1565c0'};">${fmt(a.invIniSig)} L</div>
+          <div style="font-size:0.6rem;color:#888;margin-top:2px;">Lo que reporta el gasolinero</div>
+        </div>
+        <div style="background:${a.hasFuga?'#fde8e8':a.hayAbsorc?'#fff3e0':'#f8f8f8'};
+          border-radius:8px;padding:8px 10px;border-left:3px solid ${col};">
+          <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.06em;
+            color:#666;margin-bottom:3px;">Diferencia</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.0rem;
+            font-weight:900;color:${col};">${a.diferencia>0?'+':''}${fmt(a.diferencia)} L</div>
+          <div style="font-size:0.6rem;color:${col};margin-top:2px;font-weight:600;">
+            ${a.hasFuga?'Retención gasolinero':a.hayAbsorc?'Absorción de deuda':'Cuadra'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Importe económico si hay fuga -->
+      ${a.importeDif > 0 ? `
       <div style="margin-top:10px;background:#fde8e8;border-radius:8px;padding:8px 12px;
         display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:0.72rem;font-weight:700;color:#c0392b;">💸 Importe estimado de fuga</span>
+        <span style="font-size:0.72rem;font-weight:700;color:#c0392b;">
+          💸 Importe retenido estimado (${fmt(a.diferencia)} L × $${a.cuProm.toFixed(2)}/L)
+        </span>
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;
-          color:#c0392b;">${fmtM(a.importeFuga)}</span>
+          color:#c0392b;">${fmtM(a.importeDif)}</span>
       </div>` : ''}
     </div>`;
   }).join('');
 
   const nFugas = analisis.filter(a => a.hasFuga).length;
+  const nAbsorc = analisis.filter(a => a.hayAbsorc).length;
+
   document.getElementById('saldoSobranteBody').innerHTML = `
     <!-- Resumen global -->
     <div style="background:linear-gradient(135deg,#002f2a,#1e5b4f);border-radius:14px;
       padding:18px 24px;margin-bottom:20px;color:#fff;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;font-weight:700;
-        text-transform:uppercase;letter-spacing:0.12em;opacity:0.65;margin-bottom:8px;">
-        ANÁLISIS: CIERRE ${(_SS_MES_N[mesAnt]||'MES ANTERIOR').toUpperCase()} → APERTURA ${(_SS_MES_N[mesAct]||'MES ACTUAL').toUpperCase()}
+        text-transform:uppercase;letter-spacing:0.12em;opacity:0.65;margin-bottom:10px;">
+        ANÁLISIS SALDO TANQUE: CIERRE ${(_SS_MES_N[mesAnt]||'MES ANT.').toUpperCase()} → APERTURA ${(_SS_MES_N[mesAct]||'MES ACT.').toUpperCase()}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
         <div>
-          <div style="font-size:0.62rem;opacity:0.65;text-transform:uppercase;letter-spacing:0.08em;">SALDO SOBRANTE TOTAL</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:#a8e6cf;">${fmt(grandTotal)} L</div>
+          <div style="font-size:0.6rem;opacity:0.65;text-transform:uppercase;letter-spacing:0.08em;">
+            Estaciones analizadas</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;
+            color:#a8e6cf;">${analisis.length}</div>
         </div>
         <div>
-          <div style="font-size:0.62rem;opacity:0.65;text-transform:uppercase;letter-spacing:0.08em;">ESTACIONES CON ALERTA</div>
+          <div style="font-size:0.6rem;opacity:0.65;text-transform:uppercase;letter-spacing:0.08em;">
+            Con retención gasolinero</div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;
-            color:${nFugas > 0 ? '#ff8a80' : '#a8e6cf'};">${nFugas}</div>
+            color:${nFugas>0?'#ff8a80':'#a8e6cf'};">${nFugas}</div>
         </div>
         <div>
-          <div style="font-size:0.62rem;opacity:0.65;text-transform:uppercase;letter-spacing:0.08em;">IMPORTE EN RIESGO</div>
+          <div style="font-size:0.6rem;opacity:0.65;text-transform:uppercase;letter-spacing:0.08em;">
+            Con absorción de deuda</div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;
-            color:${grandFuga > 0 ? '#ff8a80' : '#a8e6cf'};">${fmtM(grandFuga)}</div>
+            color:${nAbsorc>0?'#ffd180':'#a8e6cf'};">${nAbsorc}</div>
+        </div>
+        <div>
+          <div style="font-size:0.6rem;opacity:0.65;text-transform:uppercase;letter-spacing:0.08em;">
+            Importe retenido estimado</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;
+            color:${grandImporte>0?'#ff8a80':'#a8e6cf'};">${fmtM(grandImporte)}</div>
         </div>
       </div>
     </div>
@@ -604,13 +670,14 @@ function renderSaldoSobrante() {
             Sin datos para este periodo
           </div>
           <div style="font-size:0.78rem;margin-top:4px;">
-            Verifique que el Excel incluya la Hoja4 (Programación) con datos del mes seleccionado.
+            Verifique que el Excel incluya la Hoja5 (Inventarios) con datos del mes seleccionado.
           </div>
         </div>`
       : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">${cards}</div>`
     }
   `;
 }
+
 
 
 
