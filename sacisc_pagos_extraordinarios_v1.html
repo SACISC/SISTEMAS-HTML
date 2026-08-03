@@ -826,6 +826,7 @@
             Regla de negocio precargada conforme a tu especificación. Solo aplica a subáreas de <strong>Vigilancia</strong> y <strong>Hospital</strong>. Editable si cambia alguna regla.
           </p>
           <div class="cat-toolbar">
+            <button class="btn-secondary" onclick="agregarFilaVacia('horarios')">+ Fila manual</button>
             <button class="btn-primary" onclick="guardarCatalogo('horarios')">💾 Guardar</button>
             <button class="btn-clear btn-solo-admin" onclick="vaciarCatalogoSupabase('horarios')">🗑️ Vaciar catálogo</button>
             <span class="cat-count" id="count-horarios">0</span>
