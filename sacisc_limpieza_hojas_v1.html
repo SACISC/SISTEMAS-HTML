@@ -63,6 +63,39 @@
   .zona-item .zi-tag{font-size:0.68rem;background:#eaf6f1;color:var(--green-mid);padding:3px 10px;border-radius:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;}
   .zona-item .zi-tag.soon{background:#f2f2f2;color:#999;}
 
+  /* Mapa regional interactivo (pantalla de Zona) */
+  .mapa-municipio{cursor:pointer;transform-box:fill-box;transform-origin:center;transition:transform .18s ease;}
+  .mapa-municipio:hover{transform:scale(1.13);}
+  .mapa-municipio:hover .mm-halo{opacity:0.38;}
+  .mapa-municipio:hover .mm-label{fill:#11CD78;}
+  .mapa-hub{pointer-events:none;}
+  .mm-halo{transition:opacity .18s ease;}
+  .mm-halo-pulse{animation:mapaPulso 2.6s ease-in-out infinite;}
+  @keyframes mapaPulso{
+    0%,100%{opacity:0.20;}
+    50%{opacity:0.42;}
+  }
+
+  /* Tooltip profesional del mapa (área + subáreas) */
+  .mapa-tooltip{
+    position:fixed;pointer-events:none;z-index:99999;
+    background:linear-gradient(150deg,#0d2b22,#1e5b4f 65%,#1e5b4f);
+    color:#fff;border-radius:12px;padding:14px 18px;min-width:190px;max-width:260px;
+    box-shadow:0 16px 36px rgba(0,0,0,0.38), 0 0 0 1px rgba(17,205,120,0.15);
+    opacity:0;transform:translateY(4px) scale(0.97);
+    transition:opacity .14s ease, transform .14s ease;
+  }
+  .mapa-tooltip.visible{opacity:1;transform:translateY(0) scale(1);}
+  .mtt-clave{
+    font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;font-weight:800;
+    letter-spacing:0.04em;color:#11CD78;margin-bottom:2px;
+  }
+  .mtt-nombre{font-size:0.68rem;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,0.12);}
+  .mtt-sub-label{font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;}
+  .mtt-sub{font-size:0.8rem;color:rgba(255,255,255,0.92);line-height:1.55;padding-left:14px;position:relative;}
+  .mtt-sub::before{content:'';position:absolute;left:0;top:0.55em;width:5px;height:5px;border-radius:50%;background:#11CD78;}
+  .mtt-cta{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12);font-size:0.66rem;color:rgba(17,205,120,0.85);font-weight:700;letter-spacing:0.04em;text-transform:uppercase;}
+
   .field{margin-bottom:16px;}
   .field label{display:block;font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;color:var(--green-dark);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;}
   .field input, .field select{width:100%;padding:11px 14px;border:1.5px solid #dde5e2;border-radius:8px;font-family:'Barlow',sans-serif;font-size:0.95rem;}
@@ -454,7 +487,10 @@
         <div class="err-msg" id="invErrMsg" style="margin-top:10px;"></div>
         <div class="btn-row">
           <span class="breadcrumb-mini">Al guardar, la cantidad inicial <strong>sobrescribe</strong> el stock actual de esta área/sección.</span>
-          <button class="btn-primary" onclick="guardarInventarioInicial()">Guardar Inventario Inicial</button>
+          <div style="display:flex;gap:14px;align-items:center;">
+            <span class="breadcrumb-mini" id="invEdicionCancelWrap" style="display:none;cursor:pointer;text-decoration:underline;" onclick="cancelarEdicionInvInicial()">&larr; Cancelar edición</span>
+            <button class="btn-primary" id="btnGuardarInvInicial" onclick="guardarInventarioInicial()">Guardar Inventario Inicial</button>
+          </div>
         </div>
       </div>
 
@@ -499,6 +535,7 @@
                 <th style="padding:9px 12px;text-align:left;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;letter-spacing:0.05em;text-transform:uppercase;">Área</th>
                 <th style="padding:9px 12px;text-align:left;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;letter-spacing:0.05em;text-transform:uppercase;">Sección</th>
                 <th style="padding:9px 12px;text-align:left;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;letter-spacing:0.05em;text-transform:uppercase;">Partidas</th>
+                <th style="padding:9px 12px;text-align:left;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;letter-spacing:0.05em;text-transform:uppercase;">Acción</th>
               </tr>
             </thead>
             <tbody id="invHistorialTbody"></tbody>
@@ -1609,17 +1646,170 @@
   </div>
 </div>
 
-<!-- ══════ MODAL 2: SUPERINTENDENCIA / ZONA ══════ -->
+<!-- ══════ MODAL 2: SUPERINTENDENCIA / ZONA (mapa regional interactivo) ══════ -->
 <div class="access-modal" id="modalZona">
-  <div class="access-card">
+  <div class="access-card" style="max-width:1080px;">
     <div class="ac-header">
       <h2>Superintendencia</h2>
-      <p>Paso 2 de 3 — <span id="zonaSubmoduloLabel"></span></p>
+      <p>Paso 2 de 3 — <span id="zonaSubmoduloLabel"></span> · Pasa el mouse para ver el área, da clic para entrar</p>
     </div>
-    <div class="ac-body">
-      <div class="zona-list" id="zonaList"></div>
+    <div class="ac-body" style="position:relative;">
+      <svg viewBox="0 0 800 460" style="width:100%;height:auto;display:block;background:linear-gradient(180deg,#eaf3ef,#dbe9e2);border-radius:14px;">
+        <defs>
+          <linearGradient id="mapaMar" x1="0" y1="0" x2="0.3" y2="1">
+            <stop offset="0%" stop-color="#8fd3e8"/>
+            <stop offset="100%" stop-color="#2f6fb3"/>
+          </linearGradient>
+          <!-- Ícono de fábrica reutilizable: base + 3 chimeneas con humo + ventanas -->
+          <symbol id="icono-fabrica" viewBox="0 0 24 20">
+            <ellipse cx="6" cy="3" rx="2.1" ry="1.6" fill="#b7c4bf" opacity="0.65"/>
+            <ellipse cx="12" cy="1.6" rx="2.3" ry="1.7" fill="#b7c4bf" opacity="0.65"/>
+            <ellipse cx="18" cy="3.4" rx="1.9" ry="1.5" fill="#b7c4bf" opacity="0.65"/>
+            <rect x="4.4" y="4" width="3.2" height="8" rx="0.4" fill="#33443e"/>
+            <rect x="10.4" y="2.4" width="3.2" height="9.6" rx="0.4" fill="#33443e"/>
+            <rect x="16.4" y="5.4" width="3.2" height="6.6" rx="0.4" fill="#33443e"/>
+            <rect x="1.5" y="11.5" width="21" height="7.2" rx="1" fill="#1e5b4f"/>
+            <rect x="4" y="14" width="2.6" height="2.6" fill="#eaf6f1" opacity="0.75"/>
+            <rect x="8.4" y="14" width="2.6" height="2.6" fill="#eaf6f1" opacity="0.75"/>
+            <rect x="12.8" y="14" width="2.6" height="2.6" fill="#eaf6f1" opacity="0.75"/>
+            <rect x="17.2" y="14" width="2.6" height="2.6" fill="#eaf6f1" opacity="0.75"/>
+          </symbol>
+
+          <!-- Ícono de Terminal Portuaria (grúa + muelle): distinto del de fábrica,
+               ya que TASPP no es un complejo petroquímico. -->
+          <symbol id="icono-terminal" viewBox="0 0 24 20">
+            <path d="M2,15 Q6,11 11,11 Q16,11 20,15" fill="none" stroke="#8fd3e8" stroke-width="1.4" opacity="0.85"/>
+            <rect x="1" y="15" width="22" height="3.4" rx="0.6" fill="#1e5b4f"/>
+            <rect x="3" y="18" width="1.8" height="2" fill="#33443e"/>
+            <rect x="19" y="18" width="1.8" height="2" fill="#33443e"/>
+            <rect x="11" y="4" width="1.6" height="11" fill="#33443e"/>
+            <path d="M11.8,4 L20,4" stroke="#33443e" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M11.8,7.2 L16.6,7.2" stroke="#33443e" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M20,4 L20,8.6" stroke="#c9922a" stroke-width="1.1"/>
+            <rect x="18.7" y="8.6" width="2.6" height="1.8" rx="0.3" fill="#c9922a"/>
+            <rect x="6" y="12.4" width="3.4" height="2.6" rx="0.3" fill="#5b6b66"/>
+          </symbol>
+        </defs>
+
+        <!-- Golfo de México: franja costera casi horizontal (Coatzacoalcos y Agua Dulce
+             comparten la misma costa, ambas al norte del mapa) -->
+        <path d="M 0,0 L 800,0 L 800,175 C 730,168 660,158 590,148 C 500,135 450,128 400,132 C 340,122 260,95 160,68 L 0,48 Z"
+              fill="url(#mapaMar)" opacity="0.92"/>
+        <text x="470" y="35" fill="#fff" font-family="'Barlow Condensed',sans-serif" font-size="15" font-weight="700" letter-spacing="1.5" text-anchor="middle" opacity="0.9">GOLFO DE MÉXICO</text>
+
+        <!-- Río Coatzacoalcos, desemboca junto a la ciudad de Coatzacoalcos -->
+        <path d="M 175,440 Q 200,380 208,320 Q 214,240 216,160 Q 216,130 217,101" fill="none" stroke="#7fb8d9" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
+        <text x="185" y="420" fill="#4a8cae" font-family="'Barlow',sans-serif" font-size="10" font-style="italic" opacity="0.8">Río Coatzacoalcos</text>
+
+        <!-- Minatitlán: referencia geográfica (no es opción de acceso) -->
+        <circle cx="100" cy="325" r="5" fill="#96a29d"/>
+        <text x="110" y="329" fill="#7a8a84" font-family="'Barlow',sans-serif" font-size="10" font-style="italic">Minatitlán</text>
+
+        <!-- Carreteras -->
+        <path d="M 217,101 Q 430,140 639,195" stroke="#a9b8b0" stroke-width="3" stroke-dasharray="6 6" fill="none"/>
+        <path d="M 217,101 Q 400,235 445,339" stroke="#a9b8b0" stroke-width="3" stroke-dasharray="6 6" fill="none"/>
+        <path d="M 445,339 Q 590,350 723,366" stroke="#a9b8b0" stroke-width="3" stroke-dasharray="6 6" fill="none"/>
+        <path d="M 639,195 Q 700,280 723,366" stroke="#a9b8b0" stroke-width="3" stroke-dasharray="6 6" fill="none" opacity="0.8"/>
+
+        <text x="30" y="42" fill="#1e5b4f" font-family="'Barlow Condensed',sans-serif" font-size="23" font-weight="800" letter-spacing="1">SUR DE VERACRUZ</text>
+        <text x="30" y="62" fill="#5b6b66" font-family="'Barlow',sans-serif" font-size="12">Zona Coatzacoalcos — selecciona tu municipio</text>
+        <text x="775" y="290" fill="#5b6b66" font-family="'Barlow Condensed',sans-serif" font-size="11" font-weight="700" text-anchor="end" opacity="0.75">→ TABASCO</text>
+
+        <g transform="translate(745,405)" opacity="0.5">
+          <circle r="22" fill="none" stroke="#1e5b4f" stroke-width="1.5"/>
+          <path d="M0,-17 L5,0 L0,17 L-5,0 Z" fill="#1e5b4f"/>
+          <text y="-27" text-anchor="middle" font-size="10" fill="#1e5b4f" font-weight="700" font-family="'Barlow',sans-serif">N</text>
+        </g>
+
+        <!-- CUICHAPA → SCCUI (al sur de Coatzacoalcos, interior) -->
+        <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCUI')"
+           onmouseenter="mostrarTooltipMapa(event,'SCCUI')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
+          <circle class="mm-halo" cx="445" cy="339" r="23" fill="#2d9e7e" opacity="0.18"/>
+          <circle cx="445" cy="339" r="9" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
+          <use href="#icono-fabrica" x="424" y="358" width="20" height="17"/>
+          <text x="445" y="388" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="13" font-weight="700" fill="#1e5b4f">CUICHAPA</text>
+        </g>
+
+        <!-- LAS CHOAPAS → SCEP (al sureste, casi en el límite con Tabasco) -->
+        <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCEP')"
+           onmouseenter="mostrarTooltipMapa(event,'SCEP')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
+          <circle class="mm-halo" cx="723" cy="366" r="28" fill="#2d9e7e" opacity="0.18"/>
+          <circle cx="723" cy="366" r="11" fill="#1e5b4f" stroke="#fff" stroke-width="2.5"/>
+          <use href="#icono-fabrica" x="700" y="387" width="22" height="19"/>
+          <text x="723" y="417" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="15" font-weight="700" fill="#1e5b4f">LAS CHOAPAS</text>
+        </g>
+
+        <!-- AGUA DULCE → SCAD (al este de Coatzacoalcos, en tierra, costa cercana a Tabasco) -->
+        <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCAD')"
+           onmouseenter="mostrarTooltipMapa(event,'SCAD')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
+          <circle class="mm-halo" cx="639" cy="195" r="28" fill="#2d9e7e" opacity="0.18"/>
+          <circle cx="639" cy="195" r="11" fill="#1e5b4f" stroke="#fff" stroke-width="2.5"/>
+          <use href="#icono-fabrica" x="616" y="216" width="22" height="19"/>
+          <text x="639" y="179" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="15" font-weight="700" fill="#1e5b4f">AGUA DULCE</text>
+        </g>
+
+        <!-- COATZACOALCOS: hub visual/orientación — ya NO es una clave de acceso propia,
+             se disolvió en 4 áreas independientes (ver abajo). Sin clic ni tooltip de login. -->
+        <g class="mapa-hub">
+          <circle class="mm-halo mm-halo-pulse" cx="217" cy="101" r="34" fill="#2d9e7e" opacity="0.2"/>
+          <circle cx="217" cy="101" r="14" fill="#0d2b22" stroke="#11CD78" stroke-width="3"/>
+          <text x="217" y="76" text-anchor="middle" font-family="'Barlow Condensed',sans-serif" font-size="17" font-weight="800" fill="#0d2b22">COATZACOALCOS</text>
+        </g>
+
+        <!-- SCCO-CANGREJERA (complejo petroquímico, vecino inmediato de Coatzacoalcos) -->
+        <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCO-CANGREJERA')"
+           onmouseenter="mostrarTooltipMapa(event,'SCCO-CANGREJERA')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
+          <circle class="mm-halo" cx="392" cy="144" r="22" fill="#2d9e7e" opacity="0.18"/>
+          <circle cx="392" cy="144" r="8" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
+          <use href="#icono-fabrica" x="373" y="161" width="20" height="17"/>
+          <text x="392" y="190" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="12" font-weight="700" fill="#1e5b4f">CANGREJERA</text>
+        </g>
+
+        <!-- SCCO-PAJARITOS (complejo petroquímico, vecino inmediato de Coatzacoalcos) -->
+        <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCO-PAJARITOS')"
+           onmouseenter="mostrarTooltipMapa(event,'SCCO-PAJARITOS')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
+          <circle class="mm-halo" cx="351" cy="136" r="22" fill="#2d9e7e" opacity="0.18"/>
+          <circle cx="351" cy="136" r="8" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
+          <use href="#icono-fabrica" x="332" y="153" width="20" height="17"/>
+          <text x="351" y="182" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="12" font-weight="700" fill="#1e5b4f">PAJARITOS</text>
+        </g>
+
+        <!-- SCCO-MORELOS (complejo petroquímico, vecino inmediato de Coatzacoalcos) -->
+        <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCO-MORELOS')"
+           onmouseenter="mostrarTooltipMapa(event,'SCCO-MORELOS')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
+          <circle class="mm-halo" cx="311" cy="128" r="22" fill="#2d9e7e" opacity="0.18"/>
+          <circle cx="311" cy="128" r="8" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
+          <use href="#icono-fabrica" x="292" y="145" width="20" height="17"/>
+          <text x="311" y="174" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="12" font-weight="700" fill="#1e5b4f">MORELOS</text>
+        </g>
+
+        <!-- SCCO-TASPP: Terminal Portuaria (NO es complejo petroquímico), vecina inmediata
+             de Coatzacoalcos, recibe barcos — ícono distinto -->
+        <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCO-TASPP')"
+           onmouseenter="mostrarTooltipMapa(event,'SCCO-TASPP')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
+          <circle class="mm-halo" cx="271" cy="120" r="22" fill="#2f6fb3" opacity="0.18"/>
+          <circle cx="271" cy="120" r="8" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
+          <use href="#icono-terminal" x="252" y="137" width="20" height="17"/>
+          <text x="271" y="166" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="12" font-weight="700" fill="#1e5b4f">TASPP</text>
+        </g>
+
+        <!-- SEDE (dentro de la ciudad de Coatzacoalcos, no en la costa industrial) -->
+        <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SEDE')"
+           onmouseenter="mostrarTooltipMapa(event,'SEDE')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
+          <circle cx="155" cy="140" r="17" fill="#fff8e6" stroke="#c9922a" stroke-width="2"/>
+          <path d="M149,144 L149,136 L155,131 L161,136 L161,144 Z" fill="#c9922a"/>
+          <rect x="153" y="139" width="4" height="5" fill="#fff8e6"/>
+          <text x="155" y="166" text-anchor="middle" font-family="'Barlow',sans-serif" font-size="9" fill="#8a6a1f" font-weight="700">SEDE</text>
+        </g>
+      </svg>
+
+      <div id="mapaTooltip" class="mapa-tooltip"></div>
+
+      <p style="text-align:center;font-size:0.76rem;color:#96a29d;margin:10px 0 0;">Mapa esquemático calcado sobre la posición real de cada municipio (Norte arriba). No es un mapa cartográfico a escala. Otras zonas — Salina Cruz-Minatitlán, Veracruz, Poza Rica — próximamente.</p>
+
       <div class="btn-row">
         <span class="breadcrumb-mini" onclick="volverASubmodulo()" style="cursor:pointer;text-decoration:underline;">&larr; Cambiar submódulo</span>
+        <span class="breadcrumb-mini" onclick="elegirAreaDesdeMapa('TODOS')" style="cursor:pointer;text-decoration:underline;">Acceso maestro (TODOS) &rarr;</span>
       </div>
     </div>
   </div>
@@ -2155,13 +2345,28 @@ const AREAS_COATZACOALCOS_RESPALDO = {
       { nombre: 'Consultorio', instalaciones: ['Consultorio'] },
     ]
   },
-  SCCO: {
-    password: '6667',
+  'SCCO-CANGREJERA': {
+    password: '66671',
     subareas: [
-      { nombre: 'Cangrejera', instalaciones: ['Cangrejera'] },
-      { nombre: 'Pajaritos', instalaciones: ['Pajaritos'] },
-      { nombre: 'Morelos', instalaciones: ['Morelos'] },
-      { nombre: 'TASPP', instalaciones: ['TASPP'] },
+      { nombre: 'Servicios Corporativos Cangrejera', instalaciones: ['Servicios Corporativos Cangrejera'] },
+    ]
+  },
+  'SCCO-PAJARITOS': {
+    password: '66672',
+    subareas: [
+      { nombre: 'Servicios Corporativos Pajaritos', instalaciones: ['Servicios Corporativos Pajaritos'] },
+    ]
+  },
+  'SCCO-MORELOS': {
+    password: '66673',
+    subareas: [
+      { nombre: 'Servicios Corporativos Morelos', instalaciones: ['Servicios Corporativos Morelos'] },
+    ]
+  },
+  'SCCO-TASPP': {
+    password: '66674',
+    subareas: [
+      { nombre: 'Servicios Corporativos TASPP', instalaciones: ['Servicios Corporativos TASPP'] },
     ]
   },
   TODOS: { password: '1111', esMaestra: true },
@@ -2542,17 +2747,19 @@ const HISTORICO_SCAD_REGISTROS = [["2026-03-30", 90, "PZA", 13, 7, 211], ["2026-
 // ═══════════════════════════════════════════════════════════
 //  FLUJO DE ACCESO
 // ═══════════════════════════════════════════════════════════
-function elegirSubmodulo(tipo) {
+async function elegirSubmodulo(tipo) {
   ESTADO.submodulo = tipo;
   document.getElementById('modalSubmodulo').classList.remove('active');
   const label = tipo === 'limpieza' ? 'Artículos de Limpieza' : 'Hojas Blancas';
   document.getElementById('zonaSubmoduloLabel').textContent = label;
   renderZonas();
+  await areasListasPromise; // el mapa necesita el catálogo listo para sus tooltips
   document.getElementById('modalZona').classList.add('active');
 }
 
 function renderZonas() {
   const cont = document.getElementById('zonaList');
+  if (!cont) return; // el mapa interactivo reemplazó la lista de zonas
   cont.innerHTML = ZONAS.map(z => `
     <div class="zona-item ${z.activa ? 'active-zone' : 'disabled-zone'}"
          onclick="${z.activa ? `elegirZona('${z.id}')` : ''}">
@@ -2573,6 +2780,64 @@ async function elegirZona(zonaId) {
   await areasListasPromise;
   renderSelectClaveArea();
   document.getElementById('modalArea').classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MAPA INTERACTIVO — tooltip de área/subáreas y acceso directo
+// ═══════════════════════════════════════════════════════════
+function mostrarTooltipMapa(evt, claveArea) {
+  const tip = document.getElementById('mapaTooltip');
+  const area = AREAS_COATZACOALCOS[claveArea];
+  if (!tip || !area) return;
+
+  const subareas = area.subareas || [];
+  const subsHtml = subareas.length
+    ? subareas.map(s => `<div class="mtt-sub">${s.nombre}</div>`).join('')
+    : `<div class="mtt-sub" style="opacity:.55;">Sin subáreas registradas</div>`;
+
+  tip.innerHTML = `
+    <div class="mtt-clave">${claveArea}</div>
+    <div class="mtt-nombre">${area.esMaestra ? 'Acceso maestro' : 'Área operativa'}</div>
+    <div class="mtt-sub-label">Subáreas</div>
+    ${subsHtml}
+    <div class="mtt-cta">Clic para iniciar sesión →</div>
+  `;
+  tip.classList.add('visible');
+  moverTooltipMapa(evt);
+}
+
+function moverTooltipMapa(evt) {
+  const tip = document.getElementById('mapaTooltip');
+  if (!tip) return;
+  const offset = 18;
+  let left = evt.clientX + offset;
+  let top = evt.clientY + offset;
+  const maxLeft = window.innerWidth - tip.offsetWidth - 12;
+  const maxTop = window.innerHeight - tip.offsetHeight - 12;
+  if (left > maxLeft) left = evt.clientX - tip.offsetWidth - offset;
+  if (top > maxTop) top = evt.clientY - tip.offsetHeight - offset;
+  tip.style.left = Math.max(8, left) + 'px';
+  tip.style.top = Math.max(8, top) + 'px';
+}
+
+function ocultarTooltipMapa() {
+  const tip = document.getElementById('mapaTooltip');
+  if (tip) tip.classList.remove('visible');
+}
+
+// Lleva directo a la pantalla de contraseña con el área ya seleccionada — atajo
+// rápido desde el mapa, sin tener que buscarla en la lista desplegable.
+async function elegirAreaDesdeMapa(claveArea) {
+  ESTADO.zona = 'coatzacoalcos';
+  ocultarTooltipMapa();
+  document.getElementById('modalZona').classList.remove('active');
+  await areasListasPromise;
+  renderSelectClaveArea();
+  document.getElementById('inputClaveArea').value = claveArea;
+  document.getElementById('inputPassArea').value = '';
+  document.getElementById('areaErrMsg').style.display = 'none';
+  document.getElementById('modalArea').classList.add('active');
+  document.getElementById('inputPassArea').focus();
 }
 
 function renderSelectClaveArea() {
@@ -4161,6 +4426,7 @@ function inicializarInventarioInicial() {
   }
   document.getElementById('wrapInvSeccion').style.display = (ESTADO.submodulo === 'limpieza') ? 'block' : 'none';
   document.getElementById('invTablaWrap').style.display = 'none';
+  cancelarEdicionInvInicial();
   document.getElementById('btnAgregarFilaInvHojas').classList.toggle('hidden', ESTADO.submodulo === 'limpieza');
   document.getElementById('invUmbralInput').value = UMBRAL_STOCK_BAJO;
   renderAlertasStockBajo();
@@ -4264,7 +4530,6 @@ function guardarInventarioInicial() {
   const areaClave = document.getElementById('invAreaSel').value;
   if (!areaClave) { errEl.textContent = 'Selecciona un área.'; errEl.style.display = 'block'; return; }
   const seccion = ESTADO.submodulo === 'limpieza' ? document.getElementById('invSeccionSel').value : 'HOJAS BLANCAS';
-  const abrev = seccionAbrev();
 
   const partidas = [];
   if (ESTADO.submodulo === 'limpieza') {
@@ -4289,6 +4554,30 @@ function guardarInventarioInicial() {
     return;
   }
 
+  if (folioInvInicialEnEdicion) {
+    const f = INV_INICIAL_FOLIOS.find(x => x.folio === folioInvInicialEnEdicion);
+    if (!f) { cancelarEdicionInvInicial(); return; }
+
+    partidas.forEach(p => {
+      const original = f.partidas.find(op => String(op.partida) === String(p.partida));
+      const cantidadOriginal = original ? Number(original.cantidad) : 0;
+      const delta = p.cantidad - cantidadOriginal;
+      if (delta !== 0) {
+        setStock(f.areaClave, f.seccion, p.partida, getStock(f.areaClave, f.seccion, p.partida) + delta);
+      }
+    });
+
+    f.partidas = partidas;
+    persistirInvInicialFolios();
+
+    alert(`Folio ${f.folio} actualizado.`);
+    cancelarEdicionInvInicial();
+    renderHistorialInvInicial();
+    refrescarStocksTodasLasFilas();
+    return;
+  }
+
+  const abrev = seccionAbrev();
   const folio = siguienteFolioInvInicial(areaClave, abrev);
   partidas.forEach(p => setStock(areaClave, seccion, p.partida, p.cantidad));
 
@@ -4300,6 +4589,63 @@ function guardarInventarioInicial() {
   refrescarStocksTodasLasFilas();
   document.getElementById('invTablaWrap').style.display = 'none';
 }
+
+let folioInvInicialEnEdicion = null;
+
+function abrirEdicionInvInicial(folio) {
+  if (!esMaestro()) {
+    alert('Solo el acceso maestro (TODOS/SEDE) puede editar un folio de Inventario Inicial.');
+    return;
+  }
+  const f = INV_INICIAL_FOLIOS.find(x => x.folio === folio);
+  if (!f) return;
+
+  folioInvInicialEnEdicion = folio;
+  document.getElementById('invAreaSel').value = f.areaClave;
+  if (ESTADO.submodulo === 'limpieza') document.getElementById('invSeccionSel').value = f.seccion;
+
+  const tbody = document.getElementById('invTablaBody');
+  document.getElementById('invTablaTitulo').textContent =
+    `Editando ${f.folio} — Área: ${f.areaClave}${ESTADO.submodulo === 'limpieza' ? ' · ' + f.seccion : ''}`;
+
+  if (ESTADO.submodulo === 'limpieza') {
+    tbody.innerHTML = f.partidas.map(p => {
+      const actual = getStock(f.areaClave, f.seccion, p.partida);
+      return `
+        <tr style="border-bottom:1px solid #eef2f1;">
+          <td style="padding:6px;font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--green-mid);">${p.partida}</td>
+          <td style="padding:6px;font-size:0.85rem;">${p.articulo}</td>
+          <td style="padding:6px;font-size:0.8rem;color:var(--gray);">${p.um}</td>
+          <td style="padding:6px;font-size:0.85rem;color:var(--gray);">${actual}</td>
+          <td style="padding:6px;"><input type="number" min="0" class="invCantInicial" data-partida="${p.partida}" data-um="${p.um}" data-articulo="${p.articulo.replace(/"/g, '&quot;')}" value="${p.cantidad}" style="width:100%;padding:7px;border:1.5px solid #dde5e2;border-radius:6px;"></td>
+          <td></td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    tbody.innerHTML = '';
+    filaInvHojasSeq = 0;
+    f.partidas.forEach(p => {
+      agregarFilaInvInicialHojas();
+      const id = filaInvHojasSeq;
+      document.getElementById(`invHojasArt_${id}`).value = p.articulo;
+      document.getElementById(`invHojasUM_${id}`).value = p.um;
+      document.getElementById(`invHojasCant_${id}`).value = p.cantidad;
+    });
+  }
+
+  document.getElementById('invTablaWrap').style.display = 'block';
+  document.getElementById('btnGuardarInvInicial').textContent = '✏️ Guardar cambios';
+  document.getElementById('invEdicionCancelWrap').style.display = 'inline';
+}
+
+function cancelarEdicionInvInicial() {
+  folioInvInicialEnEdicion = null;
+  document.getElementById('invTablaWrap').style.display = 'none';
+  document.getElementById('btnGuardarInvInicial').textContent = 'Guardar Inventario Inicial';
+  document.getElementById('invEdicionCancelWrap').style.display = 'none';
+}
+
 
 function renderHistorialInvInicial() {
   const tbody = document.getElementById('invHistorialTbody');
@@ -4318,8 +4664,33 @@ function renderHistorialInvInicial() {
       <td style="padding:8px 12px;font-size:0.85rem;">${f.areaClave}</td>
       <td style="padding:8px 12px;font-size:0.85rem;">${f.seccion}</td>
       <td style="padding:8px 12px;font-size:0.85rem;">${f.partidas.length}</td>
+      <td style="padding:8px 12px;"><button class="t-action-btn" title="Editar folio" onclick="abrirEdicionInvInicial('${f.folio}')">✏️</button> <button class="t-action-btn" title="Eliminar folio" onclick="eliminarInvInicial('${f.folio}')">🗑️</button></td>
     </tr>
   `).join('');
+}
+
+function eliminarInvInicial(folio) {
+  if (!esMaestro()) {
+    alert('Solo el acceso maestro (TODOS/SEDE) puede eliminar un folio de Inventario Inicial.');
+    return;
+  }
+  const f = INV_INICIAL_FOLIOS.find(x => x.folio === folio);
+  if (!f) return;
+  if (!confirm(`¿Eliminar el folio ${f.folio}? Se restarán del stock actual de ${f.areaClave} (${f.seccion}) las cantidades que capturó. Si existía una captura anterior para esas partidas, no se restaura automáticamente — revisa Existencias después.`)) return;
+
+  f.partidas.forEach(p => {
+    const actual = getStock(f.areaClave, f.seccion, p.partida);
+    const nuevo = Math.max(0, actual - Number(p.cantidad || 0));
+    if (nuevo !== actual) {
+      setStock(f.areaClave, f.seccion, p.partida, nuevo);
+      registrarAjusteManual(f.areaClave, f.seccion, p.partida, actual, nuevo, `Eliminación de Inventario Inicial ${f.folio}`);
+    }
+  });
+
+  INV_INICIAL_FOLIOS = INV_INICIAL_FOLIOS.filter(x => x.folio !== folio);
+  persistirInvInicialFolios();
+  renderHistorialInvInicial();
+  refrescarStocksTodasLasFilas();
 }
 
 // ═══════════════════════════════════════════════════════════
