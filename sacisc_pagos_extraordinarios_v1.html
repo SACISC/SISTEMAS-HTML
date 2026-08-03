@@ -823,7 +823,7 @@
         <!-- HORARIOS -->
         <div class="tab-panel" id="tab-horarios">
           <p class="paste-hint">
-            Regla de negocio precargada conforme a tu especificación. Solo aplica a subáreas de <strong>Vigilancia</strong> y <strong>Hospital</strong>. Editable si cambia alguna regla.
+            Regla de negocio precargada conforme a tu especificación. Solo aplica a subáreas de <strong>Vigilancia</strong> y <strong>Hospital</strong>. Puedes agregar horarios nuevos con "+ Fila manual" — escribe la Clave que quieras (ej. "06-14"), y elige Dobletes/Comidas de la lista.
           </p>
           <div class="cat-toolbar">
             <button class="btn-secondary" onclick="agregarFilaVacia('horarios')">+ Fila manual</button>
@@ -1788,7 +1788,6 @@ const CAT_CONFIG = {
     global: true,
     conflict: 'clave',
     opciones: {
-      clave: ['00-08','00-16','00-24','08-16','08-24','16-24','23-07','07-15','15-23','07-23','23-15','DESCANSO'],
       dobletes: ['0', '1', '2'],
       comidas: ['0', '1', '2', '3']
     }
