@@ -8401,57 +8401,100 @@ function abrirDrillDownMensual(mes, mesLabel, totalLitros) {
   const fmtT  = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
 
   function buildTooltip(el) {
-    const saldo = parseFloat(el.dataset.saldo||0);
-    const exist = parseFloat(el.dataset.exist||0);
-    const mes   = parseInt(el.dataset.mes||0);
-    const dif   = parseFloat(el.dataset.dif||0);
-    const cu    = parseFloat(el.dataset.cu||0);
-    const mesN  = MES_C[mes]||'';
-    const difCol = Math.abs(dif)<50?'#a8e6cf':dif>0?'#ffcc80':'#ff8a80';
-    const sitTxt = Math.abs(dif)<50
-      ? '\u2705 Saldo migr\u00f3 correctamente'
-      : dif>0 ? '\u26a0\ufe0f Proveedor declar\u00f3 m\u00e1s de lo correspondido'
-      : '\ud83d\udea8 Posible fuga \u2014 proveedor declar\u00f3 menos';
-    const fmtP = n => '$'+n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const hayImp = Math.abs(dif)>=50 && cu>0;
-    const impColor= dif<0?'#ff8a80':'#ffcc80';
-    const impBg   = dif<0?'rgba(255,80,80,0.15)':'rgba(255,160,0,0.12)';
-    const impBor  = dif<0?'rgba(255,80,80,0.35)':'rgba(255,160,0,0.35)';
-    const impLabel= dif<0?'Valor no declarado por el proveedor':'Excedente sobre remanente';
-    const impHTML = hayImp
+    if (el.dataset.tooltip === '0') return ''; // mes en curso sin dato del siguiente
+    const saldo  = parseFloat(el.dataset.saldo||0);  // saldo físico día 30/31
+    const ini    = parseFloat(el.dataset.ini||0);
+    const surt   = parseFloat(el.dataset.surt||0);
+    const real   = parseFloat(el.dataset.real||0);
+    const exist  = parseFloat(el.dataset.exist||0);  // declarado por gasolinero día 1
+    const mes    = parseInt(el.dataset.mes||0);
+    const dif    = parseFloat(el.dataset.dif||0);    // saldo - exist (retención/absorción)
+    const cu     = parseFloat(el.dataset.cu||0);
+    const mesN   = MES_C[mes]||'';
+    const fmtP   = n => '$'+n.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    // Situación
+    const hasFuga   = dif >  50;  // gasolinero declara menos = retiene litros
+    const hayAbsorc = dif < -50;  // gasolinero declara más   = absorción deuda
+    const difCol    = Math.abs(dif)<50?'#a8e6cf':hasFuga?'#ff8a80':'#ffcc80';
+    const sitTxt    = Math.abs(dif)<50
+      ? '✅ Cuadre correcto — saldo migró íntegro'
+      : hasFuga
+      ? '🚨 Gasolinero retiene litros — posible fuga'
+      : '⚠️ Gasolinero declaró más de lo esperado (absorción de deuda)';
+
+    // % de retención respecto al saldo que debió migrar
+    const pctRetencion = saldo > 0 ? Math.min(100, Math.abs(dif) / saldo * 100) : 0;
+    const pctLabel = hasFuga
+      ? `El gasolinero retuvo el <strong>${pctRetencion.toFixed(1)}%</strong> del saldo que debió migrar`
+      : hayAbsorc
+      ? `El gasolinero declaró un <strong>${pctRetencion.toFixed(1)}%</strong> adicional sobre el saldo esperado`
+      : '';
+
+    // Importe
+    const hayImp   = Math.abs(dif)>=50 && cu>0;
+    const impColor = hasFuga?'#ff8a80':'#ffcc80';
+    const impBg    = hasFuga?'rgba(255,80,80,0.15)':'rgba(255,160,0,0.12)';
+    const impBor   = hasFuga?'rgba(255,80,80,0.35)':'rgba(255,160,0,0.35)';
+    const impLabel = hasFuga?'Valor retenido por el gasolinero':'Excedente sobre saldo esperado';
+    const impHTML  = hayImp
       ? '<div style="margin-top:6px;padding:6px 8px;border-radius:6px;background:'+impBg
         +';border:1px solid '+impBor+';">'
         +'<div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;margin-bottom:3px;">'
-        +'\ud83d\udcb0 Impacto econ\u00f3mico</div>'
+        +'💸 Importe económico</div>'
         +'<div style="font-family:Barlow Condensed,sans-serif;font-size:1.1rem;font-weight:900;color:'+impColor+';">'
         +fmtP(Math.abs(dif)*cu)+'</div>'
-        +'<div style="font-size:0.6rem;color:#aaa;margin-top:1px;">'+impLabel+' \u00b7 '+fmtP(cu)+'/L</div>'
+        +'<div style="font-size:0.6rem;color:#aaa;margin-top:1px;">'+impLabel+' · '+fmtP(cu)+'/L</div>'
         +'</div>' : '';
-    const existRow = exist>0
-      ? '<div style="border-top:1px solid rgba(45,158,126,0.3);padding-top:5px;margin-top:1px;">'
-        +'<div style="display:flex;justify-content:space-between;gap:14px;">'
-        +'<span style="font-size:0.65rem;color:#aaa;">Diferencia</span>'
-        +'<span style="font-weight:900;font-size:0.9rem;color:'+difCol+';">'+(dif>=0?'+':'')+fmtT(dif)+' L</span></div>'
-        +'<div style="font-size:0.65rem;color:'+difCol+';margin-top:3px;">'+sitTxt+'</div>'
+
+    // Fórmula del saldo físico
+    const formulaHTML =
+      '<div style="background:rgba(255,255,255,0.06);border-radius:6px;padding:7px 8px;margin-bottom:6px;">'
+      +'<div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Cálculo saldo final</div>'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+      +'<span style="font-size:0.72rem;color:#80deea;">'+fmtT(ini)+' L</span>'
+      +'<span style="font-size:0.65rem;color:#aaa;">+</span>'
+      +'<span style="font-size:0.72rem;color:#80deea;">'+fmtT(surt)+' L</span>'
+      +'<span style="font-size:0.65rem;color:#aaa;">−</span>'
+      +'<span style="font-size:0.72rem;color:#80deea;">'+fmtT(real)+' L</span>'
+      +'<span style="font-size:0.65rem;color:#aaa;">=</span>'
+      +'<span style="font-family:Barlow Condensed,sans-serif;font-size:0.9rem;font-weight:900;'
+      +'color:'+(saldo>=0?'#a8e6cf':'#ff8a80')+';">'+fmtT(saldo)+' L</span>'
+      +'</div>'
+      +'<div style="font-size:0.58rem;color:#666;margin-top:2px;">Inv.Ini + Entradas − Consumo real</div>'
+      +'</div>';
+
+    // Fila existencia declarada
+    const existRow = exist>=0
+      ? '<div style="border-top:1px solid rgba(45,158,126,0.3);padding-top:6px;margin-top:4px;">'
+        +'<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:4px;">'
+        +'<span style="font-size:0.65rem;color:#aaa;">Diferencia (retención/absorción)</span>'
+        +'<span style="font-weight:900;font-size:0.9rem;color:'+difCol+';">'+(dif>0?'+':'')+fmtT(dif)+' L</span></div>'
+        +(pctLabel ? '<div style="background:rgba(255,255,255,0.06);border-radius:5px;padding:5px 8px;margin-bottom:4px;">'
+          +'<span style="font-size:0.68rem;color:'+difCol+';">'+pctLabel+'</span></div>' : '')
+        +'<div style="font-size:0.65rem;color:'+difCol+';margin-top:2px;">'+sitTxt+'</div>'
         +impHTML+'</div>'
-      : '<div style="font-size:0.63rem;color:#ff8a80;margin-top:2px;">\u26a0\ufe0f Sin dato declarado</div>';
+      : '<div style="font-size:0.63rem;color:#ff8a80;margin-top:4px;">⚠️ Sin dato declarado por el proveedor</div>';
+
     return '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:0.75rem;font-weight:900;'
       +'color:#a8e6cf;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;'
-      +'border-bottom:1px solid rgba(45,158,126,0.3);padding-bottom:5px;">\ud83d\udd0d Migraci\u00f3n del Saldo</div>'
-      +'<div style="display:grid;gap:6px;font-family:\'Inter\',sans-serif;">'
+      +'border-bottom:1px solid rgba(45,158,126,0.3);padding-bottom:5px;">🔍 Migración del Saldo</div>'
+      +'<div style="display:grid;gap:5px;font-family:\'Inter\',sans-serif;">'
+      +formulaHTML
       +'<div style="display:flex;justify-content:space-between;gap:14px;">'
-      +'<span style="font-size:0.65rem;color:#aaa;">Saldo remanente calculado</span>'
-      +'<span style="font-weight:700;color:#fff;font-size:0.8rem;">'+fmtT(saldo)+' L</span></div>'
+      +'<span style="font-size:0.65rem;color:#aaa;">Saldo físico día 30/31</span>'
+      +'<span style="font-weight:800;color:'+(saldo>=0?'#a8e6cf':'#ff8a80')+';font-size:0.85rem;">'+fmtT(saldo)+' L</span></div>'
       +'<div style="display:flex;justify-content:space-between;gap:14px;">'
-      +'<span style="font-size:0.65rem;color:#aaa;">Exist. inicial '+mesN+' del proveedor</span>'
-      +'<span style="font-weight:700;font-size:0.8rem;color:'+(exist>0?'#80deea':'#ff8a80')+';"><b>'
-      +(exist>0?fmtT(exist)+' L':'Sin dato')+'</b></span></div>'
+      +'<span style="font-size:0.65rem;color:#aaa;">Exist. inicial '+mesN+' (proveedor)</span>'
+      +'<span style="font-weight:800;font-size:0.85rem;color:'+(exist===0?'#ff8a80':'#80deea')+';">'
+      +(exist>=0?fmtT(exist)+' L':'Sin dato')+'</span></div>'
       +existRow+'</div>';
   }
 
   document.addEventListener('mouseover', function(e) {
     const el = e.target.closest('.cvp-saldo-cell');
     if (!el) return;
+    if (el.dataset.tooltip === '0') return;
     const tip = document.getElementById('cvpSaldoTooltip');
     if (!tip) return;
     tip.innerHTML = buildTooltip(el);
@@ -12733,7 +12776,117 @@ function onRankDrillAreaChange() {
 // ═══════════════════════════════════════════════════════════════════════
 //  MÓDULO TRAZABILIDAD DE TARJETA
 // ═══════════════════════════════════════════════════════════════════════
+function pedirClaveEstaciones(e, callback) {
+  if (e && e.stopPropagation) e.stopPropagation();
+
+  // Crear modal si no existe
+  let modal = document.getElementById('modalClaveEstaciones');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalClaveEstaciones';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:999999;'
+      +'background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);'
+      +'align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:14px;overflow:hidden;
+        width:340px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,0.45);">
+        <!-- Header SACISC -->
+        <div style="background:linear-gradient(135deg,#0d2137,#1e5b4f);
+          padding:20px 24px;display:flex;align-items:center;gap:14px;">
+          <div style="width:42px;height:42px;border-radius:50%;
+            background:rgba(255,255,255,0.12);border:2px solid rgba(17,205,120,0.5);
+            display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+            🔒
+          </div>
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;
+              font-weight:900;color:#fff;letter-spacing:0.05em;text-transform:uppercase;">
+              Acceso Restringido
+            </div>
+            <div style="font-size:0.68rem;color:rgba(255,255,255,0.55);margin-top:2px;">
+              SACISC · Panel de Estaciones de Servicio
+            </div>
+          </div>
+        </div>
+        <!-- Cuerpo -->
+        <div style="padding:22px 24px;">
+          <div style="font-size:0.78rem;color:#555;margin-bottom:14px;line-height:1.5;">
+            Este panel contiene información operativa de las estaciones de servicio PEMEX.
+            Ingrese la contraseña para continuar.
+          </div>
+          <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.06em;color:#888;display:block;margin-bottom:5px;">
+            Contraseña de acceso
+          </label>
+          <input id="inputClaveEst" type="password" placeholder="••••"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #d0d0d0;
+              border-radius:8px;padding:10px 14px;font-size:1rem;font-family:Inter,sans-serif;
+              outline:none;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='#1e5b4f'"
+            onblur="this.style.borderColor='#d0d0d0'"
+            onkeydown="if(event.key==='Enter') document.getElementById('btnConfirmarClave').click()"/>
+          <div id="msgClaveEst" style="font-size:0.7rem;color:#c0392b;margin-top:6px;
+            min-height:16px;font-weight:600;"></div>
+        </div>
+        <!-- Botones -->
+        <div style="padding:0 24px 20px;display:flex;gap:10px;">
+          <button id="btnCancelarClave"
+            style="flex:1;background:#f5f5f5;color:#555;border:none;border-radius:8px;
+              padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;
+              font-weight:700;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;">
+            Cancelar
+          </button>
+          <button id="btnConfirmarClave"
+            style="flex:2;background:linear-gradient(135deg,#1e5b4f,#2d9e7e);color:#fff;
+              border:none;border-radius:8px;padding:10px;
+              font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;
+              font-weight:800;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;">
+            🔓 Ingresar
+          </button>
+        </div>
+        <!-- Footer -->
+        <div style="background:#f8fbf9;border-top:1px solid #e8f0ee;padding:10px 24px;
+          text-align:center;font-size:0.6rem;color:#aaa;letter-spacing:0.05em;">
+          PEMEX · URCS Sur · Módulo Combustibles
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  // Limpiar estado
+  const input  = document.getElementById('inputClaveEst');
+  const msg    = document.getElementById('msgClaveEst');
+  input.value  = '';
+  msg.textContent = '';
+  modal.style.display = 'flex';
+  setTimeout(() => input.focus(), 80);
+
+  // Botón cancelar
+  document.getElementById('btnCancelarClave').onclick = () => {
+    modal.style.display = 'none';
+  };
+
+  // Botón confirmar
+  document.getElementById('btnConfirmarClave').onclick = () => {
+    if (String(input.value).trim() === '2026') {
+      modal.style.display = 'none';
+      if (typeof callback === 'function') callback();
+      else switchExecTab('estaciones');
+    } else {
+      msg.textContent = '❌ Contraseña incorrecta. Intente nuevamente.';
+      input.value = '';
+      input.focus();
+      input.style.borderColor = '#c0392b';
+      setTimeout(() => { input.style.borderColor = '#d0d0d0'; }, 1200);
+    }
+  };
+
+  // Clic fuera cierra
+  modal.onclick = (ev) => { if (ev.target === modal) modal.style.display = 'none'; };
+}
+
 function abrirEstacionesServicio() {
+  pedirClaveEstaciones(null, () => {
   const modal = document.getElementById('execModal');
   if (!modal) { alert('Módulo Ejecutivo no disponible.'); return; }
 
@@ -12801,6 +12954,7 @@ function abrirEstacionesServicio() {
 
   // Guardar estado de restricción para limpiar al cerrar
   window._execModoRestringido = true;
+  }); // fin callback pedirClaveEstaciones
 }
 
 function cerrarEstacionesServicio() {
@@ -18824,16 +18978,29 @@ function renderCvp() {
         const cuN       = realMap[est]?.[mes]?.[prod+'_N']||0;
         const cuSum     = realMap[est]?.[mes]?.[prod+'_CU']||0;
         const cu        = cuN>0 ? cuSum/cuN : 0;
-        const saldoL      = delta<0 ? Math.abs(delta) : 0;
-        const saldoImp    = saldoL>0 && cu>0 ? saldoL*cu : 0;
         const excedidoL   = delta>0 ? delta : 0;
         const excedidoImp = excedidoL>0 && cu>0 ? excedidoL*cu : 0;
-        // Existencia inicial declarada por el proveedor en el mes siguiente
+
+        // ── Saldo físico real del tanque al cierre del mes ────────────────
+        // = Inventario inicial + Entradas reales - Consumo real
+        const _invIniMes  = INVENTARIO_TANQUES[est+'||'+prod]?.meses?.[mes]?.invInicial || 0;
+        const _saldoCierre = _invIniMes + surt - real;  // nivel físico al día 30/31
+
+        // Columna "Saldo Sobrante" en tabla: solo mostrar si hay saldo positivo
+        const saldoL   = _saldoCierre > 0 ? _saldoCierre : 0;
+        const saldoImp = saldoL>0 && cu>0 ? saldoL*cu : 0;
+
+        // Existencia inicial declarada por el proveedor al día 1 del mes siguiente
         const _mesSigFl   = mes<12 ? mes+1 : 1;
         const _existSigFl = INVENTARIO_TANQUES[est+'||'+prod]?.meses?.[_mesSigFl]?.invInicial || 0;
-        const _difMigr    = saldoL>0 ? (_existSigFl - saldoL) : 0;
+        // Diferencia: lo que retuvo el gasolinero (+ = retención, - = absorción)
+        const _difMigr    = _saldoCierre - _existSigFl;
+        // Mes en curso: el tooltip solo aplica si el mes ya cerró (hay dato del siguiente)
+        const _esMesAct   = mes === (new Date().getMonth()+1);
+        const _tooltipOk  = !_esMesAct || _existSigFl > 0; // histórico siempre, actual solo si hay dato
+
         filas.push({est,mes,prod,prog,surt,real,pct,delta,cu,saldoL,saldoImp,excedidoL,excedidoImp,
-                    _existSigFl,_mesSigFl,_difMigr});
+                    _invIniMes,_saldoCierre,_existSigFl,_mesSigFl,_difMigr,_tooltipOk});
       });
     });
   });
@@ -18990,14 +19157,19 @@ function renderCvp() {
               <td style="text-align:right;position:relative;">
                 ${f.saldoL>0 ? `
                   <div class="cvp-saldo-cell"
-                    data-saldo="${f.saldoL}"
+                    data-saldo="${f._saldoCierre}"
+                    data-ini="${f._invIniMes}"
+                    data-surt="${f.surt}"
+                    data-real="${f.real}"
                     data-exist="${f._existSigFl}"
                     data-mes="${f._mesSigFl}"
                     data-dif="${f._difMigr}"
                     data-cu="${f.cu}"
-                    style="cursor:help;display:inline-block;text-align:right;">
+                    data-tooltip="${f._tooltipOk?'1':'0'}"
+                    style="cursor:${f._tooltipOk?'help':'default'};display:inline-block;text-align:right;">
                     <div style="font-weight:800;color:#c0392b;">${fmtM(f.saldoImp)}</div>
                     <div style="font-size:0.65rem;color:#e67e22;">${fmt(f.saldoL)} L</div>
+                    ${!f._tooltipOk ? `<div style="font-size:0.58rem;color:#aaa;">(mes en curso)</div>` : ''}
                   </div>
                 ` : '<span style="color:#ccc;">—</span>'}
               </td>
@@ -21056,7 +21228,7 @@ function renderPronostico() {
         </svg>
         Eficiencia
       </button>
-      <button class="exec-tab" id="execTabEst" onclick="switchExecTab('estaciones')"
+      <button class="exec-tab" id="execTabEst" onclick="pedirClaveEstaciones(event)"
         style="display:none;">
         <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
