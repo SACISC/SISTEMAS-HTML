@@ -12010,7 +12010,7 @@ const SUBDIR_PASSWORDS = {
   'SPTM':   '9093',
   'SMEL':   '9095',
   'SSTPA':  '9096',
-  'SSAB':   '9097',
+  'SSAB':   '9090',
   'SSS':    '9190',
   'SA':     '9191',
   'STIC':   '9192',
@@ -12018,6 +12018,11 @@ const SUBDIR_PASSWORDS = {
   'SGDUOS': '9194',
   'TODAS':  '0000',
 };
+// Cargar contraseñas personalizadas guardadas en localStorage
+try {
+  const _savedPwd = JSON.parse(localStorage.getItem('SACISC_PASSWORDS')||'{}');
+  Object.keys(_savedPwd).forEach(k => { if (SUBDIR_PASSWORDS.hasOwnProperty(k)) SUBDIR_PASSWORDS[k] = _savedPwd[k]; });
+} catch(_) {}
 let execTabActivo = 'general';
 let execCharts    = [];
 
@@ -12099,9 +12104,19 @@ function guardarNuevoPwd() {
   const m  = document.getElementById('execChangePwdMsg');
   if (!p1) { m.style.color='#c0392b'; m.textContent='Ingrese la nueva contraseña.'; return; }
   if (p1 !== p2) { m.style.color='#c0392b'; m.textContent='Las contraseñas no coinciden.'; return; }
+  // Actualizar en memoria
+  if (execGerenciaActiva && SUBDIR_PASSWORDS.hasOwnProperty(execGerenciaActiva)) {
+    SUBDIR_PASSWORDS[execGerenciaActiva] = p1;
+    // Persistir en localStorage
+    try {
+      const _saved = JSON.parse(localStorage.getItem('SACISC_PASSWORDS')||'{}');
+      _saved[execGerenciaActiva] = p1;
+      localStorage.setItem('SACISC_PASSWORDS', JSON.stringify(_saved));
+    } catch(_) {}
+  }
   execPwd = p1;
-  m.style.color = '#27ae60'; m.textContent = '✅ Contraseña actualizada';
-  setTimeout(cancelarCambiarPwd, 1200);
+  m.style.color = '#27ae60'; m.textContent = '✅ Contraseña actualizada correctamente';
+  setTimeout(cancelarCambiarPwd, 1500);
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────
