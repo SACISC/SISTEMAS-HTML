@@ -1710,6 +1710,16 @@
         <path d="M 217,101 Q 400,235 445,339" stroke="#a9b8b0" stroke-width="3" stroke-dasharray="6 6" fill="none"/>
         <path d="M 445,339 Q 590,350 723,366" stroke="#a9b8b0" stroke-width="3" stroke-dasharray="6 6" fill="none"/>
         <path d="M 639,195 Q 700,280 723,366" stroke="#a9b8b0" stroke-width="3" stroke-dasharray="6 6" fill="none" opacity="0.8"/>
+        <path d="M 639,195 Q 545,272 445,339" stroke="#a9b8b0" stroke-width="3" stroke-dasharray="6 6" fill="none" opacity="0.8"/>
+
+        <!-- Distancias reales entre municipios (esquemático, sobre cada trayecto) -->
+        <g font-family="'Barlow Condensed',sans-serif" font-size="10" font-weight="700" fill="#1e5b4f" text-anchor="middle">
+          <g transform="translate(429,138)"><rect x="-26" y="-9" width="52" height="16" rx="8" fill="#fff" stroke="#a9b8b0" stroke-width="1"/><text y="3">48.8 km</text></g>
+          <g transform="translate(360,222)"><rect x="-26" y="-9" width="52" height="16" rx="8" fill="#fff" stroke="#a9b8b0" stroke-width="1"/><text y="3">40.2 km</text></g>
+          <g transform="translate(587,345)"><rect x="-26" y="-9" width="52" height="16" rx="8" fill="#fff" stroke="#a9b8b0" stroke-width="1"/><text y="3">29.6 km</text></g>
+          <g transform="translate(694,274)"><rect x="-26" y="-9" width="52" height="16" rx="8" fill="#fff" stroke="#a9b8b0" stroke-width="1"/><text y="3">30.8 km</text></g>
+          <g transform="translate(548,262)"><rect x="-24" y="-9" width="48" height="16" rx="8" fill="#fff" stroke="#a9b8b0" stroke-width="1"/><text y="3">55 km</text></g>
+        </g>
 
         <text x="30" y="42" fill="#1e5b4f" font-family="'Barlow Condensed',sans-serif" font-size="23" font-weight="800" letter-spacing="1">SUR DE VERACRUZ</text>
         <text x="30" y="62" fill="#5b6b66" font-family="'Barlow',sans-serif" font-size="12">Zona Coatzacoalcos — selecciona tu municipio</text>
@@ -1759,39 +1769,37 @@
         <!-- SCCO-CANGREJERA (complejo petroquímico, vecino inmediato de Coatzacoalcos) -->
         <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCO-CANGREJERA')"
            onmouseenter="mostrarTooltipMapa(event,'SCCO-CANGREJERA')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
-          <circle class="mm-halo" cx="392" cy="144" r="15" fill="#2d9e7e" opacity="0.18"/>
+          <circle class="mm-halo" cx="392" cy="144" r="14" fill="#2d9e7e" opacity="0.18"/>
           <circle cx="392" cy="144" r="8" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
           <use href="#icono-fabrica" x="373" y="161" width="20" height="17"/>
-          <text x="392" y="190" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="12" font-weight="700" fill="#1e5b4f">CANGREJERA</text>
         </g>
 
         <!-- SCCO-PAJARITOS (complejo petroquímico, vecino inmediato de Coatzacoalcos) -->
         <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCO-PAJARITOS')"
            onmouseenter="mostrarTooltipMapa(event,'SCCO-PAJARITOS')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
-          <circle class="mm-halo" cx="351" cy="136" r="15" fill="#2d9e7e" opacity="0.18"/>
+          <circle class="mm-halo" cx="351" cy="136" r="14" fill="#2d9e7e" opacity="0.18"/>
           <circle cx="351" cy="136" r="8" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
           <use href="#icono-fabrica" x="332" y="153" width="20" height="17"/>
-          <text x="351" y="182" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="12" font-weight="700" fill="#1e5b4f">PAJARITOS</text>
         </g>
 
         <!-- SCCO-MORELOS (complejo petroquímico, vecino inmediato de Coatzacoalcos) -->
         <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCO-MORELOS')"
            onmouseenter="mostrarTooltipMapa(event,'SCCO-MORELOS')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
-          <circle class="mm-halo" cx="311" cy="128" r="15" fill="#2d9e7e" opacity="0.18"/>
+          <circle class="mm-halo" cx="311" cy="128" r="14" fill="#2d9e7e" opacity="0.18"/>
           <circle cx="311" cy="128" r="8" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
           <use href="#icono-fabrica" x="292" y="145" width="20" height="17"/>
-          <text x="311" y="174" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="12" font-weight="700" fill="#1e5b4f">MORELOS</text>
         </g>
 
         <!-- SCCO-TASPP: Terminal Portuaria (NO es complejo petroquímico), vecina inmediata
              de Coatzacoalcos, recibe barcos — ícono distinto -->
         <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SCCO-TASPP')"
            onmouseenter="mostrarTooltipMapa(event,'SCCO-TASPP')" onmousemove="moverTooltipMapa(event)" onmouseleave="ocultarTooltipMapa()">
-          <circle class="mm-halo" cx="271" cy="120" r="15" fill="#2f6fb3" opacity="0.18"/>
+          <circle class="mm-halo" cx="271" cy="120" r="14" fill="#2f6fb3" opacity="0.18"/>
           <circle cx="271" cy="120" r="8" fill="#1e5b4f" stroke="#fff" stroke-width="2"/>
           <use href="#icono-terminal" x="252" y="137" width="20" height="17"/>
-          <text x="271" y="166" text-anchor="middle" class="mm-label" font-family="'Barlow Condensed',sans-serif" font-size="12" font-weight="700" fill="#1e5b4f">TASPP</text>
         </g>
+
+        <text x="330" y="215" text-anchor="middle" font-family="'Barlow',sans-serif" font-size="9" font-style="italic" fill="#7a8a84">Cangrejera · Pajaritos · Morelos · TASPP — pasa el mouse sobre cada punto</text>
 
         <!-- SEDE (dentro de la ciudad de Coatzacoalcos, no en la costa industrial) -->
         <g class="mapa-municipio" onclick="elegirAreaDesdeMapa('SEDE')"
