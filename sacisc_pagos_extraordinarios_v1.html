@@ -1136,6 +1136,27 @@
           <button class="btn-secondary" onclick="descargarRespaldoCompleto(this)">💾 Descargar Respaldo Completo (Excel)</button>
         </div>
 
+        <div style="background:#f0f9f6; border:1.5px solid #c3e0d6; border-radius:12px; padding:20px; margin-bottom:24px;">
+          <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; color:var(--green-dark); font-size:1.1rem; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.03em;">
+            📄 Reporte Ejecutivo Semanal (PDF)
+          </div>
+          <p style="font-size:0.82rem; color:var(--gray); margin-bottom:14px;">
+            Resumen de todos los Pagos Extraordinarios (Dobletes, Tiempo Extra, Insalubre) de las 4 áreas y sus sub-áreas, para la semana que elijas.
+          </p>
+          <div class="filters-grid" style="margin-bottom:14px;">
+            <div class="field">
+              <label>Año</label>
+              <select id="repAnio"></select>
+            </div>
+            <div class="field">
+              <label>Semana</label>
+              <select id="repSemana"></select>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="generarReporteEjecutivo(this)">📄 Generar Reporte Ejecutivo</button>
+          <span class="cat-status" id="statusReporteEjecutivo" style="margin-left:12px;"></span>
+        </div>
+
         <div class="filters-grid" style="margin-bottom:18px;">
           <div class="field">
             <label>Tipo de Pago</label>
@@ -3970,6 +3991,7 @@ function abrirDashboard() {
   onDashAreaChange();
 
   cargarAniosDashboard();
+  cargarSelectorReporteEjecutivo();
 }
 
 function cerrarDashboard() {
@@ -4031,6 +4053,175 @@ async function cargarAniosDashboard() {
   const anios = [...new Set(semanas.map(s => s.anio))];
   document.getElementById('dashAnio').innerHTML = '<option value="">Todos</option>' +
     anios.map(a => `<option value="${a}">${a}</option>`).join('');
+}
+
+// Selector Año/Semana del Reporte Ejecutivo (independiente del filtro del Dashboard)
+async function cargarSelectorReporteEjecutivo() {
+  const semanas = await sbGet('pe_semanas', 'select=*&order=anio.desc,num_semana.desc');
+  const anios = [...new Set(semanas.map(s => s.anio))];
+  const selAnio = document.getElementById('repAnio');
+  selAnio.innerHTML = anios.map(a => `<option value="${a}">${a}</option>`).join('');
+  selAnio.dataset.semanas = JSON.stringify(semanas);
+
+  const pintarSemanasRep = () => {
+    const anio = selAnio.value;
+    const sems = semanas.filter(s => String(s.anio) === String(anio));
+    document.getElementById('repSemana').innerHTML = sems.map(s =>
+      `<option value="${s.num_semana}">Semana ${s.num_semana} (del ${formatearFechaCorta(s.fecha_inicio)} al ${formatearFechaCorta(s.fecha_termino)})</option>`
+    ).join('');
+  };
+  selAnio.onchange = pintarSemanasRep;
+  pintarSemanasRep();
+}
+
+// Construye el Reporte Ejecutivo Semanal (todas las areas y sub-areas) con la
+// identidad visual de SACISC, y lo abre en una pestana lista para imprimir /
+// guardar como PDF -- sin depender de GitHub Actions ni de ningun token.
+async function generarReporteEjecutivo(btnEl) {
+  const statusEl = document.getElementById('statusReporteEjecutivo');
+  const anio = document.getElementById('repAnio').value;
+  const numSemana = document.getElementById('repSemana').value;
+  if (!anio || !numSemana) {
+    statusEl.className = 'cat-status err';
+    statusEl.textContent = '⚠️ Selecciona año y semana.';
+    return;
+  }
+
+  btnEl.disabled = true;
+  statusEl.className = 'cat-status';
+  statusEl.textContent = '⏳ Generando…';
+
+  try {
+    const q = `select=*,pe_folio_dias(*)&anio=eq.${anio}&num_semana=eq.${numSemana}&order=area,subarea,tipo_pago,folio`;
+    const folios = await sbGet('pe_folios', q);
+
+    if (folios.length === 0) {
+      statusEl.className = 'cat-status err';
+      statusEl.textContent = '⚠️ No hay folios capturados para esa semana.';
+      btnEl.disabled = false;
+      return;
+    }
+
+    // Agrupar por Area + Sub-area + Tipo de Pago
+    const grupos = {};
+    let totDobletes = 0, totHorasTE = 0, totHorasInsal = 0;
+    const trabajadoresUnicos = new Set();
+
+    folios.forEach(f => {
+      const key = `${f.area}|||${f.subarea}|||${f.tipo_pago}`;
+      if (!grupos[key]) grupos[key] = { area: f.area, subarea: f.subarea, tipo_pago: f.tipo_pago, folios: 0, dobletes: 0, horasTE: 0, horasInsal: 0 };
+      grupos[key].folios++;
+      trabajadoresUnicos.add(`${f.area}-${f.ficha}`);
+      (f.pe_folio_dias || []).forEach(d => {
+        const horas = (d.horas || 0) + (d.minutos || 0) / 60;
+        if (f.tipo_pago === 'DOBLETE') { grupos[key].dobletes += d.dobletes || 0; totDobletes += d.dobletes || 0; }
+        if (f.tipo_pago === 'TIEMPO_EXTRA') { grupos[key].horasTE += horas; totHorasTE += horas; }
+        if (f.tipo_pago === 'INSALUBRE') { grupos[key].horasInsal += horas; totHorasInsal += horas; }
+      });
+    });
+
+    const filasTabla = Object.values(grupos).sort((a,b) => a.area.localeCompare(b.area) || a.subarea.localeCompare(b.subarea));
+    const semanaInfo = (JSON.parse(document.getElementById('repAnio').dataset.semanas || '[]'))
+      .find(s => String(s.anio) === String(anio) && String(s.num_semana) === String(numSemana));
+    const rangoFechas = semanaInfo ? `del ${formatearFechaCorta(semanaInfo.fecha_inicio)} al ${formatearFechaCorta(semanaInfo.fecha_termino)}` : '';
+
+    const tipoPagoTexto = { DOBLETE: 'Doblete', TIEMPO_EXTRA: 'Tiempo Extra', INSALUBRE: 'Insalubre' };
+
+    const filasHtml = filasTabla.map(g => `
+      <tr>
+        <td>${AREA_NOMBRES[g.area] || g.area}</td>
+        <td>${g.subarea}</td>
+        <td>${tipoPagoTexto[g.tipo_pago] || g.tipo_pago}</td>
+        <td class="num">${g.folios}</td>
+        <td class="num">${g.tipo_pago === 'DOBLETE' ? g.dobletes : '—'}</td>
+        <td class="num">${g.tipo_pago === 'TIEMPO_EXTRA' ? g.horasTE.toFixed(1) : '—'}</td>
+        <td class="num">${g.tipo_pago === 'INSALUBRE' ? g.horasInsal.toFixed(1) : '—'}</td>
+      </tr>`).join('');
+
+    const fechaGeneracion = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+    const logoDataUri = document.querySelector('.header-logo img').src;
+
+    const reporteHtml = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Reporte Ejecutivo Semanal — Semana ${numSemana}/${anio}</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --green-dark:#002f2a; --green-mid:#1e5b4f; --green-light:#2d7a6a; }
+  * { box-sizing:border-box; }
+  body { font-family:'Barlow',sans-serif; margin:0; padding:32px 40px; color:#1a1a1a; }
+  .rpt-header { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid var(--green-mid); padding-bottom:16px; margin-bottom:24px; }
+  .rpt-header img { height:48px; }
+  .rpt-title { text-align:right; }
+  .rpt-title .main { font-family:'Barlow Condensed',sans-serif; font-size:1.4rem; font-weight:800; color:var(--green-dark); letter-spacing:0.03em; text-transform:uppercase; }
+  .rpt-title .sub { font-size:0.85rem; color:#666; }
+  .rpt-userband { background:var(--green-dark); color:#fff; padding:12px 20px; border-radius:8px; margin-bottom:24px; font-size:0.85rem; display:flex; justify-content:space-between; }
+  .rpt-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+  .rpt-kpi { background:#f0f9f6; border:1.5px solid #c3e0d6; border-radius:12px; padding:16px; text-align:center; }
+  .rpt-kpi .valor { font-family:'Barlow Condensed',sans-serif; font-size:2rem; font-weight:800; color:var(--green-mid); }
+  .rpt-kpi .etiqueta { font-size:0.72rem; color:#666; text-transform:uppercase; letter-spacing:0.04em; }
+  table.rpt-tabla { width:100%; border-collapse:collapse; margin-bottom:32px; }
+  table.rpt-tabla th { background:var(--green-mid); color:#fff; padding:10px; font-family:'Barlow Condensed',sans-serif; text-transform:uppercase; font-size:0.78rem; letter-spacing:0.03em; text-align:left; }
+  table.rpt-tabla td { padding:9px 10px; border-bottom:1px solid #e0e0e0; font-size:0.85rem; }
+  table.rpt-tabla td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  table.rpt-tabla tr:nth-child(even) { background:#f7fbfa; }
+  .rpt-firmas { display:flex; justify-content:space-around; margin-top:60px; }
+  .rpt-firma { text-align:center; width:280px; }
+  .rpt-firma .linea { border-top:1.5px solid #333; margin-bottom:6px; }
+  .rpt-firma .cargo { font-size:0.78rem; color:#666; }
+  .rpt-footer { margin-top:40px; padding-top:12px; border-top:1px solid #ddd; font-size:0.7rem; color:#999; display:flex; justify-content:space-between; }
+  @media print { body { padding:16px 24px; } }
+</style></head>
+<body>
+  <div class="rpt-header">
+    <img src="${logoDataUri}" alt="PEMEX">
+    <div class="rpt-title">
+      <div class="main">SACISC · Reporte Ejecutivo Semanal</div>
+      <div class="sub">Sistema Administrativo de Control Integral de Servicios Corporativos</div>
+    </div>
+  </div>
+
+  <div class="rpt-userband">
+    <span>Semana ${numSemana} / ${anio} ${rangoFechas ? '(' + rangoFechas + ')' : ''}</span>
+    <span>Generado: ${fechaGeneracion}</span>
+  </div>
+
+  <div class="rpt-kpis">
+    <div class="rpt-kpi"><div class="valor">${folios.length}</div><div class="etiqueta">Folios Totales</div></div>
+    <div class="rpt-kpi"><div class="valor">${trabajadoresUnicos.size}</div><div class="etiqueta">Trabajadores</div></div>
+    <div class="rpt-kpi"><div class="valor">${totDobletes}</div><div class="etiqueta">Dobletes</div></div>
+    <div class="rpt-kpi"><div class="valor">${(totHorasTE + totHorasInsal).toFixed(1)}h</div><div class="etiqueta">Horas TE + Insalubre</div></div>
+  </div>
+
+  <table class="rpt-tabla">
+    <thead><tr><th>Área</th><th>Sub-área</th><th>Tipo de Pago</th><th>Folios</th><th>Dobletes</th><th>Horas TE</th><th>Horas Insalubre</th></tr></thead>
+    <tbody>${filasHtml}</tbody>
+  </table>
+
+  <div class="rpt-firmas">
+    <div class="rpt-firma"><div class="linea"></div>Elaboró<div class="cargo">Sistema Administrativo SACISC</div></div>
+    <div class="rpt-firma"><div class="linea"></div>Vo.Bo. Supervisor</div>
+  </div>
+
+  <div class="rpt-footer">
+    <span>URCS Sur · PEMEX · Coatzacoalcos</span>
+    <span>SACISC — Reporte generado automáticamente</span>
+  </div>
+
+  <script>window.onload = () => setTimeout(() => window.print(), 400);<\/script>
+</body></html>`;
+
+    const ventana = window.open('', '_blank');
+    ventana.document.write(reporteHtml);
+    ventana.document.close();
+
+    statusEl.className = 'cat-status ok';
+    statusEl.textContent = '✅ Reporte generado — usa "Guardar como PDF" en el diálogo de impresión.';
+  } catch (e) {
+    statusEl.className = 'cat-status err';
+    statusEl.textContent = '❌ ' + e.message;
+  } finally {
+    btnEl.disabled = false;
+  }
 }
 
 async function analizarDashboard() {
