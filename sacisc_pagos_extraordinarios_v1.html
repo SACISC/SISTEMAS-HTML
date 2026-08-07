@@ -4154,6 +4154,7 @@ async function generarReporteEjecutivo(btnEl) {
   .rpt-title { text-align:right; }
   .rpt-title .main { font-family:'Barlow Condensed',sans-serif; font-size:1.4rem; font-weight:800; color:var(--green-dark); letter-spacing:0.03em; text-transform:uppercase; }
   .rpt-title .sub { font-size:0.85rem; color:#666; }
+  .rpt-title .sub2 { font-size:0.75rem; color:#999; margin-top:2px; }
   .rpt-userband { background:var(--green-dark); color:#fff; padding:12px 20px; border-radius:8px; margin-bottom:24px; font-size:0.85rem; display:flex; justify-content:space-between; }
   .rpt-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
   .rpt-kpi { background:#f0f9f6; border:1.5px solid #c3e0d6; border-radius:12px; padding:16px; text-align:center; }
@@ -4164,10 +4165,6 @@ async function generarReporteEjecutivo(btnEl) {
   table.rpt-tabla td { padding:9px 10px; border-bottom:1px solid #e0e0e0; font-size:0.85rem; }
   table.rpt-tabla td.num { text-align:right; font-variant-numeric:tabular-nums; }
   table.rpt-tabla tr:nth-child(even) { background:#f7fbfa; }
-  .rpt-firmas { display:flex; justify-content:space-around; margin-top:60px; }
-  .rpt-firma { text-align:center; width:280px; }
-  .rpt-firma .linea { border-top:1.5px solid #333; margin-bottom:6px; }
-  .rpt-firma .cargo { font-size:0.78rem; color:#666; }
   .rpt-footer { margin-top:40px; padding-top:12px; border-top:1px solid #ddd; font-size:0.7rem; color:#999; display:flex; justify-content:space-between; }
   @media print { body { padding:16px 24px; } }
 </style></head>
@@ -4175,8 +4172,9 @@ async function generarReporteEjecutivo(btnEl) {
   <div class="rpt-header">
     <img src="${logoDataUri}" alt="PEMEX">
     <div class="rpt-title">
-      <div class="main">SACISC · Reporte Ejecutivo Semanal</div>
-      <div class="sub">Sistema Administrativo de Control Integral de Servicios Corporativos</div>
+      <div class="main">SACISC · Módulo de Pagos Extraordinarios</div>
+      <div class="sub">Unidad Regional de Servicios Corporativos Sur</div>
+      <div class="sub2">Reporte Ejecutivo Semanal</div>
     </div>
   </div>
 
@@ -4196,11 +4194,6 @@ async function generarReporteEjecutivo(btnEl) {
     <thead><tr><th>Área</th><th>Sub-área</th><th>Tipo de Pago</th><th>Folios</th><th>Dobletes</th><th>Horas TE</th><th>Horas Insalubre</th></tr></thead>
     <tbody>${filasHtml}</tbody>
   </table>
-
-  <div class="rpt-firmas">
-    <div class="rpt-firma"><div class="linea"></div>Elaboró<div class="cargo">Sistema Administrativo SACISC</div></div>
-    <div class="rpt-firma"><div class="linea"></div>Vo.Bo. Supervisor</div>
-  </div>
 
   <div class="rpt-footer">
     <span>URCS Sur · PEMEX · Coatzacoalcos</span>
