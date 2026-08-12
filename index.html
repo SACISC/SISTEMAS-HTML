@@ -11487,6 +11487,47 @@ function _lanzarSuperReporte() {
   window.open('super_reporte.html','_blank');
 }
 
+function lanzarResumenArea() {
+  if (!currentRows.length) { alert('Primero realice una búsqueda.'); return; }
+  const { mes } = rptContext;
+  if (!mes) { alert('Seleccione un mes específico.'); return; }
+
+  const areaFilt = currentRows.length ? String(currentRows[0].areaUsuaria||'').trim() : '';
+  const now      = new Date();
+
+  const byTarjeta = {};
+  RAW.filter(r => Number(r.mes)===mes && (!areaFilt||String(r.areaUsuaria||'').trim()===areaFilt))
+    .forEach(r => {
+      const t = String(r.tarjeta||'').trim(); if(!t) return;
+      if(!byTarjeta[t]) byTarjeta[t]={
+        tarjeta:'',usuario:'',placa:'',producto:'',area:'',montoAutorizado:0,rows:[]
+      };
+      const b=byTarjeta[t]; b.rows.push({
+        litros:r.litros||0, distancia:r.distancia||0,
+        rendimiento:r.rendimiento||0, producto:String(r.producto||'').toUpperCase()
+      });
+      b.tarjeta=t;
+      if(r.usuario)       b.usuario      =String(r.usuario).trim();
+      if(r.placa)         b.placa        =String(r.placa).trim();
+      if(r.producto)      b.producto     =String(r.producto).trim();
+      if(r.areaUsuaria)   b.area         =String(r.areaUsuaria).trim();
+      if(r.montoAutorizado) b.montoAutorizado=r.montoAutorizado;
+    });
+
+  const tarjetas = Object.values(byTarjeta)
+    .filter(b=>b.rows.length>0)
+    .sort((a,b)=>a.usuario.localeCompare(b.usuario));
+
+  if(!tarjetas.length){ alert('Sin datos para este mes/área.'); return; }
+
+  try {
+    localStorage.setItem('SACISC_RESUMEN_AREA', JSON.stringify({
+      mes, anio: now.getFullYear(), area: areaFilt, tarjetas
+    }));
+  } catch(e) { alert('Error al preparar datos: '+e.message); return; }
+  window.open('resumen_area.html','_blank');
+}
+
 async function exportarReporteMensualPDF() {
   if (!currentRows.length) { alert('Primero realice una búsqueda.'); return; }
   poblarReporteMensual();
@@ -21125,6 +21166,18 @@ function renderPronostico() {
             <line x1="16" y1="17" x2="8" y2="17"/>
           </svg>
           SUPER REPORTE
+        </button>
+        <button class="rpt-btn" onclick="lanzarResumenArea()"
+          title="Resumen consolidado del área en PDF"
+          style="background:linear-gradient(135deg,#6a1b9a,#8e24aa);border:none;
+            border-radius:8px;padding:6px 12px;cursor:pointer;display:flex;
+            align-items:center;gap:5px;font-family:'Barlow Condensed',sans-serif;
+            font-size:0.8rem;font-weight:800;color:#fff;letter-spacing:0.04em;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M9 21V9"/>
+          </svg>
+          RESUMEN ÁREA
         </button>
 
         <button class="rpt-btn rpt-btn-close" onclick="cerrarReporteMensual()">✕</button>

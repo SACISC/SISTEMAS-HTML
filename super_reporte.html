@@ -1002,39 +1002,6 @@ async function generarPDF() {
   const PW         = pdf.internal.pageSize.getWidth();
   const PH         = pdf.internal.pageSize.getHeight();
 
-  // ── PORTADA: Resumen consolidado de todas las tarjetas ────────────────
-  setProgreso(5, 'Generando portada…');
-  // Obtener logo del DOM (ya está renderizado en buildPagina)
-  const LOGO_SRC = document.querySelector('#renderWrap img')?.src || '';
-  wrap.innerHTML = buildPortada(tarjetas, now, LOGO_SRC);
-  await new Promise(r => setTimeout(r, 300));
-  const portadaEl     = wrap.firstElementChild;
-  const portadaCanvas = await html2canvas(portadaEl, {
-    scale:2, useCORS:true, allowTaint:false,
-    backgroundColor:'#ffffff', logging:false, width:816
-  });
-  const portadaImg = portadaCanvas.toDataURL('image/jpeg', 0.95);
-  const portadaH   = portadaCanvas.height * (PW / portadaCanvas.width);
-
-  if (portadaH <= PH) {
-    // Cabe en una página
-    pdf.addImage(portadaImg, 'JPEG', 0, 0, PW, portadaH);
-  } else {
-    // Paginar la portada si hay muchas tarjetas
-    let posYP = 0;
-    while (posYP < portadaCanvas.height) {
-      const sliceH = Math.min(Math.ceil(portadaCanvas.height * PH / portadaH), portadaCanvas.height - posYP);
-      const sliceC = document.createElement('canvas');
-      sliceC.width  = portadaCanvas.width;
-      sliceC.height = sliceH;
-      sliceC.getContext('2d').drawImage(portadaCanvas, 0, posYP, portadaCanvas.width, sliceH, 0, 0, portadaCanvas.width, sliceH);
-      if (posYP > 0) pdf.addPage();
-      pdf.addImage(sliceC.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, PW, sliceH * (PW / portadaCanvas.width));
-      posYP += sliceH;
-    }
-  }
-  pdf.addPage(); // página nueva antes del primer reporte individual
-
   for (let i=0; i<tarjetas.length; i++) {
     const b = tarjetas[i];
     setProgreso(10 + Math.round(i/tarjetas.length*85),
@@ -1056,7 +1023,7 @@ async function generarPDF() {
     });
 
     // Insertar en PDF
-    if (i > 0) pdf.addPage();
+    if (i > 0) pdf.addPage(); // nueva página entre tarjetas
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const ratio   = PH / canvas.height * canvas.width / canvas.width;
     const imgW    = PW;
