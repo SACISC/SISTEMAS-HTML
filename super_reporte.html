@@ -795,8 +795,7 @@ function buildPagina(b, idx, total, now) {
   // Gráfica rendimiento + calificación benchmark (solo pickup/semipesado)
   let graficaHTML = '';
   if (esPickup && avgRend > 0) {
-    const bench = getBench(b);
-    const calif = calcCalificacion(avgRend, bench);
+    // Construir rendimiento por día
     const rendPorDia = {};
     rows.forEach(r => {
       const f = String(r.fecha||'').split('T')[0];
@@ -807,20 +806,50 @@ function buildPagina(b, idx, total, now) {
         rendPorDia[d].push(r.rendimiento);
       }
     });
-    const dias   = Object.keys(rendPorDia).map(Number).sort((a,b)=>a-b);
-    const rVals  = dias.map(d => rendPorDia[d].reduce((s,v)=>s+v,0)/rendPorDia[d].length);
-    const maxR   = Math.max(...rVals, 1);
+    const dias  = Object.keys(rendPorDia).map(Number).sort((a,b)=>a-b);
+    const rVals = dias.map(d => rendPorDia[d].reduce((s,v)=>s+v,0)/rendPorDia[d].length);
 
     if (dias.length > 0) {
-      const bars = dias.map((d,di) => {
-        const hpct = Math.max(4, (rVals[di]/maxR*100));
-        const col  = rVals[di]>=10 ? '#27ae60' : rVals[di]>=6 ? '#e67e22' : '#c0392b';
+      const maxR = Math.max(...rVals, 1);
+
+      // ── Lógica de colores basada en la media (avgRend) ──────────────
+      // Sospechoso ALTO: >130% de la media   → exceso irreal (odómetro adulterado)
+      // Sospechoso BAJO: <60% de la media    → consumo anómalo (fuga, desvío)
+      // Normal:          60%–130% de la media → verde
+      const LIMITE_ALTO = avgRend * 1.30;
+      const LIMITE_BAJO = avgRend * 0.60;
+
+      const bars = dias.map((d, di) => {
+        const v    = rVals[di];
+        const hpct = Math.max(4, (v / maxR * 100));
+        const sospechoso = v > LIMITE_ALTO || v < LIMITE_BAJO;
+        const col  = sospechoso ? '#c0392b' : '#27ae60';
+        const etiq = sospechoso
+          ? `<div style="font-size:0.48rem;color:#c0392b;font-weight:900;line-height:1;">⚠</div>`
+          : '';
         return `<div class="rpt-bar-col">
-          <div class="rpt-bar-val" style="color:${col}">${rVals[di].toFixed(1)}</div>
-          <div class="rpt-bar" style="height:${hpct}%;background:${col};"></div>
-          <div class="rpt-bar-dia">${d}</div>
+          ${etiq}
+          <div class="rpt-bar-val" style="color:${col};font-weight:${sospechoso?'900':'600'};">
+            ${v.toFixed(1)}
+          </div>
+          <div class="rpt-bar" style="height:${hpct}%;background:${col};
+            ${sospechoso?'box-shadow:0 0 4px '+col+'88;':''}"></div>
+          <div class="rpt-bar-dia" style="color:${sospechoso?'#c0392b':'#aaa'};
+            font-weight:${sospechoso?'700':'400'};">${d}</div>
         </div>`;
       }).join('');
+
+      // Contar sospechosos
+      const nSosp = rVals.filter(v => v > LIMITE_ALTO || v < LIMITE_BAJO).length;
+      const sosp_txt = nSosp > 0
+        ? `<span style="background:#fde8e8;color:#c0392b;border-radius:5px;
+            padding:1px 8px;font-size:0.6rem;font-weight:800;">
+            ⚠ ${nSosp} día${nSosp>1?'s':''} con rendimiento sospechoso
+          </span>`
+        : `<span style="background:#e8f5e9;color:#2e7d32;border-radius:5px;
+            padding:1px 8px;font-size:0.6rem;font-weight:800;">
+            ✅ Sin rendimientos sospechosos
+          </span>`;
 
       graficaHTML = `
         <div class="rpt-section-title">
@@ -833,90 +862,15 @@ function buildPagina(b, idx, total, now) {
           <div class="rpt-bars-wrap">${bars}</div>
           <div class="rpt-avg-line">
             <span class="rpt-avg-label">── Promedio: ${avgRend.toFixed(2)} km/L</span>
-            <div class="rpt-legend">
-              <span><span style="color:#27ae60">●</span> Óptimo ≥10</span>
-              <span><span style="color:#e67e22">●</span> Regular ≥6</span>
-              <span><span style="color:#c0392b">●</span> Bajo &lt;6</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              ${sosp_txt}
+              <div class="rpt-legend">
+                <span><span style="color:#27ae60;">●</span> Normal</span>
+                <span><span style="color:#c0392b;">●</span> Sospechoso</span>
+              </div>
             </div>
           </div>
-        </div>
-        ${calif ? `
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:16px;">
-          <!-- Calificación -->
-          <div style="background:${calif.anomaliaAlta||calif.anomaliaBaja?'#fce4ec':'#f8fbf9'};
-            border:1.5px solid ${calif.color}55;border-radius:10px;
-            padding:14px;text-align:center;border-top:3px solid ${calif.color};">
-            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;
-              color:#888;font-weight:700;margin-bottom:6px;">Calificación Benchmark</div>
-            ${calif.anomaliaAlta||calif.anomaliaBaja
-              ? `<div style="font-size:2rem;margin-bottom:4px;">${calif.anomaliaAlta?'⚠️':'🚨'}</div>`
-              : `<div style="font-family:'Barlow Condensed',sans-serif;font-size:2.8rem;
-                  font-weight:900;color:${calif.color};line-height:1;">${calif.pts}</div>
-                 <div style="font-size:0.62rem;color:#aaa;margin-bottom:6px;">/100 puntos</div>`
-            }
-            <div style="background:${calif.color};color:#fff;border-radius:5px;
-              padding:3px 10px;font-family:'Barlow Condensed',sans-serif;
-              font-size:0.78rem;font-weight:800;display:inline-block;margin-top:4px;">
-              ${calif.nivel}
-            </div>
-          </div>
-          <!-- Detalle benchmark -->
-          <div style="background:#f8fbf9;border:1.5px solid var(--border);border-radius:10px;padding:14px;">
-            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;
-              color:#888;font-weight:700;margin-bottom:8px;">Rango de Referencia PEMEX</div>
-            <!-- Barra de rango -->
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-              <div style="flex:1;height:10px;background:#e0e8e4;border-radius:5px;position:relative;">
-                <div style="position:absolute;left:0;top:0;height:100%;
-                  background:linear-gradient(90deg,#c0392b,#e67e22,#27ae60);
-                  border-radius:5px;opacity:0.3;width:100%;"></div>
-                <!-- Zona anómala alta -->
-                <div style="position:absolute;right:0;top:0;height:100%;width:15%;
-                  background:#7b1fa2;opacity:0.2;border-radius:0 5px 5px 0;"></div>
-                <!-- Marcador -->
-                <div style="position:absolute;top:-5px;
-                  left:${Math.min(95,Math.max(2,(avgRend/(calif.UMBRAL_ALTO*1.1))*100)).toFixed(0)}%;
-                  transform:translateX(-50%);
-                  width:20px;height:20px;border-radius:50%;
-                  background:${calif.color};border:2.5px solid #fff;
-                  box-shadow:0 2px 8px rgba(0,0,0,0.3);">
-                </div>
-              </div>
-            </div>
-            <!-- Valores clave -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;
-              gap:6px;margin-bottom:10px;font-size:0.62rem;text-align:center;">
-              <div>
-                <div style="color:#aaa;">⚠ Anómalo</div>
-                <div style="font-weight:800;color:#b71c1c;">&lt;${calif.UMBRAL_BAJO.toFixed(1)}</div>
-              </div>
-              <div>
-                <div style="color:#aaa;">Mín. esperado</div>
-                <div style="font-weight:800;color:#e67e22;">${calif.min}</div>
-              </div>
-              <div>
-                <div style="color:#aaa;">Máx. esperado</div>
-                <div style="font-weight:800;color:#27ae60;">${calif.max}</div>
-              </div>
-              <div>
-                <div style="color:#aaa;">⚠ Anómalo</div>
-                <div style="font-weight:800;color:#7b1fa2;">&gt;${calif.UMBRAL_ALTO.toFixed(1)}</div>
-              </div>
-            </div>
-            <!-- Promedio actual -->
-            <div style="text-align:center;margin-bottom:8px;">
-              <span style="font-size:0.62rem;color:#888;">Promedio actual: </span>
-              <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;
-                font-weight:900;color:${calif.color};">${avgRend.toFixed(2)} km/L</span>
-            </div>
-            <!-- Diagnóstico -->
-            <div style="background:${calif.anomaliaAlta?'#f3e5f5':calif.anomaliaBaja?'#ffebee':'#f0f7f4'};
-              border-radius:6px;padding:7px 10px;border-left:3px solid ${calif.color};
-              font-size:0.62rem;color:#444;line-height:1.5;">
-              ${calif.diagnostico}
-            </div>
-          </div>
-        </div>` : ''}`;
+        </div>`;
     }
   }
 
