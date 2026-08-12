@@ -11348,6 +11348,417 @@ function poblarReporteMensual() {
   const firmaEl = document.getElementById('rptMesFirmaNombre'); if(firmaEl && !firmaEl.value) firmaEl.value = usuario;
 }
 
+// ═══════════════════════════════════════════════════════════
+//  SUPER REPORTE — Todas las tarjetas del área en un PDF
+// ═══════════════════════════════════════════════════════════
+function abrirSuperReporte() {
+  if (!currentRows.length) { alert('Primero realice una búsqueda.'); return; }
+  const { mes } = rptContext;
+  if (!mes) { alert('Seleccione un mes específico antes de generar el Super Reporte.'); return; }
+
+  // Modal de contraseña administrador
+  let modal = document.getElementById('modalSuperReporte');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalSuperReporte';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:999999;'
+      +'background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);'
+      +'align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:14px;overflow:hidden;
+        width:380px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+        <div style="background:linear-gradient(135deg,#0d2137,#1565c0);
+          padding:20px 24px;display:flex;align-items:center;gap:14px;">
+          <div style="width:44px;height:44px;border-radius:50%;
+            background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.3);
+            display:flex;align-items:center;justify-content:center;font-size:1.4rem;">
+            📋
+          </div>
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;
+              font-weight:900;color:#fff;letter-spacing:0.05em;text-transform:uppercase;">
+              Super Reporte
+            </div>
+            <div style="font-size:0.68rem;color:rgba(255,255,255,0.6);margin-top:2px;">
+              SACISC · Acceso Administrador requerido
+            </div>
+          </div>
+        </div>
+        <div style="padding:22px 24px;">
+          <div style="background:#f0f4ff;border-radius:8px;padding:10px 14px;
+            margin-bottom:16px;border-left:3px solid #1565c0;">
+            <div style="font-size:0.75rem;color:#333;line-height:1.5;">
+              Generará un PDF con el reporte de <strong>todas las tarjetas</strong>
+              del área y mes seleccionados. Vehículos pickup/semipesados incluirán
+              la gráfica de rendimiento km/L.
+            </div>
+          </div>
+          <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.06em;color:#888;display:block;margin-bottom:5px;">
+            Contraseña Administrador
+          </label>
+          <input id="inputSuperRptPwd" type="password" placeholder="••••"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #d0d0d0;
+              border-radius:8px;padding:10px 14px;font-size:1rem;font-family:Inter,sans-serif;
+              outline:none;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='#1565c0'"
+            onblur="this.style.borderColor='#d0d0d0'"
+            onkeydown="if(event.key==='Enter') document.getElementById('btnGenSuperRpt').click()"/>
+          <div id="msgSuperRpt" style="font-size:0.7rem;color:#c0392b;
+            margin-top:6px;min-height:16px;font-weight:600;"></div>
+        </div>
+        <div style="padding:0 24px 20px;display:flex;gap:10px;">
+          <button onclick="document.getElementById('modalSuperReporte').style.display='none'"
+            style="flex:1;background:#f5f5f5;color:#555;border:none;border-radius:8px;
+              padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;
+              font-weight:700;text-transform:uppercase;cursor:pointer;">Cancelar</button>
+          <button id="btnGenSuperRpt"
+            style="flex:2;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;
+              border:none;border-radius:8px;padding:10px;
+              font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;
+              font-weight:800;text-transform:uppercase;cursor:pointer;">
+            📋 Generar Super Reporte
+          </button>
+        </div>
+        <div style="background:#f8fbf9;border-top:1px solid #e8f0ee;padding:9px 24px;
+          text-align:center;font-size:0.6rem;color:#aaa;">
+          PEMEX · URCS Sur · Módulo Combustibles
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  const inp = document.getElementById('inputSuperRptPwd');
+  const msg = document.getElementById('msgSuperRpt');
+  inp.value = ''; msg.textContent = '';
+  modal.style.display = 'flex';
+  setTimeout(() => inp.focus(), 80);
+
+  modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+
+  document.getElementById('btnGenSuperRpt').onclick = async () => {
+    if (String(inp.value).trim() !== '1111') {
+      msg.textContent = '❌ Contraseña incorrecta.';
+      inp.value = ''; inp.focus();
+      inp.style.borderColor = '#c0392b';
+      setTimeout(() => inp.style.borderColor = '#d0d0d0', 1200);
+      return;
+    }
+    modal.style.display = 'none';
+    await generarSuperReporte();
+  };
+}
+
+async function generarSuperReporte() {
+  const { mes, area } = rptContext;
+  const MESES_N = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
+  const PICKUP_TIPOS = ['PICK-UP / CAMIONETA','PICK-UP','PICKUP','CAMIONETA','SEMI PESADO',
+                        'SEMIPESADO','PICK UP','SEMI-PESADO'];
+
+  const fmt   = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const fmtI  = n => Number(n||0).toLocaleString('es-MX',{maximumFractionDigits:0});
+  const now   = new Date();
+
+  // Agrupar por tarjeta
+  const byTarjeta = {};
+  RAW.filter(r => Number(r.mes) === mes).forEach(r => {
+    const t = String(r.tarjeta||'').trim();
+    if (!t) return;
+    if (!byTarjeta[t]) byTarjeta[t] = {
+      tarjeta: t, usuario: '', placa: '', economico: '', inventario: '',
+      marca: '', subMarca: '', modelo: '', tipoVehiculo: '', clasificacion: '',
+      producto: '', area: '', montoAutorizado: 0, rows: []
+    };
+    const b = byTarjeta[t];
+    b.rows.push(r);
+    if (r.usuario)        b.usuario       = String(r.usuario).trim();
+    if (r.placa)          b.placa         = String(r.placa).trim();
+    if (r.economico)      b.economico     = String(r.economico).trim();
+    if (r.inventario)     b.inventario    = String(r.inventario).trim();
+    if (r.marca)          b.marca         = String(r.marca).trim();
+    if (r.subMarca)       b.subMarca      = String(r.subMarca).trim();
+    if (r.modelo)         b.modelo        = String(r.modelo).trim();
+    if (r.tipoVehiculo)   b.tipoVehiculo  = String(r.tipoVehiculo).trim();
+    if (r.clasificacion)  b.clasificacion = String(r.clasificacion||r.clasificacionTipo||'').trim();
+    if (r.producto)       b.producto      = String(r.producto).trim();
+    if (r.areaUsuaria)    b.area          = String(r.areaUsuaria).trim();
+    if (r.montoAutorizado) b.montoAutorizado = r.montoAutorizado;
+  });
+
+  // Filtrar por área del contexto actual si hay filtro
+  const areaFilt = currentRows.length ? String(currentRows[0].areaUsuaria||'').trim() : '';
+  const tarjetas = Object.values(byTarjeta)
+    .filter(b => !areaFilt || b.area === areaFilt)
+    .sort((a,b) => a.usuario.localeCompare(b.usuario));
+
+  if (!tarjetas.length) {
+    alert('No hay tarjetas con datos para el mes seleccionado en esta área.'); return;
+  }
+
+  const overlay = document.getElementById('pdfOverlay');
+  const msgEl   = document.getElementById('pdfMsg');
+  overlay.classList.add('active');
+
+  // Obtener LOGO base64 del reporte individual
+  const logoEl = document.querySelector('.rpt-exec-logo-block img');
+  const logoSrc = logoEl ? logoEl.src : '';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+    const PW = pdf.internal.pageSize.getWidth();
+    const PH = pdf.internal.pageSize.getHeight();
+    const M  = 12; // margen
+
+    let primeraPagina = true;
+
+    for (let ti = 0; ti < tarjetas.length; ti++) {
+      const b    = tarjetas[ti];
+      const rows = b.rows;
+      if (!rows.length) continue;
+
+      msgEl.textContent = `Generando ${ti+1} de ${tarjetas.length}: ${b.usuario||b.tarjeta}…`;
+
+      if (!primeraPagina) pdf.addPage();
+      primeraPagina = false;
+
+      const esPickup = PICKUP_TIPOS.some(t =>
+        b.tipoVehiculo.toUpperCase().includes(t) ||
+        b.clasificacion.toUpperCase().includes(t));
+
+      const totalLitros = rows.reduce((s,r)=>s+r.litros,0);
+      const totalDist   = rows.reduce((s,r)=>s+(r.distancia||0),0);
+      const avgRend     = rows.filter(r=>r.rendimiento>0).length
+        ? rows.filter(r=>r.rendimiento>0).reduce((s,r)=>s+r.rendimiento,0)/rows.filter(r=>r.rendimiento>0).length : 0;
+      const pctConsumo  = b.montoAutorizado>0 ? (totalLitros/b.montoAutorizado*100) : null;
+      const folio = 'SRP-'+now.getFullYear()+String(mes).padStart(2,'0')+'-'+String(ti+1).padStart(3,'0');
+
+      let y = M;
+
+      // ── ENCABEZADO ──────────────────────────────────────────────────────
+      // Franja verde
+      pdf.setFillColor(30,91,79);
+      pdf.roundedRect(M, y, PW-2*M, 22, 3, 3, 'F');
+
+      // Logo PEMEX (si disponible)
+      if (logoSrc && logoSrc.startsWith('data:image')) {
+        try { pdf.addImage(logoSrc,'JPEG',M+3,y+2,20,18); } catch(_) {}
+      }
+
+      // Título
+      pdf.setFont('helvetica','bold');
+      pdf.setFontSize(11); pdf.setTextColor(255,255,255);
+      pdf.text('PEMEX · URCS Sur', M+28, y+8);
+      pdf.setFontSize(8); pdf.setFont('helvetica','normal');
+      pdf.setTextColor(200,230,220);
+      pdf.text('Reporte Mensual de Consumo de Combustible', M+28, y+14);
+
+      // Folio y fecha
+      pdf.setFontSize(7); pdf.setTextColor(200,230,220);
+      pdf.text('Folio: '+folio, PW-M-50, y+8);
+      pdf.text(now.toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'}), PW-M-50, y+14);
+
+      y += 26;
+
+      // ── DATOS DEL USUARIO ────────────────────────────────────────────────
+      pdf.setFillColor(240,247,244);
+      pdf.roundedRect(M, y, PW-2*M, 22, 2, 2, 'F');
+      pdf.setDrawColor(200,220,215);
+      pdf.roundedRect(M, y, PW-2*M, 22, 2, 2, 'S');
+
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5); pdf.setTextColor(30,91,79);
+      const colW = (PW-2*M-6)/3;
+      const col1 = M+3, col2 = M+3+colW+3, col3 = M+3+2*(colW+3);
+
+      // Fila 1
+      pdf.text('USUARIO', col1, y+6);
+      pdf.text('TARJETA', col2, y+6);
+      pdf.text('PERÍODO', col3, y+6);
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(50,50,50);
+      pdf.text(b.usuario||'—', col1, y+11);
+      pdf.text(b.tarjeta||'—', col2, y+11);
+      pdf.text(MESES_N[mes]||'—', col3, y+11);
+      // Fila 2
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(7.5); pdf.setTextColor(30,91,79);
+      pdf.text('PLACA', col1, y+17);
+      pdf.text('ECONÓMICO', col2, y+17);
+      pdf.text('ÁREA USUARIA', col3, y+17);
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(50,50,50);
+      pdf.text(b.placa||'—', col1, y+22);
+      pdf.text(b.economico||'—', col2, y+22);
+      pdf.text(b.area||'—', col3, y+22);
+      y += 26;
+
+      // ── INFO VEHÍCULO ────────────────────────────────────────────────────
+      pdf.setFillColor(248,250,249);
+      pdf.roundedRect(M, y, PW-2*M, 14, 2, 2, 'F');
+      const vehicW = (PW-2*M-10)/5;
+      const vehs = [
+        ['MARCA', b.marca||'—'], ['SUBMARCA', b.subMarca||'—'],
+        ['MODELO', b.modelo||'—'], ['TIPO', b.tipoVehiculo||'—'],
+        ['INVENTARIO', b.inventario||'—']
+      ];
+      vehs.forEach(([lbl,val],vi) => {
+        const vx = M+3 + vi*(vehicW+2);
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(6.5); pdf.setTextColor(30,91,79);
+        pdf.text(lbl, vx, y+5);
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5); pdf.setTextColor(50,50,50);
+        pdf.text(String(val).substring(0,14), vx, y+10);
+      });
+      y += 18;
+
+      // ── KPIs ─────────────────────────────────────────────────────────────
+      const kpis = [
+        { lbl:'Cargas', val:String(rows.length), col:[30,91,79] },
+        { lbl:'Litros consumidos', val:fmt(totalLitros)+' L', col:[21,101,192] },
+        { lbl:'Autorizado', val:fmt(b.montoAutorizado)+' L', col:[100,100,100] },
+        { lbl:'% Consumo', val: pctConsumo ? pctConsumo.toFixed(1)+'%' : '—',
+          col: pctConsumo && pctConsumo>100 ? [30,91,79] : pctConsumo && pctConsumo>=80 ? [230,126,34] : [192,57,43] },
+        { lbl:'Distancia total', val:fmtI(totalDist)+' km', col:[130,80,0] },
+        { lbl:'Rend. promedio', val:avgRend>0 ? avgRend.toFixed(2)+' km/L' : '—', col:[30,91,79] },
+      ];
+      const kpiW = (PW-2*M-5*3)/6;
+      kpis.forEach((k,ki) => {
+        const kx = M + ki*(kpiW+3);
+        pdf.setFillColor(...k.col.map(c=>Math.max(0,c-180+240)));
+        pdf.roundedRect(kx, y, kpiW, 16, 2, 2, 'F');
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(6); pdf.setTextColor(...k.col);
+        pdf.text(k.lbl, kx+2, y+5);
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5); pdf.setTextColor(...k.col);
+        pdf.text(k.val, kx+2, y+12);
+      });
+      y += 20;
+
+      // ── TABLA DE CARGAS ──────────────────────────────────────────────────
+      pdf.setFontSize(7.5); pdf.setFont('helvetica','bold');
+      pdf.setFillColor(30,91,79); pdf.setTextColor(255,255,255);
+      const tW = PW-2*M;
+      const cols = [8,16,13,32,14,14,16,16,16]; // anchos columnas
+      const hdrs = ['#','Fecha','Hora','Estación','Prod.','Litros','Rend.','Odom.Ini','Km'];
+      let cx = M;
+      pdf.rect(M, y, tW, 7, 'F');
+      hdrs.forEach((h,hi) => {
+        pdf.text(h, cx+1, y+5);
+        cx += cols[hi];
+      });
+      y += 7;
+
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
+      rows.forEach((r,ri) => {
+        if (y > PH - M - 20) { pdf.addPage(); y = M; }
+        const bg = ri%2===0 ? [248,251,249] : [255,255,255];
+        pdf.setFillColor(...bg);
+        pdf.rect(M, y, tW, 6, 'F');
+        pdf.setTextColor(50,50,50);
+        const estNom = EST_NOM[String(r.estacion||'').trim().replace(/\.0$/,'').replace(/^E0*/,'')] || String(r.estacion||'—');
+        const cells = [
+          String(ri+1), String(r.fecha||'—').substring(0,10),
+          String(r.hora||'—').substring(0,5), estNom.substring(0,18),
+          String(r.producto||'—').substring(0,7),
+          fmt(r.litros||0),
+          r.rendimiento>0 ? r.rendimiento.toFixed(1) : '—',
+          fmtI(r.odometroInicial||0),
+          fmtI(r.distancia||0)
+        ];
+        cx = M;
+        cells.forEach((c,ci) => {
+          pdf.text(String(c).substring(0,14), cx+1, y+4.5);
+          cx += cols[ci];
+        });
+        y += 6;
+      });
+
+      // Línea separadora
+      pdf.setDrawColor(200,220,215);
+      pdf.line(M, y+2, PW-M, y+2);
+      y += 6;
+
+      // ── GRÁFICA RENDIMIENTO (solo pickup/semipesado) ─────────────────────
+      if (esPickup && avgRend > 0) {
+        if (y > PH - M - 60) { pdf.addPage(); y = M; }
+
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(8); pdf.setTextColor(30,91,79);
+        pdf.text('Rendimiento Diario del Mes (km/L)', M, y+5);
+        y += 8;
+
+        // Generar mini-gráfica SVG → canvas → imagen
+        const rendPorDia = {};
+        rows.forEach(r => {
+          const f = String(r.fecha||'').split('T')[0];
+          const p = f.includes('-') ? f.split('-') : f.split('/').reverse();
+          const d = parseInt(p[2]||0);
+          if (d>0 && r.rendimiento>0) {
+            if (!rendPorDia[d]) rendPorDia[d] = [];
+            rendPorDia[d].push(r.rendimiento);
+          }
+        });
+        const dias = Object.keys(rendPorDia).map(Number).sort((a,b)=>a-b);
+        const rendVals = dias.map(d => rendPorDia[d].reduce((s,v)=>s+v,0)/rendPorDia[d].length);
+        const maxR = Math.max(...rendVals,1);
+
+        if (dias.length > 0) {
+          // Canvas temporal para la mini-gráfica
+          const gc = document.createElement('canvas');
+          gc.width = 700; gc.height = 200;
+          const gctx = gc.getContext('2d');
+          gctx.fillStyle = '#f8fbf9'; gctx.fillRect(0,0,700,200);
+          const gW=680, gH=160, gX=20, gY=20;
+          // Ejes
+          gctx.strokeStyle='#c0d0c8'; gctx.lineWidth=1;
+          gctx.beginPath(); gctx.moveTo(gX,gY); gctx.lineTo(gX,gY+gH); gctx.lineTo(gX+gW,gY+gH); gctx.stroke();
+          // Barras
+          const bW = Math.max(4, Math.min(30, gW/Math.max(dias.length,1)-4));
+          dias.forEach((d,di) => {
+            const bH = rendVals[di]/maxR*gH;
+            const bX = gX + di*(gW/dias.length) + (gW/dias.length - bW)/2;
+            const col = rendVals[di]>=10?'#27ae60':rendVals[di]>=6?'#e67e22':'#c0392b';
+            gctx.fillStyle=col;
+            gctx.fillRect(bX, gY+gH-bH, bW, bH);
+            // Etiqueta día
+            gctx.fillStyle='#666'; gctx.font='9px Arial';
+            gctx.fillText(String(d), bX+bW/2-4, gY+gH+12);
+          });
+          // Línea promedio
+          gctx.strokeStyle='#1e5b4f'; gctx.lineWidth=2; gctx.setLineDash([6,4]);
+          const avgY = gY+gH - (avgRend/maxR*gH);
+          gctx.beginPath(); gctx.moveTo(gX,avgY); gctx.lineTo(gX+gW,avgY); gctx.stroke();
+          gctx.setLineDash([]);
+          gctx.fillStyle='#1e5b4f'; gctx.font='bold 9px Arial';
+          gctx.fillText('Prom: '+avgRend.toFixed(2)+' km/L', gX+gW-90, avgY-3);
+
+          const gImg = gc.toDataURL('image/png');
+          const gH_pdf = 35; const gW_pdf = PW-2*M;
+          if (y+gH_pdf > PH-M) { pdf.addPage(); y=M; }
+          pdf.addImage(gImg,'PNG',M,y,gW_pdf,gH_pdf);
+          y += gH_pdf+4;
+        }
+      }
+
+      // ── PIE DE PÁGINA ────────────────────────────────────────────────────
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5);
+      pdf.setTextColor(150,150,150);
+      pdf.text('SACISC · Módulo Combustibles · PEMEX URCS Sur · '+folio+
+        ' · Generado: '+now.toLocaleString('es-MX'), M, PH-8);
+      pdf.setFont('helvetica','italic'); pdf.setFontSize(6);
+      pdf.setTextColor(180,180,180);
+      pdf.text('Desarrollado por Ing. Ángel Pérez Chávez · SSAB-GSG · F-383573', M, PH-4);
+    }
+
+    msgEl.textContent = 'Guardando PDF…';
+    await new Promise(r => setTimeout(r,200));
+    const area_ = areaFilt || 'Area';
+    pdf.save('SuperReporte_'+area_.replace(/\s+/g,'_')+'_'+(MESES_N[mes]||mes)+'_'+now.getFullYear()+'.pdf');
+
+  } catch(err) {
+    alert('Error al generar Super Reporte: '+err.message);
+    console.error(err);
+  } finally {
+    overlay.classList.remove('active');
+  }
+}
+
 async function exportarReporteMensualPDF() {
   if (!currentRows.length) { alert('Primero realice una búsqueda.'); return; }
   poblarReporteMensual();
@@ -12510,29 +12921,166 @@ function poblarMenFiltros(rows) {
   poblarMenAreas(rows, selGer.value);
 }
 
+// ── Multi-select de Áreas — Panel Mensual ─────────────────────────────
+function toggleMenAreaDrop() {
+  const d = document.getElementById('menAreaDropList');
+  if (d) d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('menAreaDropWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const d = document.getElementById('menAreaDropList');
+    if (d) d.style.display = 'none';
+  }
+});
+function getMenAreasSeleccionadas() {
+  return [...document.querySelectorAll('#menAreaChkList input[type=checkbox]:checked')]
+    .map(c => c.value);
+}
+function actualizarMenAreaLabel() {
+  const sel = getMenAreasSeleccionadas();
+  const lbl = document.getElementById('menAreaDropLabel');
+  if (!lbl) return;
+  if (sel.length === 0) lbl.textContent = 'Todas las Áreas';
+  else if (sel.length === 1) lbl.textContent = sel[0];
+  else lbl.textContent = sel.length + ' áreas seleccionadas';
+}
+function menAreaSelAll() {
+  const chkAll = document.getElementById('menAreaChkAll');
+  const all = document.querySelectorAll('#menAreaChkList input[type=checkbox]');
+  all.forEach(c => c.checked = chkAll?.checked || false);
+  actualizarMenAreaLabel();
+  renderExecMensualDrill();
+}
+
 function poblarMenAreas(rows, ger) {
   const rowsGer = ger ? rows.filter(r => String(r.gerencia||'').trim() === ger) : rows;
   const areas   = [...new Set(rowsGer.map(r => String(r.areaUsuaria||'').trim()).filter(Boolean))].sort();
-  const selArea = document.getElementById('menDrillArea');
-  const prevArea = selArea?.value || '';
-  if (selArea) {
-    selArea.innerHTML = '<option value="">Todas las Áreas</option>';
-    areas.forEach(a => {
-      const o = document.createElement('option');
-      o.value = a; o.textContent = a;
-      if (a === prevArea) o.selected = true;
-      selArea.appendChild(o);
-    });
-  }
+  const list    = document.getElementById('menAreaChkList');
+  if (!list) return;
+  const prevSel = getMenAreasSeleccionadas();
+  list.innerHTML = areas.map(a => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;
+      cursor:pointer;font-size:0.75rem;font-weight:500;color:#333;
+      transition:background 0.1s;" 
+      onmouseover="this.style.background='#f0f7f4'"
+      onmouseout="this.style.background=''">
+      <input type="checkbox" value="${a}" style="accent-color:var(--green-dark);"
+        ${prevSel.includes(a)?'checked':''} onchange="actualizarMenAreaLabel();renderExecMensualDrill()">
+      ${a}
+    </label>`).join('');
+  actualizarMenAreaLabel();
 }
 
 function getMenDrillRows(rows) {
-  const ger  = document.getElementById('menDrillGer')?.value  || '';
-  const area = document.getElementById('menDrillArea')?.value || '';
+  const ger   = document.getElementById('menDrillGer')?.value || '';
+  const areas = getMenAreasSeleccionadas();
   let r = rows;
-  if (ger)  r = r.filter(x => String(x.gerencia||'').trim()   === ger);
-  if (area) r = r.filter(x => String(x.areaUsuaria||'').trim() === area);
+  if (ger)          r = r.filter(x => String(x.gerencia||'').trim() === ger);
+  if (areas.length) r = r.filter(x => areas.includes(String(x.areaUsuaria||'').trim()));
   return r;
+}
+
+function renderExecMensual(rows, TT) {
+  const areas = getMenAreasSeleccionadas();
+  const meses = [...new Set(rows.map(r => Number(r.mes)).filter(Boolean))].sort((a,b)=>a-b);
+  const labels = meses.map(m => MESES_NAMES[m]||('Mes '+m));
+
+  const PALETTE = ['#1e5b4f','#e67e22','#1565c0','#c0392b','#8e44ad','#27ae60','#d35400','#2980b9','#16a085','#f39c12'];
+
+  // Si hay múltiples áreas seleccionadas → serie por área
+  const multiArea = areas.length > 1;
+  let datasets = [];
+  let totalLitrosMen = 0, totalKmsMen = 0;
+
+  if (multiArea) {
+    // Una barra/línea por área seleccionada
+    areas.forEach((area, idx) => {
+      const rowsArea = rows.filter(r => String(r.areaUsuaria||'').trim() === area);
+      const litros   = meses.map(m => parseFloat(rowsArea.filter(r=>Number(r.mes)===m).reduce((s,r)=>s+r.litros,0).toFixed(1)));
+      const col = PALETTE[idx % PALETTE.length];
+      datasets.push({ type:'bar', label:area, data:litros,
+        backgroundColor:col+'bb', borderColor:col, borderWidth:2, borderRadius:4, order:2 });
+      totalLitrosMen += litros.reduce((s,v)=>s+v,0);
+    });
+  } else {
+    // Una sola serie (todas o una área)
+    const litrosMes = meses.map(m => parseFloat(rows.filter(r=>Number(r.mes)===m).reduce((s,r)=>s+r.litros,0).toFixed(1)));
+    const avgL = litrosMes.length ? litrosMes.reduce((s,v)=>s+v,0)/litrosMes.length : 0;
+    totalLitrosMen = litrosMes.reduce((s,v)=>s+v,0);
+    const ctx0 = document.getElementById('execChartMenLitros').getContext('2d');
+    const grad = ctx0.createLinearGradient(0,0,0,280);
+    grad.addColorStop(0,'#1e5b4f55'); grad.addColorStop(1,'#1e5b4f08');
+    datasets = [
+      { type:'bar', label:'Litros', data:litrosMes, backgroundColor:'#1e5b4fbb', borderColor:'#1e5b4f', borderWidth:2, borderRadius:6, order:2 },
+      { type:'line', label:`Promedio: ${avgL.toLocaleString('es-MX',{maximumFractionDigits:0})} L`,
+        data:new Array(labels.length).fill(parseFloat(avgL.toFixed(1))),
+        borderColor:'#f1c40f', backgroundColor:'transparent',
+        borderWidth:2.5, borderDash:[8,5], pointRadius:0, tension:0, fill:false, order:1 }
+    ];
+  }
+
+  // Destruir y recrear gráfica de litros
+  execCharts = execCharts.filter(c => {
+    if (c.canvas?.id === 'execChartMenLitros') { c.destroy(); return false; }
+    return true;
+  });
+  const ctx = document.getElementById('execChartMenLitros').getContext('2d');
+  execCharts.push(new Chart(ctx, {
+    data:{ labels, datasets },
+    options:{ responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ display:true, position:'top',
+        labels:{ color:'#444', font:{ family:"'Barlow',sans-serif", size:11 }, usePointStyle:true }},
+        tooltip:{ ...TT, callbacks:{ label: i =>
+          ` ${i.raw?.toLocaleString('es-MX',{minimumFractionDigits:1})} L — ${i.dataset.label}`
+        }}},
+      scales:{ y:{ stacked:false, grid:{ color:'rgba(0,0,0,0.05)' },
+          ticks:{ color:'#555', font:{size:10}, callback:v=>v.toLocaleString('es-MX')+' L' }},
+        x:{ grid:{ color:'rgba(0,0,0,0.04)' },
+          ticks:{ color:'var(--green-dark)', font:{ family:"'Barlow Condensed',sans-serif", size:13, weight:'700' }}}}
+    }
+  }));
+
+  const tarjetasInvol = new Set(rows.map(r=>String(r.tarjeta||'').trim()).filter(Boolean)).size;
+  document.getElementById('execMenStatL').innerHTML =
+    `<span style="font-size:0.78rem;opacity:0.75;">Total:</span> ${totalLitrosMen.toLocaleString('es-MX',{minimumFractionDigits:1})} L&nbsp;&nbsp;<span style="font-size:0.75rem;background:var(--green-mid);color:#fff;border-radius:5px;padding:1px 6px;font-weight:700;">${tarjetasInvol} tarjetas</span>`;
+
+  // Gráfica de km (solo si no es multi-área y es vehículos)
+  const tipoMen = document.getElementById('efTipo')?.value || '';
+  const soloVehMen = tipoMen === 'vehiculos';
+  const boxKm = document.getElementById('execChartMenKm')?.closest('.exec-chart-box');
+  execCharts = execCharts.filter(c => {
+    if (c.canvas?.id === 'execChartMenKm') { c.destroy(); return false; }
+    return true;
+  });
+  if (soloVehMen && !multiArea) {
+    if (boxKm) boxKm.style.display = '';
+    const kmsMes = meses.map(m=>Math.round(rows.filter(r=>Number(r.mes)===m).reduce((s,r)=>s+r.distancia,0)));
+    const avgK   = kmsMes.length ? kmsMes.reduce((s,v)=>s+v,0)/kmsMes.length : 0;
+    totalKmsMen  = kmsMes.reduce((s,v)=>s+v,0);
+    const ctxK   = document.getElementById('execChartMenKm').getContext('2d');
+    execCharts.push(new Chart(ctxK, {
+      data:{ labels, datasets:[
+        { type:'bar', label:'Km', data:kmsMes, backgroundColor:'#e67e22bb', borderColor:'#e67e22', borderWidth:2, borderRadius:6, order:2 },
+        { type:'line', label:`Promedio: ${avgK.toLocaleString('es-MX',{maximumFractionDigits:0})} km`,
+          data:new Array(labels.length).fill(parseFloat(avgK.toFixed(1))),
+          borderColor:'#f1c40f', backgroundColor:'transparent',
+          borderWidth:2.5, borderDash:[8,5], pointRadius:0, tension:0, fill:false, order:1 }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        interaction:{ mode:'index', intersect:false },
+        plugins:{ legend:{ display:true, position:'top', labels:{ color:'#444', font:{ family:"'Barlow',sans-serif", size:11 }, usePointStyle:true }},
+          tooltip:{ ...TT, callbacks:{ label: i => i.datasetIndex===0 ? ` ${i.raw?.toLocaleString('es-MX')} km` : ` Promedio: ${i.raw?.toLocaleString('es-MX',{maximumFractionDigits:0})} km` }}},
+        scales:{ y:{ grid:{ color:'rgba(0,0,0,0.05)' }, ticks:{ color:'#555', font:{size:10}, callback:v=>v.toLocaleString('es-MX')+' km' }},
+          x:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ color:'var(--green-dark)', font:{ family:"'Barlow Condensed',sans-serif", size:13, weight:'700' }}}}
+      }
+    }));
+    document.getElementById('execMenStatK').innerHTML =
+      `<span style="font-size:0.78rem;opacity:0.75;">Total:</span> ${totalKmsMen.toLocaleString('es-MX')} km&nbsp;&nbsp;<span style="font-size:0.75rem;background:#e67e22;color:#fff;border-radius:5px;padding:1px 6px;font-weight:700;">${tarjetasInvol} tarjetas</span>`;
+  } else {
+    if (boxKm) boxKm.style.display = 'none';
+  }
 }
 
 function onMenDrillGerChange() {
@@ -12577,59 +13125,6 @@ function renderExecMensualDrill() {
   renderExecMensual(drillRows, TT);
 }
 
-function renderExecMensual(rows, TT) {
-  const meses = [...new Set(rows.map(r => Number(r.mes)).filter(Boolean))].sort((a,b) => a-b);
-  const labels = meses.map(m => MESES_NAMES[m]||('Mes '+m));
-  const litrosMes = meses.map(m => parseFloat(rows.filter(r=>Number(r.mes)===m).reduce((s,r)=>s+r.litros,0).toFixed(1)));
-  const kmsMes    = meses.map(m => Math.round(rows.filter(r=>Number(r.mes)===m).reduce((s,r)=>s+r.distancia,0)));
-  const avgL = litrosMes.length ? litrosMes.reduce((s,v)=>s+v,0) / litrosMes.length : 0;
-  const avgK = kmsMes.length    ? kmsMes.reduce((s,v)=>s+v,0)    / kmsMes.length    : 0;
-
-  const mkChart = (canvasId, data, avg, color, unit, statId) => {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    const grad = ctx.createLinearGradient(0,0,0,280);
-    grad.addColorStop(0, color+'55'); grad.addColorStop(1, color+'08');
-    execCharts.push(new Chart(ctx, {
-      data:{ labels, datasets:[
-        { type:'bar', label:unit==='L'?'Litros':'Km', data,
-          backgroundColor: color+'bb', borderColor:color, borderWidth:2, borderRadius:6, order:2 },
-        { type:'line', label:`Promedio: ${avg.toLocaleString('es-MX',{maximumFractionDigits:0})} ${unit}`,
-          data: new Array(labels.length).fill(parseFloat(avg.toFixed(1))),
-          borderColor:'#f1c40f', backgroundColor:'transparent',
-          borderWidth:2.5, borderDash:[8,5], pointRadius:0, tension:0, fill:false, order:1 }
-      ]},
-      options:{ responsive:true, maintainAspectRatio:false,
-        interaction:{ mode:'index', intersect:false },
-        plugins:{ legend:{ display:true, position:'top', labels:{ color:'#444', font:{ family:"'Barlow',sans-serif", size:11 }, usePointStyle:true }},
-          tooltip:{ ...TT, callbacks:{ label: i => i.datasetIndex===0 ? ` ${i.raw.toLocaleString('es-MX',{minimumFractionDigits: unit==='L'?1:0})} ${unit}` : ` Promedio: ${i.raw.toLocaleString('es-MX',{maximumFractionDigits:0})} ${unit}` }}},
-        scales:{ y:{ grid:{ color:'rgba(0,0,0,0.05)' }, ticks:{ color:'#555', font:{size:10}, callback:v=>v.toLocaleString('es-MX')+' '+unit }},
-          x:{ grid:{ color:'rgba(0,0,0,0.04)' }, ticks:{ color:'var(--green-dark)', font:{ family:"'Barlow Condensed',sans-serif", size:13, weight:'700' }}}}}
-    }));
-    document.getElementById(statId).textContent = `Promedio: ${avg.toLocaleString('es-MX',{maximumFractionDigits:0})} ${unit}`;
-  };
-
-  // Totales acumulados para los headers
-  const totalLitrosMen = litrosMes.reduce((s,v) => s+v, 0);
-  const totalKmsMen    = kmsMes.reduce((s,v) => s+v, 0);
-  const tarjetasInvol  = new Set(rows.map(r => String(r.tarjeta||'').trim()).filter(Boolean)).size;
-
-  const tipoMen = document.getElementById('efTipo')?.value || '';
-  const soloVehMen = tipoMen === 'vehiculos';
-  const boxKm = document.getElementById('execChartMenKm')?.closest('.exec-chart-box');
-
-  mkChart('execChartMenLitros', litrosMes, avgL, '#1e5b4f', 'L', 'execMenStatL');
-  document.getElementById('execMenStatL').innerHTML =
-    `<span style="font-size:0.78rem;opacity:0.75;">Total:</span> ${totalLitrosMen.toLocaleString('es-MX',{minimumFractionDigits:1})} L&nbsp;&nbsp;<span style="font-size:0.75rem;background:var(--green-mid);color:#fff;border-radius:5px;padding:1px 6px;font-weight:700;">${tarjetasInvol} tarjetas</span>`;
-
-  if (soloVehMen) {
-    if (boxKm) boxKm.style.display = '';
-    mkChart('execChartMenKm', kmsMes, avgK, '#e67e22', 'km', 'execMenStatK');
-    document.getElementById('execMenStatK').innerHTML =
-      `<span style="font-size:0.78rem;opacity:0.75;">Total:</span> ${totalKmsMen.toLocaleString('es-MX')} km&nbsp;&nbsp;<span style="font-size:0.75rem;background:#e67e22;color:#fff;border-radius:5px;padding:1px 6px;font-weight:700;">${tarjetasInvol} tarjetas</span>`;
-  } else {
-    if (boxKm) boxKm.style.display = 'none';
-  }
-}
 
 // ── Ranking ───────────────────────────────────────────────────────────
 function renderExecRanking(rows) {
@@ -14168,6 +14663,8 @@ function renderExecDesglosado(rows) {
       tarjeta:      t,
       placa:        String(r.placa||'').trim(),
       usuario:      String(r.usuario||'').trim(),
+      inventario:   String(r.inventario||'').trim(),
+      economico:    String(r.economico||'').trim(),
       clasificacion:String(r.clasificacionTipo||r.clasificacion||'').trim(),
       marca:        String(r.marca||'').trim(),
       subMarca:     String(r.subMarca||'').trim(),
@@ -14189,10 +14686,12 @@ function renderExecDesglosado(rows) {
     byTarjeta[t].rendSum   += r.rendimiento;
     byTarjeta[t].cargas++;
     // Actualizar campos con el último valor no vacío
-    if (r.placa)      byTarjeta[t].placa    = String(r.placa).trim();
-    if (r.usuario)    byTarjeta[t].usuario  = String(r.usuario).trim();
-    if (r.gerencia)   byTarjeta[t].gerencia = String(r.gerencia).trim();
-    if (r.areaUsuaria)byTarjeta[t].area     = String(r.areaUsuaria).trim();
+    if (r.placa)        byTarjeta[t].placa      = String(r.placa).trim();
+    if (r.usuario)      byTarjeta[t].usuario    = String(r.usuario).trim();
+    if (r.inventario)   byTarjeta[t].inventario = String(r.inventario).trim();
+    if (r.economico)    byTarjeta[t].economico  = String(r.economico).trim();
+    if (r.gerencia)     byTarjeta[t].gerencia   = String(r.gerencia).trim();
+    if (r.areaUsuaria)  byTarjeta[t].area       = String(r.areaUsuaria).trim();
   });
 
   const lista = Object.values(byTarjeta).sort((a,b) => b.litros - a.litros);
@@ -14216,6 +14715,8 @@ function renderExecDesglosado(rows) {
       <td class="bold">${t.tarjeta}</td>
       <td class="mono">${t.placa||'—'}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.usuario}">${t.usuario||'—'}</td>
+      <td class="muted">${t.inventario||'—'}</td>
+      <td class="muted">${t.economico||'—'}</td>
       <td class="muted">${t.clasificacion||'—'}</td>
       <td class="muted">${t.marca||'—'}</td>
       <td class="muted">${t.modelo||'—'}</td>
@@ -20883,6 +21384,21 @@ function renderPronostico() {
         <button class="rpt-btn rpt-btn-pdf" onclick="exportarReporteMensualPDF()" title="Exportar PDF">
           <svg width="20" height="20" viewBox="0 0 32 32"><path d="M6 2L22 2L28 8L28 30L6 30Z" fill="#e53935"/><path d="M22 2L22 8L28 8Z" fill="#b71c1c"/><text x="9" y="22" font-family="Arial" font-size="8" font-weight="900" fill="#fff">PDF</text></svg>
         </button>
+        <button class="rpt-btn" onclick="abrirSuperReporte()"
+          title="Super Reporte — Todas las tarjetas del área"
+          style="background:linear-gradient(135deg,#1565c0,#1976d2);border:none;
+            border-radius:8px;padding:6px 12px;cursor:pointer;display:flex;
+            align-items:center;gap:5px;font-family:'Barlow Condensed',sans-serif;
+            font-size:0.8rem;font-weight:800;color:#fff;letter-spacing:0.04em;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          SUPER REPORTE
+        </button>
         <button class="rpt-btn rpt-btn-close" onclick="cerrarReporteMensual()">✕</button>
       </div>
     </div>
@@ -21310,10 +21826,32 @@ function renderPronostico() {
         </div>
         <div class="exec-filter-item" id="menDrillAreaWrap">
           <span class="exec-filter-label">Área Usuaria</span>
-          <select id="menDrillArea" class="exec-filter-select"
-            onchange="renderExecMensualDrill()" style="min-width:160px;">
-            <option value="">Todas las Áreas</option>
-          </select>
+          <!-- Multi-select con dropdown de checkboxes -->
+          <div id="menAreaDropWrap" style="position:relative;min-width:200px;">
+            <button id="menAreaDropBtn" onclick="toggleMenAreaDrop()"
+              style="width:100%;background:#fff;border:1.5px solid var(--border);border-radius:8px;
+                padding:6px 12px;font-family:Inter,sans-serif;font-size:0.78rem;font-weight:600;
+                color:var(--green-dark);cursor:pointer;display:flex;align-items:center;
+                justify-content:space-between;gap:8px;text-align:left;">
+              <span id="menAreaDropLabel">Todas las Áreas</span>
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"
+                viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div id="menAreaDropList"
+              style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:9999;
+                background:#fff;border:1.5px solid var(--border);border-radius:10px;
+                box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:220px;max-height:260px;
+                overflow-y:auto;padding:6px 0;">
+              <label style="display:flex;align-items:center;gap:8px;padding:7px 14px;
+                cursor:pointer;font-size:0.75rem;border-bottom:1px solid #f0f0f0;
+                font-weight:700;color:var(--green-dark);"
+                onclick="menAreaSelAll()">
+                <input type="checkbox" id="menAreaChkAll" style="accent-color:var(--green-dark);">
+                Todas las Áreas
+              </label>
+              <div id="menAreaChkList"></div>
+            </div>
+          </div>
         </div>
         <div style="margin-left:auto;align-self:flex-end;">
           <span id="menDrillBadge" style="font-family:'Barlow Condensed',sans-serif;
@@ -21474,6 +22012,7 @@ function renderPronostico() {
           <thead><tr>
             <th style="text-align:center;">#</th>
             <th>Tarjeta</th><th>Placa</th><th>Usuario</th>
+            <th>Inventario</th><th>No. Económico</th>
             <th>Clasificación</th><th>Marca</th><th>Modelo</th><th>Tenencia</th><th>Producto</th>
             <th>Subdirección</th><th>Gerencia</th><th>Área Usuaria</th>
             <th style="text-align:right;">Litros</th>
