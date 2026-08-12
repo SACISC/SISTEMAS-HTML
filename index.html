@@ -11501,10 +11501,17 @@ async function generarSuperReporte() {
   const AZUL      = [21,101,192];
 
   try {
+    if (!window.jspdf) { alert('Error: librería jsPDF no disponible.'); overlay.classList.remove('active'); return; }
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});
     const PW=pdf.internal.pageSize.getWidth(), PH=pdf.internal.pageSize.getHeight();
     const M=12, CW=PW-2*M;
+
+    const setVerde  = () => pdf.setFillColor(30,91,79);
+    const setVerdeM = () => pdf.setFillColor(45,158,126);
+    const setGrisL  = () => pdf.setFillColor(245,250,248);
+    const setBlanco = () => pdf.setFillColor(255,255,255);
+    const setTotal  = () => pdf.setFillColor(220,240,235);
 
     const drawPage = (b, idx) => {
       const rows=b.rows;
@@ -11519,7 +11526,7 @@ async function generarSuperReporte() {
       let y=M;
 
       // ── Encabezado ──────────────────────────────────────────────────
-      pdf.setFillColor(...VERDE_OSC);
+      pdf.setFillColor(30,91,79);
       pdf.roundedRect(M,y,CW,18,2,2,'F');
       pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(255,255,255);
       pdf.text('PEMEX  ·  URCS Sur  ·  Módulo Combustibles',M+5,y+7);
@@ -11533,7 +11540,7 @@ async function generarSuperReporte() {
       y+=22;
 
       // ── Banda usuario ────────────────────────────────────────────────
-      pdf.setFillColor(...VERDE_MED);
+      pdf.setFillColor(45,158,126);
       pdf.roundedRect(M,y,CW,22,2,2,'F');
       pdf.setFont('helvetica','bold'); pdf.setFontSize(6.5); pdf.setTextColor(200,240,230);
       pdf.text('TITULAR',M+5,y+6);
@@ -11562,7 +11569,7 @@ async function generarSuperReporte() {
       const vcw=CW/vehic.length;
       vehic.forEach(([val,lbl],vi)=>{
         const vx=M+vi*vcw+3;
-        pdf.setFont('helvetica','bold'); pdf.setFontSize(6); pdf.setTextColor(...VERDE_OSC);
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(6); pdf.setTextColor(30,91,79);
         pdf.text(lbl,vx,y+5);
         pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5); pdf.setTextColor(40,40,40);
         pdf.text(String(val).substring(0,12),vx,y+10.5);
@@ -11570,17 +11577,17 @@ async function generarSuperReporte() {
       y+=17;
 
       // ── KPIs ─────────────────────────────────────────────────────────
-      const pctCol=pctConsumo===null?[100,100,100]:pctConsumo>100?[...VERDE_OSC]:pctConsumo>=80?[...NARANJA]:[39,174,96];
+      const pctCol=pctConsumo===null?[100,100,100]:pctConsumo>100?[30,91,79]:pctConsumo>=80?[192,99,42]:[39,174,96];
       const kpis=[
-        {l:'CARGAS',v:String(rows.length),u:'',s:'transacciones',c:VERDE_OSC},
-        {l:'LITROS CONSUMIDOS',v:fmt(totalLitros),u:' L',s:'consumo total',c:AZUL},
+        {l:'CARGAS',v:String(rows.length),u:'',s:'transacciones',c:[30,91,79]},
+        {l:'LITROS CONSUMIDOS',v:fmt(totalLitros),u:' L',s:'consumo total',c:[21,101,192]},
         {l:'AUTORIZADO',v:fmt(b.montoAutorizado),u:' L',s:'monto mensual',c:[80,80,80]},
         {l:'% CONSUMO',v:pctConsumo!==null?pctConsumo.toFixed(1)+'%':'—',u:'',
           s:pctConsumo!==null&&pctConsumo>100?'Dispersión autori.':'del autorizado',c:pctCol},
         {l:'DISTANCIA',v:fmtI(totalDist),u:' km',s:'recorridos',c:NARANJA},
         ...(esPickup&&avgRend>0?[{l:'REND. PROMEDIO',v:avgRend.toFixed(2),u:' km/L',
           s:avgRend>=10?'Óptimo':avgRend>=6?'Regular':'Bajo',
-          c:avgRend>=10?[39,174,96]:avgRend>=6?[...NARANJA]:[192,57,43]}]:[])
+          c:avgRend>=10?[39,174,96]:avgRend>=6?[192,99,42]:[192,57,43]}]:[])
       ];
       const kw=(CW-(kpis.length-1)*2)/kpis.length;
       kpis.forEach((k,ki)=>{
@@ -11588,12 +11595,12 @@ async function generarSuperReporte() {
         // Fondo
         pdf.setFillColor(248,252,250); pdf.roundedRect(kx,y,kw,20,2,2,'F');
         // Barra superior de color
-        pdf.setFillColor(...k.c); pdf.roundedRect(kx,y,kw,2.5,1,1,'F');
+        pdf.setFillColor(k.c[0],k.c[1],k.c[2]); pdf.roundedRect(kx,y,kw,2.5,1,1,'F');
         // Label
-        pdf.setFont('helvetica','bold'); pdf.setFontSize(5.5); pdf.setTextColor(...k.c);
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(5.5); pdf.setTextColor(k.c[0],k.c[1],k.c[2]);
         pdf.text(k.l,kx+3,y+7);
         // Valor
-        pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(...k.c);
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(k.c[0],k.c[1],k.c[2]);
         pdf.text(k.v,kx+3,y+14);
         if(k.u){pdf.setFontSize(7); pdf.text(k.u,kx+3+pdf.getTextWidth(k.v),y+14);}
         // Sub
@@ -11616,17 +11623,17 @@ async function generarSuperReporte() {
         if(dias.length>0){
           const maxR=Math.max(...rVals,1), gH=25, gW=CW, gX=M, gY=y+6;
           // Título sección
-          pdf.setFillColor(...VERDE_OSC,20);
-          pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(...VERDE_OSC);
+          pdf.setFillColor(30,91,79);
+          pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(30,91,79);
           pdf.text('⏱  Rendimiento Diario (km/L)',M,y+4);
-          pdf.line(M,y+5,PW-M,y+5); pdf.setDrawColor(...VERDE_MED);
+          pdf.line(M,y+5,PW-M,y+5); pdf.setDrawColor(45,158,126);
           // Barras
           const bw=Math.min(6,gW/dias.length*0.7);
           dias.forEach((d,di)=>{
             const bh=rVals[di]/maxR*gH;
             const bx=gX+di*(gW/dias.length)+(gW/dias.length-bw)/2;
             const col=rVals[di]>=10?[39,174,96]:rVals[di]>=6?[230,126,34]:[192,57,43];
-            pdf.setFillColor(...col);
+            pdf.setFillColor(col[0],col[1],col[2]);
             pdf.roundedRect(bx,gY+gH-bh,bw,bh,0.5,0.5,'F');
             // Etiqueta día
             pdf.setFont('helvetica','normal'); pdf.setFontSize(5); pdf.setTextColor(120,120,120);
@@ -11634,27 +11641,27 @@ async function generarSuperReporte() {
           });
           // Línea promedio
           const avgY=gY+gH-(avgRend/maxR*gH);
-          pdf.setDrawColor(...VERDE_OSC); pdf.setLineWidth(0.4);
+          pdf.setDrawColor(30,91,79); pdf.setLineWidth(0.4);
           pdf.setLineDashPattern([2,1],0);
           pdf.line(gX,avgY,gX+gW,avgY);
           pdf.setLineDashPattern([],0);
-          pdf.setFont('helvetica','bold'); pdf.setFontSize(5.5); pdf.setTextColor(...VERDE_OSC);
+          pdf.setFont('helvetica','bold'); pdf.setFontSize(5.5); pdf.setTextColor(30,91,79);
           pdf.text('Prom: '+avgRend.toFixed(2)+' km/L',gX+gW-1,avgY-1,{align:'right'});
           y+=gH+14;
         }
       }
 
       // ── Tabla de cargas ───────────────────────────────────────────────
-      pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(...VERDE_OSC);
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(7); pdf.setTextColor(30,91,79);
       pdf.text('Detalle de Cargas — '+MESES_N[mes],M,y+4);
-      pdf.setDrawColor(...VERDE_MED); pdf.setLineWidth(0.4);
+      pdf.setDrawColor(45,158,126); pdf.setLineWidth(0.4);
       pdf.line(M,y+5,PW-M,y+5);
       y+=8;
 
       // Header tabla
       const cols=[8,22,12,40,14,16,15,16,16]; // anchos en mm
       const hdrs=['#','Fecha','Hora','Estación','Prod.','Litros','Rend.','Odom.','Km'];
-      pdf.setFillColor(...VERDE_OSC);
+      pdf.setFillColor(30,91,79);
       pdf.rect(M,y,CW,7,'F');
       pdf.setFont('helvetica','bold'); pdf.setFontSize(6); pdf.setTextColor(255,255,255);
       let hx=M;
@@ -11696,7 +11703,7 @@ async function generarSuperReporte() {
       // Total
       pdf.setFillColor(220,240,235);
       pdf.rect(M,y,CW,7,'F');
-      pdf.setFont('helvetica','bold'); pdf.setFontSize(6.5); pdf.setTextColor(...VERDE_OSC);
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(6.5); pdf.setTextColor(30,91,79);
       pdf.text('TOTAL',M+1,y+5);
       // Litros total alineado
       const litX=M+cols[0]+cols[1]+cols[2]+cols[3]+cols[4];
