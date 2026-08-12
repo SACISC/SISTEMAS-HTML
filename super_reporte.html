@@ -1015,7 +1015,25 @@ async function generarPDF() {
   });
   const portadaImg = portadaCanvas.toDataURL('image/jpeg', 0.95);
   const portadaH   = portadaCanvas.height * (PW / portadaCanvas.width);
-  pdf.addImage(portadaImg, 'JPEG', 0, 0, PW, portadaH);
+
+  if (portadaH <= PH) {
+    // Cabe en una página
+    pdf.addImage(portadaImg, 'JPEG', 0, 0, PW, portadaH);
+  } else {
+    // Paginar la portada si hay muchas tarjetas
+    let posYP = 0;
+    while (posYP < portadaCanvas.height) {
+      const sliceH = Math.min(Math.ceil(portadaCanvas.height * PH / portadaH), portadaCanvas.height - posYP);
+      const sliceC = document.createElement('canvas');
+      sliceC.width  = portadaCanvas.width;
+      sliceC.height = sliceH;
+      sliceC.getContext('2d').drawImage(portadaCanvas, 0, posYP, portadaCanvas.width, sliceH, 0, 0, portadaCanvas.width, sliceH);
+      if (posYP > 0) pdf.addPage();
+      pdf.addImage(sliceC.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, PW, sliceH * (PW / portadaCanvas.width));
+      posYP += sliceH;
+    }
+  }
+  pdf.addPage(); // página nueva antes del primer reporte individual
 
   for (let i=0; i<tarjetas.length; i++) {
     const b = tarjetas[i];
