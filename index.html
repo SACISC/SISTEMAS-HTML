@@ -11348,6 +11348,145 @@ function poblarReporteMensual() {
   const firmaEl = document.getElementById('rptMesFirmaNombre'); if(firmaEl && !firmaEl.value) firmaEl.value = usuario;
 }
 
+function abrirSuperReporte() {
+  if (!currentRows.length) { alert('Primero realice una búsqueda.'); return; }
+  const { mes } = rptContext;
+  if (!mes) { alert('Seleccione un mes específico.'); return; }
+
+  // Contraseña administrador
+  let modal = document.getElementById('modalSuperRptPwd');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalSuperRptPwd';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:999999;'
+      +'background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);'
+      +'align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:14px;overflow:hidden;
+        width:360px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+        <div style="background:linear-gradient(135deg,#0d2137,#1565c0);
+          padding:20px 24px;display:flex;align-items:center;gap:14px;">
+          <div style="width:44px;height:44px;border-radius:50%;
+            background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.25);
+            display:flex;align-items:center;justify-content:center;font-size:1.4rem;">📋</div>
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;
+              font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:0.05em;">
+              Super Reporte</div>
+            <div style="font-size:0.68rem;color:rgba(255,255,255,0.55);margin-top:2px;">
+              SACISC · Acceso Administrador</div>
+          </div>
+        </div>
+        <div style="padding:20px 24px;">
+          <div style="background:#f0f4ff;border-radius:8px;padding:10px 14px;
+            margin-bottom:14px;border-left:3px solid #1565c0;font-size:0.75rem;color:#333;line-height:1.5;">
+            Generará un PDF con el reporte de <strong>todas las tarjetas</strong> del área y mes seleccionados en una nueva ventana.
+          </div>
+          <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:0.06em;color:#888;display:block;margin-bottom:5px;">
+            Contraseña Administrador</label>
+          <input id="inputSuperRptPwd" type="password" placeholder="••••"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #d0d0d0;
+              border-radius:8px;padding:10px 14px;font-size:1rem;outline:none;"
+            onkeydown="if(event.key==='Enter') document.getElementById('btnConfSuperRpt').click()"/>
+          <div id="msgSuperRptPwd" style="font-size:0.7rem;color:#c0392b;
+            margin-top:6px;min-height:16px;font-weight:600;"></div>
+        </div>
+        <div style="padding:0 24px 20px;display:flex;gap:10px;">
+          <button onclick="document.getElementById('modalSuperRptPwd').style.display='none'"
+            style="flex:1;background:#f5f5f5;color:#555;border:none;border-radius:8px;
+              padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;
+              font-weight:700;text-transform:uppercase;cursor:pointer;">Cancelar</button>
+          <button id="btnConfSuperRpt"
+            style="flex:2;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;
+              border:none;border-radius:8px;padding:10px;
+              font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;
+              font-weight:800;text-transform:uppercase;cursor:pointer;">
+            📋 Generar</button>
+        </div>
+        <div style="background:#f8fbf9;border-top:1px solid #e8f0ee;padding:9px 24px;
+          text-align:center;font-size:0.6rem;color:#aaa;">
+          PEMEX · URCS Sur · Módulo Combustibles</div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  const inp = document.getElementById('inputSuperRptPwd');
+  const msg = document.getElementById('msgSuperRptPwd');
+  inp.value = ''; msg.textContent = '';
+  modal.style.display = 'flex';
+  setTimeout(()=>inp.focus(), 80);
+  modal.onclick = e => { if(e.target===modal) modal.style.display='none'; };
+
+  document.getElementById('btnConfSuperRpt').onclick = () => {
+    if (String(inp.value).trim() !== '1111') {
+      msg.textContent = '❌ Contraseña incorrecta.';
+      inp.value=''; inp.focus();
+      return;
+    }
+    modal.style.display = 'none';
+    _lanzarSuperReporte();
+  };
+}
+
+function _lanzarSuperReporte() {
+  const { mes }  = rptContext;
+  const now      = new Date();
+  const areaFilt = currentRows.length ? String(currentRows[0].areaUsuaria||'').trim() : '';
+  const PICKUP   = ['PICK-UP / CAMIONETA','PICK-UP','PICKUP','CAMIONETA',
+                    'SEMI PESADO','SEMIPESADO','PICK UP','SEMI-PESADO'];
+
+  // Agrupar por tarjeta
+  const byTarjeta = {};
+  RAW.filter(r => Number(r.mes)===mes && (!areaFilt||String(r.areaUsuaria||'').trim()===areaFilt))
+    .forEach(r => {
+      const t = String(r.tarjeta||'').trim(); if(!t) return;
+      if(!byTarjeta[t]) byTarjeta[t]={
+        tarjeta:'',usuario:'',placa:'',economico:'',inventario:'',
+        marca:'',subMarca:'',modelo:'',tipoVehiculo:'',clasificacion:'',
+        producto:'',area:'',montoAutorizado:0,rows:[]
+      };
+      const b=byTarjeta[t]; b.rows.push({
+        fecha:r.fecha, hora:r.hora, estacion:String(r.estacion||'').trim().replace(/\.0$/,'').replace(/^E0*/,''),
+        litros:r.litros||0, rendimiento:r.rendimiento||0,
+        odometroInicial:r.odometroInicial||0, distancia:r.distancia||0,
+        producto:String(r.producto||'').toUpperCase()
+      });
+      b.tarjeta=t;
+      if(r.usuario)       b.usuario      =String(r.usuario).trim();
+      if(r.placa)         b.placa        =String(r.placa).trim();
+      if(r.economico)     b.economico    =String(r.economico).trim();
+      if(r.inventario)    b.inventario   =String(r.inventario).trim();
+      if(r.marca)         b.marca        =String(r.marca).trim();
+      if(r.subMarca)      b.subMarca     =String(r.subMarca).trim();
+      if(r.modelo)        b.modelo       =String(r.modelo).trim();
+      if(r.tipoVehiculo)  b.tipoVehiculo =String(r.tipoVehiculo).trim();
+      if(r.clasificacion||r.clasificacionTipo)
+                          b.clasificacion=String(r.clasificacion||r.clasificacionTipo||'').trim();
+      if(r.producto)      b.producto     =String(r.producto).trim();
+      if(r.areaUsuaria)   b.area         =String(r.areaUsuaria).trim();
+      if(r.montoAutorizado) b.montoAutorizado=r.montoAutorizado;
+    });
+
+  const tarjetas = Object.values(byTarjeta)
+    .filter(b=>b.rows.length>0)
+    .sort((a,b)=>a.usuario.localeCompare(b.usuario));
+
+  if(!tarjetas.length){ alert('Sin tarjetas con datos para este mes/área.'); return; }
+
+  // Guardar en localStorage y abrir nueva pestaña
+  const payload = {
+    mes, anio: now.getFullYear(),
+    area: areaFilt, tarjetas
+  };
+  try {
+    localStorage.setItem('SACISC_SUPER_RPT', JSON.stringify(payload));
+  } catch(e) {
+    alert('Error al preparar datos: '+e.message); return;
+  }
+  window.open('super_reporte.html','_blank');
+}
+
 async function exportarReporteMensualPDF() {
   if (!currentRows.length) { alert('Primero realice una búsqueda.'); return; }
   poblarReporteMensual();
@@ -20972,6 +21111,20 @@ function renderPronostico() {
       <div class="rpt-topbar-actions">
         <button class="rpt-btn rpt-btn-pdf" onclick="exportarReporteMensualPDF()" title="Exportar PDF">
           <svg width="20" height="20" viewBox="0 0 32 32"><path d="M6 2L22 2L28 8L28 30L6 30Z" fill="#e53935"/><path d="M22 2L22 8L28 8Z" fill="#b71c1c"/><text x="9" y="22" font-family="Arial" font-size="8" font-weight="900" fill="#fff">PDF</text></svg>
+        </button>
+        <button class="rpt-btn" onclick="abrirSuperReporte()"
+          title="Super Reporte — Todas las tarjetas del área"
+          style="background:linear-gradient(135deg,#1565c0,#1976d2);border:none;
+            border-radius:8px;padding:6px 12px;cursor:pointer;display:flex;
+            align-items:center;gap:5px;font-family:'Barlow Condensed',sans-serif;
+            font-size:0.8rem;font-weight:800;color:#fff;letter-spacing:0.04em;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          SUPER REPORTE
         </button>
 
         <button class="rpt-btn rpt-btn-close" onclick="cerrarReporteMensual()">✕</button>

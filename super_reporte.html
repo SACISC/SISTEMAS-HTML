@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SACISC · Super Reporte</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --verde-osc: #1e5b4f;
+      --verde-med: #2d9e7e;
+      --verde-cla: #11CD78;
+      --naranja:   #e67e22;
+      --azul:      #1565c0;
+      --rojo:      #c0392b;
+      --gris:      #555;
+      --border:    #e0e8e4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0d2137;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* ── Pantalla de espera ── */
+    #pantallaEspera {
+      text-align: center;
+      color: #fff;
+    }
+    #pantallaEspera .logo-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    #pantallaEspera .logo-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, var(--verde-osc), var(--verde-med));
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+    }
+    #pantallaEspera h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 2rem; font-weight: 900;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    #pantallaEspera .sub {
+      font-size: 0.82rem; color: rgba(255,255,255,0.5);
+      margin-top: 4px;
+    }
+    #barraProgreso {
+      width: 320px; height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px; overflow: hidden;
+      margin: 24px auto 12px;
+    }
+    #barraProgreso .fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--verde-med), var(--verde-cla));
+      border-radius: 3px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    #msgProgreso {
+      font-size: 0.78rem; color: rgba(255,255,255,0.6);
+    }
+    #btnDescargar {
+      display: none;
+      margin-top: 24px;
+      background: linear-gradient(135deg, var(--verde-osc), var(--verde-med));
+      color: #fff; border: none; border-radius: 10px;
+      padding: 14px 32px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem; font-weight: 800;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      cursor: pointer;
+      display: none; align-items: center; gap: 8px;
+    }
+    #btnDescargar:hover { opacity: 0.9; }
+    #btnCerrar {
+      display: none;
+      margin-top: 12px;
+      background: transparent;
+      color: rgba(255,255,255,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; padding: 8px 20px;
+      font-size: 0.78rem; cursor: pointer;
+    }
+
+    /* ── Página del reporte (para html2canvas) ── */
+    .rpt-page {
+      width: 816px; /* Letter 96dpi */
+      background: #fff;
+      font-family: 'Inter', sans-serif;
+      padding: 36px 40px 28px;
+      position: relative;
+    }
+
+    /* Encabezado */
+    .rpt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 14px;
+      border-bottom: 3px solid var(--verde-med);
+      margin-bottom: 18px;
+    }
+    .rpt-header-left {
+      display: flex; align-items: center; gap: 14px;
+    }
+    .rpt-header-logo {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--verde-osc), var(--verde-med));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; flex-shrink: 0;
+    }
+    .rpt-header-org {
+      font-family: 'Barlow Condensed', sans-serif;
+    }
+    .rpt-header-org .org-name {
+      font-size: 1rem; font-weight: 900;
+      color: var(--verde-osc); text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .rpt-header-org .org-sub {
+      font-size: 0.72rem; color: #888; margin-top: 2px;
+    }
+    .rpt-header-org .rpt-titulo {
+      font-size: 0.78rem; font-weight: 700;
+      color: var(--verde-med); margin-top: 4px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .rpt-header-right {
+      text-align: right;
+    }
+    .rpt-folio {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.88rem; font-weight: 900;
+      color: var(--verde-osc); letter-spacing: 0.06em;
+    }
+    .rpt-fecha {
+      font-size: 0.68rem; color: #aaa; margin-top: 3px;
+    }
+
+    /* Banda usuario */
+    .rpt-user-band {
+      background: linear-gradient(135deg, var(--verde-osc), #2d6b5a);
+      border-radius: 10px;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .rpt-user-label {
+      font-size: 0.6rem; color: rgba(255,255,255,0.55);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .rpt-user-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.3rem; font-weight: 900;
+      color: #fff; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .rpt-chips {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
+    }
+    .rpt-chip {
+      background: rgba(255,255,255,0.15);
+      color: #fff; border-radius: 5px;
+      padding: 2px 10px;
+      font-size: 0.68rem; font-weight: 600;
+    }
+    .rpt-veh-block { text-align: right; }
+    .rpt-veh-val {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.95rem; font-weight: 800;
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* Info vehículo */
+    .rpt-veh-row {
+      display: grid;
+      grid-template-columns: repeat(6,1fr);
+      gap: 8px;
+      background: #f8fbf9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+    }
+    .rpt-veh-item .vi-label {
+      font-size: 0.58rem; text-transform: uppercase;
+      letter-spacing: 0.07em; color: #aaa; font-weight: 700;
+    }
+    .rpt-veh-item .vi-val {
+      font-size: 0.78rem; font-weight: 700;
+      color: var(--verde-osc); margin-top: 2px;
+    }
+
+    /* KPIs */
+    .rpt-section-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--verde-osc);
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 10px;
+    }
+    .rpt-section-title::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--border);
+    }
+    .rpt-kpis {
+      display: grid;
+      grid-template-columns: repeat(6,1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .rpt-kpi {
+      border-radius: 8px;
+      padding: 10px 10px 8px;
+      background: #f8fbf9;
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .rpt-kpi::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .rpt-kpi.k-verde::before  { background: var(--verde-osc); }
+    .rpt-kpi.k-azul::before   { background: var(--azul); }
+    .rpt-kpi.k-gris::before   { background: #888; }
+    .rpt-kpi.k-naranja::before{ background: var(--naranja); }
+    .rpt-kpi.k-rojo::before   { background: var(--rojo); }
+    .rpt-kpi-label {
+      font-size: 0.58rem; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #888; font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .rpt-kpi-val {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.15rem; font-weight: 900;
+      line-height: 1.1;
+    }
+    .rpt-kpi-val .unit {
+      font-size: 0.68rem; font-weight: 600;
+    }
+    .rpt-kpi-sub {
+      font-size: 0.58rem; color: #aaa; margin-top: 2px;
+    }
+
+    /* Gráfica rendimiento */
+    .rpt-grafica-wrap {
+      background: #f8fbf9;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .rpt-bars-wrap {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 80px;
+      margin-bottom: 4px;
+    }
+    .rpt-bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .rpt-bar-val {
+      font-size: 0.5rem; font-weight: 700;
+      line-height: 1;
+    }
+    .rpt-bar {
+      width: 100%;
+      border-radius: 2px 2px 0 0;
+      min-height: 3px;
+    }
+    .rpt-bar-dia {
+      font-size: 0.5rem; color: #aaa;
+      margin-top: 2px;
+    }
+    .rpt-avg-line {
+      border-top: 1.5px dashed var(--verde-osc);
+      padding-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rpt-avg-label {
+      font-size: 0.65rem; font-weight: 700;
+      color: var(--verde-osc);
+    }
+    .rpt-legend {
+      display: flex; gap: 12px; font-size: 0.6rem;
+    }
+    .rpt-legend span { display: flex; align-items: center; gap: 4px; }
+
+    /* Tabla */
+    .rpt-table-wrap {
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .rpt-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.7rem;
+    }
+    .rpt-table thead tr {
+      background: var(--verde-osc);
+    }
+    .rpt-table thead th {
+      color: #fff;
+      padding: 8px 10px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      text-align: left;
+    }
+    .rpt-table thead th.r { text-align: right; }
+    .rpt-table tbody tr:nth-child(even) { background: #f8fbf9; }
+    .rpt-table tbody td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      color: #444;
+    }
+    .rpt-table tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
+    .rpt-table tfoot td {
+      padding: 7px 10px;
+      background: #e8f5f0;
+      font-weight: 800;
+      color: var(--verde-osc);
+      border-top: 2px solid var(--verde-med);
+    }
+    .rpt-table tfoot td.r { text-align: right; }
+    .tag {
+      display: inline-block;
+      border-radius: 5px;
+      padding: 1px 7px;
+      font-size: 0.65rem;
+      font-weight: 700;
+    }
+    .tag.magna  { background: #e8f5e9; color: #2e7d32; }
+    .tag.diesel { background: #e3f2fd; color: #1565c0; }
+
+    /* Pie de página */
+    .rpt-footer {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rpt-footer-left {
+      font-size: 0.6rem; color: #aaa;
+    }
+    .rpt-footer-right {
+      font-size: 0.6rem; color: #bbb;
+      font-style: italic;
+    }
+
+    /* Contenedor de renderizado oculto */
+    #renderWrap {
+      position: fixed;
+      top: 0; left: 0;
+      opacity: 0;
+      pointer-events: none;
+      z-index: -1;
+      width: 816px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Pantalla de progreso -->
+<div id="pantallaEspera">
+  <div class="logo-wrap">
+    <div class="logo-icon">📋</div>
+    <div>
+      <h1>Super Reporte</h1>
+      <div class="sub">SACISC · Módulo Combustibles · PEMEX URCS Sur</div>
+    </div>
+  </div>
+  <div id="barraProgreso"><div class="fill" id="fillBar"></div></div>
+  <div id="msgProgreso">Leyendo datos…</div>
+  <button id="btnDescargar" onclick="descargarPDF()">
+    ⬇ Descargar PDF
+  </button>
+  <button id="btnCerrar" onclick="window.close()">Cerrar ventana</button>
+</div>
+
+<!-- Contenedor de renderizado -->
+<div id="renderWrap"></div>
+
+<script>
+// ── Utilidades ─────────────────────────────────────────────────────────
+const fmt  = n => Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:1,maximumFractionDigits:1});
+const fmtI = n => Number(n||0).toLocaleString('es-MX',{maximumFractionDigits:0});
+const MESES_N = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const EST_NOM = {'7394':'Los Cocos','9602':'Gavilán','9851':'El Graham','10885':'Las Choapas'};
+const PICKUP  = ['PICK-UP / CAMIONETA','PICK-UP','PICKUP','CAMIONETA',
+                 'SEMI PESADO','SEMIPESADO','PICK UP','SEMI-PESADO'];
+
+function setProgreso(pct, msg) {
+  document.getElementById('fillBar').style.width = pct+'%';
+  document.getElementById('msgProgreso').textContent = msg;
+}
+
+// ── Leer datos desde localStorage ──────────────────────────────────────
+let DATOS = null;
+let pdfBlob = null;
+
+window.addEventListener('load', async () => {
+  try {
+    const raw = localStorage.getItem('SACISC_SUPER_RPT');
+    if (!raw) {
+      setProgreso(0,'❌ Sin datos. Abra este reporte desde el sistema SACISC.');
+      return;
+    }
+    DATOS = JSON.parse(raw);
+    setProgreso(10, `Preparando ${DATOS.tarjetas.length} tarjetas…`);
+    await new Promise(r => setTimeout(r,200));
+    await generarPDF();
+  } catch(e) {
+    setProgreso(0,'❌ Error: '+e.message);
+    console.error(e);
+  }
+});
+
+// ── Construir HTML de una página ───────────────────────────────────────
+function buildPagina(b, idx, total, now) {
+  const rows         = b.rows;
+  const totalLitros  = rows.reduce((s,r)=>s+(r.litros||0),0);
+  const totalDist    = rows.reduce((s,r)=>s+(r.distancia||0),0);
+  const rendRows     = rows.filter(r=>r.rendimiento>0);
+  const avgRend      = rendRows.length ? rendRows.reduce((s,r)=>s+r.rendimiento,0)/rendRows.length : 0;
+  const pctConsumo   = b.montoAutorizado>0 ? (totalLitros/b.montoAutorizado*100) : null;
+  const folio        = 'SRP-'+DATOS.anio+String(DATOS.mes).padStart(2,'0')+'-'+String(idx+1).padStart(3,'0');
+  const esPickup     = PICKUP.some(t => b.tipoVehiculo.toUpperCase().includes(t) || b.clasificacion.toUpperCase().includes(t));
+  const fechaEmision = now.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+
+  // Color KPI % consumo
+  const pctCol = pctConsumo===null ? 'k-gris'
+    : pctConsumo > 100 ? 'k-verde'
+    : pctConsumo >= 80 ? 'k-naranja'
+    : 'k-verde';
+  const pctLabel = pctConsumo===null ? '—'
+    : pctConsumo > 100 ? '📋 Dispersión autori.'
+    : 'del autorizado';
+
+  // Tabla de cargas
+  const tablaRows = rows.map((r,i) => {
+    const estCve = String(r.estacion||'').trim().replace(/\.0$/,'').replace(/^E0*/,'');
+    const estNom = EST_NOM[estCve] || estCve || '—';
+    const prod   = String(r.producto||'').toUpperCase();
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${String(r.fecha||'').substring(0,10)}</td>
+      <td>${String(r.hora||'').substring(0,5)}</td>
+      <td>${estNom}</td>
+      <td><span class="tag ${prod==='MAGNA'?'magna':'diesel'}">${prod||'—'}</span></td>
+      <td class="r">${fmt(r.litros||0)} L</td>
+      <td class="r">${r.rendimiento>0 ? r.rendimiento.toFixed(2)+' km/L' : '—'}</td>
+      <td class="r">${fmtI(r.odometroInicial||0)}</td>
+      <td class="r">${fmtI(r.distancia||0)} km</td>
+    </tr>`;
+  }).join('');
+
+  // Gráfica rendimiento (solo pickup)
+  let graficaHTML = '';
+  if (esPickup && avgRend > 0) {
+    const rendPorDia = {};
+    rows.forEach(r => {
+      const f = String(r.fecha||'').split('T')[0];
+      const p = f.includes('-') ? f.split('-') : f.split('/').reverse();
+      const d = parseInt(p[2]||0);
+      if (d>0 && r.rendimiento>0) {
+        if (!rendPorDia[d]) rendPorDia[d]=[];
+        rendPorDia[d].push(r.rendimiento);
+      }
+    });
+    const dias   = Object.keys(rendPorDia).map(Number).sort((a,b)=>a-b);
+    const rVals  = dias.map(d => rendPorDia[d].reduce((s,v)=>s+v,0)/rendPorDia[d].length);
+    const maxR   = Math.max(...rVals, 1);
+
+    if (dias.length > 0) {
+      const bars = dias.map((d,di) => {
+        const hpct = Math.max(4, (rVals[di]/maxR*100));
+        const col  = rVals[di]>=10 ? '#27ae60' : rVals[di]>=6 ? '#e67e22' : '#c0392b';
+        return `<div class="rpt-bar-col">
+          <div class="rpt-bar-val" style="color:${col}">${rVals[di].toFixed(1)}</div>
+          <div class="rpt-bar" style="height:${hpct}%;background:${col};"></div>
+          <div class="rpt-bar-dia">${d}</div>
+        </div>`;
+      }).join('');
+
+      graficaHTML = `
+        <div class="rpt-section-title">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          Rendimiento Diario del Mes (km/L) — Evaluación
+        </div>
+        <div class="rpt-grafica-wrap">
+          <div class="rpt-bars-wrap">${bars}</div>
+          <div class="rpt-avg-line">
+            <span class="rpt-avg-label">── Promedio: ${avgRend.toFixed(2)} km/L</span>
+            <div class="rpt-legend">
+              <span><span style="color:#27ae60">●</span> Óptimo ≥10</span>
+              <span><span style="color:#e67e22">●</span> Regular ≥6</span>
+              <span><span style="color:#c0392b">●</span> Bajo &lt;6</span>
+            </div>
+          </div>
+        </div>`;
+    }
+  }
+
+  return `<div class="rpt-page">
+
+    <!-- ENCABEZADO -->
+    <div class="rpt-header">
+      <div class="rpt-header-left">
+        <div class="rpt-header-logo">🏭</div>
+        <div class="rpt-header-org">
+          <div class="org-name">PEMEX · URCS Sur</div>
+          <div class="org-sub">Subdirección de Servicios · SSAB-GSG · Coatzacoalcos</div>
+          <div class="rpt-titulo">Reporte Mensual de Consumo de Combustible</div>
+        </div>
+      </div>
+      <div class="rpt-header-right">
+        <div class="rpt-folio">${folio}</div>
+        <div class="rpt-fecha">
+          ${MESES_N[DATOS.mes]||''} ${DATOS.anio}<br>
+          Emitido: ${fechaEmision}
+        </div>
+        <div style="margin-top:6px;font-size:0.6rem;color:#aaa;">${idx+1} / ${total}</div>
+      </div>
+    </div>
+
+    <!-- BANDA USUARIO -->
+    <div class="rpt-user-band">
+      <div>
+        <div class="rpt-user-label">Titular</div>
+        <div class="rpt-user-name">${b.usuario||'—'}</div>
+        <div class="rpt-chips">
+          ${b.tarjeta ? `<span class="rpt-chip">🪪 ${b.tarjeta}</span>` : ''}
+          ${b.placa   ? `<span class="rpt-chip">🚗 ${b.placa}</span>` : ''}
+          ${b.area    ? `<span class="rpt-chip">📍 ${b.area}</span>` : ''}
+          ${b.producto? `<span class="rpt-chip">${b.producto}</span>` : ''}
+        </div>
+      </div>
+      <div class="rpt-veh-block">
+        <div class="rpt-user-label">Unidad vehicular</div>
+        <div class="rpt-veh-val">${[b.marca,b.subMarca,b.modelo].filter(Boolean).join(' ')||'—'}</div>
+        <div class="rpt-chips" style="justify-content:flex-end;margin-top:6px;">
+          ${b.economico  ? `<span class="rpt-chip">Econ. ${b.economico}</span>` : ''}
+          ${b.inventario ? `<span class="rpt-chip">Inv. ${b.inventario}</span>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- INFO VEHÍCULO -->
+    <div class="rpt-veh-row">
+      ${[['MARCA',b.marca||'—'],['SUBMARCA',b.subMarca||'—'],['MODELO',b.modelo||'—'],
+         ['TIPO',b.tipoVehiculo||'—'],['ECONÓMICO',b.economico||'—'],['INVENTARIO',b.inventario||'—']]
+        .map(([l,v])=>`<div class="rpt-veh-item">
+          <div class="vi-label">${l}</div>
+          <div class="vi-val">${v}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- KPIs -->
+    <div class="rpt-section-title">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+      </svg>
+      Indicadores del Mes — ${MESES_N[DATOS.mes]||''}
+    </div>
+    <div class="rpt-kpis">
+      <div class="rpt-kpi k-verde">
+        <div class="rpt-kpi-label">Cargas</div>
+        <div class="rpt-kpi-val" style="color:#1e5b4f">${rows.length}</div>
+        <div class="rpt-kpi-sub">transacciones</div>
+      </div>
+      <div class="rpt-kpi k-azul">
+        <div class="rpt-kpi-label">Litros consumidos</div>
+        <div class="rpt-kpi-val" style="color:#1565c0">${fmt(totalLitros)}<span class="unit"> L</span></div>
+        <div class="rpt-kpi-sub">consumo total</div>
+      </div>
+      <div class="rpt-kpi k-gris">
+        <div class="rpt-kpi-label">Autorizado</div>
+        <div class="rpt-kpi-val" style="color:#555">${fmt(b.montoAutorizado)}<span class="unit"> L</span></div>
+        <div class="rpt-kpi-sub">monto mensual</div>
+      </div>
+      <div class="rpt-kpi ${pctCol}">
+        <div class="rpt-kpi-label">% Consumo</div>
+        <div class="rpt-kpi-val" style="color:${pctConsumo===null?'#888':pctConsumo>100?'#1e5b4f':pctConsumo>=80?'#e67e22':'#27ae60'}">
+          ${pctConsumo!==null ? pctConsumo.toFixed(1)+'%' : '—'}
+        </div>
+        <div class="rpt-kpi-sub">${pctLabel}</div>
+      </div>
+      <div class="rpt-kpi k-naranja">
+        <div class="rpt-kpi-label">Distancia total</div>
+        <div class="rpt-kpi-val" style="color:#e67e22">${fmtI(totalDist)}<span class="unit"> km</span></div>
+        <div class="rpt-kpi-sub">recorridos</div>
+      </div>
+      <div class="rpt-kpi ${avgRend>=10?'k-verde':avgRend>=6?'k-naranja':'k-rojo'}">
+        <div class="rpt-kpi-label">Rend. promedio</div>
+        <div class="rpt-kpi-val" style="color:${avgRend>=10?'#1e5b4f':avgRend>=6?'#e67e22':avgRend>0?'#c0392b':'#888'}">
+          ${avgRend>0 ? avgRend.toFixed(2) : '—'}<span class="unit">${avgRend>0?' km/L':''}</span>
+        </div>
+        <div class="rpt-kpi-sub">${avgRend>=10?'Óptimo':avgRend>=6?'Regular':avgRend>0?'Bajo':'N/A'}</div>
+      </div>
+    </div>
+
+    <!-- GRÁFICA RENDIMIENTO -->
+    ${graficaHTML}
+
+    <!-- TABLA DE CARGAS -->
+    <div class="rpt-section-title">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      Detalle de Cargas — ${MESES_N[DATOS.mes]||''}
+    </div>
+    <div class="rpt-table-wrap">
+      <table class="rpt-table">
+        <thead><tr>
+          <th>#</th><th>Fecha</th><th>Hora</th><th>Estación</th>
+          <th>Comb.</th><th class="r">Litros</th><th class="r">Rend.</th>
+          <th class="r">Odom. Ini.</th><th class="r">Km</th>
+        </tr></thead>
+        <tbody>${tablaRows}</tbody>
+        <tfoot><tr>
+          <td colspan="5">TOTAL — ${rows.length} carga${rows.length!==1?'s':''}</td>
+          <td class="r">${fmt(totalLitros)} L</td>
+          <td></td><td></td>
+          <td class="r">${fmtI(totalDist)} km</td>
+        </tr></tfoot>
+      </table>
+    </div>
+
+    <!-- PIE DE PÁGINA -->
+    <div class="rpt-footer">
+      <div class="rpt-footer-left">
+        SACISC · Módulo Combustibles · PEMEX URCS Sur · ${folio} ·
+        Generado: ${now.toLocaleString('es-MX')}
+      </div>
+      <div class="rpt-footer-right">
+        Ing. Ángel Pérez Chávez · SSAB-GSG · F-383573
+      </div>
+    </div>
+
+  </div>`;
+}
+
+// ── Generar PDF ────────────────────────────────────────────────────────
+async function generarPDF() {
+  const { jsPDF } = window.jspdf;
+  const now        = new Date();
+  const tarjetas   = DATOS.tarjetas;
+  const wrap       = document.getElementById('renderWrap');
+  const pdf        = new jsPDF({orientation:'portrait', unit:'px', format:'letter', hotfixes:['px_scaling']});
+  const PW         = pdf.internal.pageSize.getWidth();
+  const PH         = pdf.internal.pageSize.getHeight();
+
+  for (let i=0; i<tarjetas.length; i++) {
+    const b = tarjetas[i];
+    setProgreso(10 + Math.round(i/tarjetas.length*85),
+      `Procesando ${i+1} de ${tarjetas.length}: ${b.usuario||b.tarjeta}…`);
+
+    // Renderizar página en el DOM
+    wrap.innerHTML = buildPagina(b, i, tarjetas.length, now);
+    await new Promise(r => setTimeout(r, 250));
+
+    // Capturar con html2canvas
+    const el = wrap.firstElementChild;
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: 816
+    });
+
+    // Insertar en PDF
+    if (i > 0) pdf.addPage();
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const ratio   = PH / canvas.height * canvas.width / canvas.width;
+    const imgW    = PW;
+    const imgH    = canvas.height * (PW / canvas.width);
+
+    // Si la imagen es más alta que la página, escalar
+    if (imgH <= PH) {
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
+    } else {
+      // Paginar si hay muchas cargas
+      let posY = 0;
+      while (posY < canvas.height) {
+        const sliceH  = Math.min(Math.ceil(canvas.height * PH / imgH), canvas.height - posY);
+        const sliceC  = document.createElement('canvas');
+        sliceC.width  = canvas.width;
+        sliceC.height = sliceH;
+        sliceC.getContext('2d').drawImage(canvas, 0, posY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        if (posY > 0) pdf.addPage();
+        pdf.addImage(sliceC.toDataURL('image/jpeg',0.95), 'JPEG', 0, 0, imgW, sliceH*(PW/canvas.width));
+        posY += sliceH;
+      }
+    }
+  }
+
+  wrap.innerHTML = '';
+  setProgreso(100, `✅ Listo — ${tarjetas.length} tarjeta${tarjetas.length!==1?'s':''} procesadas`);
+
+  // Guardar blob para descarga
+  pdfBlob = pdf.output('blob');
+
+  // Descargar automáticamente
+  const areaLabel = (DATOS.area||'Area').replace(/\s+/g,'_');
+  const nombrePDF = `SuperReporte_${areaLabel}_${MESES_N[DATOS.mes]||DATOS.mes}_${DATOS.anio}.pdf`;
+  const url = URL.createObjectURL(pdfBlob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = nombrePDF;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  // Mostrar botones
+  const btnD = document.getElementById('btnDescargar');
+  const btnC = document.getElementById('btnCerrar');
+  btnD.style.display = 'inline-flex';
+  btnC.style.display = 'inline-block';
+
+  // Limpiar localStorage
+  localStorage.removeItem('SACISC_SUPER_RPT');
+}
+
+function descargarPDF() {
+  if (!pdfBlob) return;
+  const areaLabel = (DATOS?.area||'Area').replace(/\s+/g,'_');
+  const url = URL.createObjectURL(pdfBlob);
+  const a   = document.createElement('a');
+  a.href = url;
+  a.download = `SuperReporte_${areaLabel}_${MESES_N[DATOS?.mes]||''}_${DATOS?.anio||''}.pdf`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+</script>
+</body>
+</html>
