@@ -3639,6 +3639,7 @@ async function generarOficioRH() {
       area: f0.area, subarea: f0.subarea, tipo_pago: f0.tipo_pago,
       anio: f0.anio, num_semana: f0.num_semana,
       subarea_corta: subareaCortaOficio,
+      destino_vigilancia: f0.destino_vigilancia || null,
     },
     fecha, folio_manual: folioManual,
     cuerpo: document.getElementById('oficioCuerpoTexto').value.trim(),
