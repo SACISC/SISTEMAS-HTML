@@ -100,6 +100,10 @@ def fetch_folios(ctx):
         "order": "folio.asc",
         "select": "folio,ficha,nombre_trabajador",
     }
+    # Caso especial SCAD+Vigilancia+Doblete: filtra tambien por destino
+    # (Factoria/Hospital) para que la tabla del oficio nunca mezcle los dos.
+    if ctx.get("destino_vigilancia"):
+        params["destino_vigilancia"] = f"eq.{ctx['destino_vigilancia']}"
     resp = requests.get(url, headers=HEADERS, params=params)
     resp.raise_for_status()
     data = resp.json()
