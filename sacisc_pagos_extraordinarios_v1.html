@@ -939,6 +939,26 @@
         <div class="wizard-panel" id="wpanel-1">
           <p class="paste-hint" style="margin-bottom:16px;">Selecciona el tipo de pago extraordinario que vas a reportar en este folio.</p>
           <div class="radio-cards" id="tipoPagoCards"></div>
+
+          <div class="hidden" id="destinoVigilanciaWrap" style="margin-top:20px;">
+            <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--green-mid);margin-bottom:8px;">
+              Destino del Doblete
+            </label>
+            <div class="radio-cards" style="grid-template-columns:repeat(2,minmax(160px,1fr));">
+              <div class="radio-card" id="destVig-FACTORIA" onclick="seleccionarDestinoVigilancia('FACTORIA')">
+                <div class="rc-icon">🏭</div>
+                <div class="rc-label" style="font-size:0.85rem;">Vigilancia Factoría</div>
+              </div>
+              <div class="radio-card" id="destVig-HOSPITAL" onclick="seleccionarDestinoVigilancia('HOSPITAL')">
+                <div class="rc-icon">🏥</div>
+                <div class="rc-label" style="font-size:0.85rem;">Vigilancia Hospital</div>
+              </div>
+            </div>
+            <p style="font-size:0.75rem;color:var(--gray);margin-top:6px;">
+              Aunque el trabajador está en el catálogo de Vigilancia Agua Dulce, indica a dónde se manda realmente este doblete — así el Oficio a RH nunca mezcla Factoría con Hospital.
+            </p>
+          </div>
+
           <div class="btn-nav">
             <span></span>
             <button class="btn-primary" onclick="irPaso(2)" id="btnPaso1Next" disabled>Siguiente →</button>
@@ -966,6 +986,7 @@
 
         <!-- PASO 3: TRABAJADOR -->
         <div class="wizard-panel hidden" id="wpanel-3">
+          <div id="destinoVigilanciaIndicador" class="hidden" style="margin-bottom:16px;"></div>
           <div class="field" style="max-width:460px;margin-bottom:16px;">
             <label>Trabajador (sub-área: <span id="subareaCapturaNombre" style="color:var(--green-mid);font-weight:700;"></span>)</label>
             <!-- Solo para Doblete: buscador por ficha, tipo "autocompletar" -->
@@ -1072,6 +1093,14 @@
               <option value="DOBLETE">Doblete</option>
               <option value="TIEMPO_EXTRA">Tiempo Extra</option>
               <option value="INSALUBRE">Insalubre</option>
+            </select>
+          </div>
+          <div class="field hidden" id="folDestinoVigilanciaWrap">
+            <label>Destino (Vigilancia)</label>
+            <select id="folDestinoVigilancia">
+              <option value="">Todos</option>
+              <option value="FACTORIA">🏭 Vigilancia Factoría</option>
+              <option value="HOSPITAL">🏥 Vigilancia Hospital</option>
             </select>
           </div>
           <div class="field">
@@ -2456,7 +2485,8 @@ function resetCaptura() {
   modoFolioActual = 'auto';
   const avisoViejo = document.getElementById('avisoModoEdicion');
   if (avisoViejo) avisoViejo.remove();
-  capturaState = { tipoPago:null, anio:null, semana:null, trabajador:null, dias:{}, horariosCat:[], semanasCat:[], trabajadoresCat:[], firmantesCat:[], ausenciasCat:[] };
+  capturaState = { tipoPago:null, anio:null, semana:null, trabajador:null, dias:{}, horariosCat:[], semanasCat:[], trabajadoresCat:[], firmantesCat:[], ausenciasCat:[], destinoVigilancia:null };
+  document.getElementById('destinoVigilanciaWrap').classList.add('hidden');
   for (let i=1;i<=5;i++) {
     document.getElementById('wpanel-'+i).classList.add('hidden');
     document.getElementById('wstep-'+i).classList.remove('active','done');
@@ -2508,7 +2538,33 @@ function seleccionarTipoPago(clave) {
   capturaState.tipoPago = clave;
   document.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('tpc-' + clave).classList.add('selected');
+
+  // Caso especial: SCAD + Vigilancia + Doblete requiere indicar Factoria u
+  // Hospital antes de avanzar, para que el Oficio a RH nunca los mezcle.
+  const wrap = document.getElementById('destinoVigilanciaWrap');
+  const requiereDestino = areaValidada === 'SCAD' && tipoSubareaActual === 'vigilancia' && clave === 'DOBLETE';
+  wrap.classList.toggle('hidden', !requiereDestino);
+  if (requiereDestino) {
+    document.getElementById('destVig-FACTORIA').classList.remove('selected');
+    document.getElementById('destVig-HOSPITAL').classList.remove('selected');
+    capturaState.destinoVigilancia = null;
+    document.getElementById('btnPaso1Next').disabled = true; // falta elegir destino
+  } else {
+    capturaState.destinoVigilancia = null;
+    document.getElementById('btnPaso1Next').disabled = false;
+  }
+}
+
+function seleccionarDestinoVigilancia(valor) {
+  capturaState.destinoVigilancia = valor;
+  document.getElementById('destVig-FACTORIA').classList.toggle('selected', valor === 'FACTORIA');
+  document.getElementById('destVig-HOSPITAL').classList.toggle('selected', valor === 'HOSPITAL');
   document.getElementById('btnPaso1Next').disabled = false;
+}
+
+function cambiarDestinoVigilanciaRapido() {
+  capturaState.destinoVigilancia = capturaState.destinoVigilancia === 'HOSPITAL' ? 'FACTORIA' : 'HOSPITAL';
+  prepararPaso3();
 }
 
 // ── CARGA DE CATALOGOS DESDE SUPABASE ─────────────────────────
@@ -2617,6 +2673,23 @@ function prepararPaso3() {
   if (esDoblete) {
     document.getElementById('fichaBuscarInput').value = '';
     document.getElementById('resultadosFichaBusqueda').innerHTML = '';
+  }
+
+  // Indicador de Destino (solo SCAD + Vigilancia + Doblete) con opcion de
+  // cambiarlo rapido, sin tener que regresar al Paso 1.
+  const indicador = document.getElementById('destinoVigilanciaIndicador');
+  const requiereDestino = areaValidada === 'SCAD' && tipoSubareaActual === 'vigilancia' && capturaState.tipoPago === 'DOBLETE';
+  if (requiereDestino) {
+    indicador.classList.remove('hidden');
+    const etiqueta = capturaState.destinoVigilancia === 'HOSPITAL' ? '🏥 Vigilancia Hospital' : '🏭 Vigilancia Factoría';
+    indicador.innerHTML = `
+      <div style="background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:10px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:0.85rem;"><strong>Destino de este folio:</strong> ${etiqueta}</span>
+        <span style="color:var(--green-mid);font-weight:700;font-size:0.78rem;cursor:pointer;" onclick="cambiarDestinoVigilanciaRapido()">🔁 Cambiar</span>
+      </div>`;
+  } else {
+    indicador.classList.add('hidden');
+    indicador.innerHTML = '';
   }
 }
 
@@ -3230,7 +3303,8 @@ async function guardarFolioInterno() {
     fecha_reporte: document.getElementById('fechaReporte').value || null,
     elaboro_nombre: elaboroVal[0] || null, elaboro_puesto: elaboroVal[1] || null,
     vobo_nombre: voboVal[0] || null, vobo_puesto: voboVal[1] || null,
-    autoriza_nombre: autorizaVal[0] || null, autoriza_puesto: autorizaVal[1] || null
+    autoriza_nombre: autorizaVal[0] || null, autoriza_puesto: autorizaVal[1] || null,
+    destino_vigilancia: capturaState.destinoVigilancia || null
   };
   if (!esEdicion) folioObj.folio = folio;
 
@@ -3382,6 +3456,11 @@ async function abrirFolios() {
         <p>Usa los filtros y da clic en Buscar para ver los folios capturados.</p>
       </div>`;
 
+    // El filtro de Destino (Factoria/Hospital) solo aplica al caso SCAD+Vigilancia.
+    // Se muestra si estas bloqueado a esa sub-area, o si eres el supervisor (TODOS).
+    const mostrarFiltroDestino = areaValidada === 'TODOS' || (areaValidada === 'SCAD' && tipoSubareaActual === 'vigilancia');
+    document.getElementById('folDestinoVigilanciaWrap').classList.toggle('hidden', !mostrarFiltroDestino);
+
     const selSub = document.getElementById('folSubarea');
     if (areaValidada !== 'TODOS') {
       selSub.innerHTML = `<option value="${subareaActual}">🔒 ${subareaActual}</option>`;
@@ -3447,17 +3526,23 @@ async function abrirModalOficioRH() {
     return;
   }
 
-  // El oficio agrupa folios de UNA sola combinacion area+subarea+tipo_pago+anio+semana.
+  // El oficio agrupa folios de UNA sola combinacion area+subarea+tipo_pago+anio+semana
+  // (y, para SCAD+Vigilancia+Doblete, tambien el mismo destino Factoria/Hospital).
   // Si los resultados actuales mezclan mas de una, se avisa para que el usuario afine sus filtros.
-  const combos = new Set(ultimosFoliosCrudos.map(f => `${f.area}|${f.subarea}|${f.tipo_pago}|${f.anio}|${f.num_semana}`));
+  const combos = new Set(ultimosFoliosCrudos.map(f => `${f.area}|${f.subarea}|${f.tipo_pago}|${f.anio}|${f.num_semana}|${f.destino_vigilancia || ''}`));
   if (combos.size > 1) {
-    alert('Tus resultados actuales mezclan más de una combinación de sub-área/tipo de pago/semana. Afina los filtros (elige una sub-área, un tipo de pago y una semana específicos) antes de generar el oficio.');
+    const mezclaDestino = ultimosFoliosCrudos.some(f => f.destino_vigilancia) &&
+      new Set(ultimosFoliosCrudos.map(f => f.destino_vigilancia || '')).size > 1;
+    alert(mezclaDestino
+      ? 'Tus resultados mezclan folios de Vigilancia Factoría con Vigilancia Hospital. Usa el filtro "Destino (Vigilancia)" para elegir solo uno antes de generar el oficio.'
+      : 'Tus resultados actuales mezclan más de una combinación de sub-área/tipo de pago/semana. Afina los filtros (elige una sub-área, un tipo de pago y una semana específicos) antes de generar el oficio.');
     return;
   }
 
   const f0 = ultimosFoliosCrudos[0];
+  const etiquetaDestino = f0.destino_vigilancia === 'HOSPITAL' ? ' — Vigilancia Hospital' : (f0.destino_vigilancia === 'FACTORIA' ? ' — Vigilancia Factoría' : '');
   document.getElementById('oficioResumenFolios').innerHTML =
-    `<strong>${ultimosFoliosCrudos.length} folio(s)</strong> — ${f0.subarea} · ${f0.tipo_pago} · Semana ${f0.num_semana}/${f0.anio}`;
+    `<strong>${ultimosFoliosCrudos.length} folio(s)</strong> — ${f0.subarea}${etiquetaDestino} · ${f0.tipo_pago} · Semana ${f0.num_semana}/${f0.anio}`;
 
   const destinatarios = await sbGet('pe_destinatarios_rh', 'select=*&order=nombre');
   document.getElementById('oficioDestinatario').innerHTML =
@@ -3480,7 +3565,9 @@ async function abrirModalOficioRH() {
   document.getElementById('oficioPreviewAnio').textContent = f0.anio;
   const tipoTexto = { DOBLETE: 'Dobletes', TIEMPO_EXTRA: 'Tiempo extraordinario', INSALUBRE: 'Insalubre' }[f0.tipo_pago] || f0.tipo_pago;
   const tipoSubareaPreview = (SUBAREAS[f0.area] || []).find(s => s.nombre === f0.subarea)?.tipo;
-  const subareaCortaPreview = SUBAREA_TIPO_CORTO[tipoSubareaPreview] || f0.subarea;
+  let subareaCortaPreview = SUBAREA_TIPO_CORTO[tipoSubareaPreview] || f0.subarea;
+  if (f0.destino_vigilancia === 'FACTORIA') subareaCortaPreview = 'Vigilancia Factoría';
+  else if (f0.destino_vigilancia === 'HOSPITAL') subareaCortaPreview = 'Vigilancia Hospital';
   document.getElementById('oficioCuerpoTexto').value =
     `Por medio del presente, le solicito gire sus instrucciones a quien corresponda para que se realicen los trámites correspondientes para el pago de ${tipoTexto} del personal de ${subareaCortaPreview} que se enlistan a continuación, correspondientes a la semana ${f0.num_semana}.`;
   document.getElementById('oficioFolioManual').value = '';
@@ -3536,6 +3623,9 @@ async function generarOficioRH() {
 
   const f0 = ultimosFoliosCrudos[0];
   const tipoSubarea = (SUBAREAS[f0.area] || []).find(s => s.nombre === f0.subarea)?.tipo;
+  let subareaCortaOficio = SUBAREA_TIPO_CORTO[tipoSubarea] || f0.subarea;
+  if (f0.destino_vigilancia === 'FACTORIA') subareaCortaOficio = 'Vigilancia Factoría';
+  else if (f0.destino_vigilancia === 'HOSPITAL') subareaCortaOficio = 'Vigilancia Hospital';
 
   // GitHub solo permite 10 propiedades sueltas en el aviso -- se agrupan
   // los datos relacionados en paquetitos para quedar muy por debajo del limite.
@@ -3543,7 +3633,7 @@ async function generarOficioRH() {
     folio_ctx: {
       area: f0.area, subarea: f0.subarea, tipo_pago: f0.tipo_pago,
       anio: f0.anio, num_semana: f0.num_semana,
-      subarea_corta: SUBAREA_TIPO_CORTO[tipoSubarea] || f0.subarea,
+      subarea_corta: subareaCortaOficio,
     },
     fecha, folio_manual: folioManual,
     cuerpo: document.getElementById('oficioCuerpoTexto').value.trim(),
@@ -3613,6 +3703,7 @@ function limpiarFiltrosFolios() {
     document.getElementById('folSubarea').value = '';
   }
   document.getElementById('folTipoPago').value = '';
+  document.getElementById('folDestinoVigilancia').value = '';
   document.getElementById('folAnio').value = '';
   document.getElementById('folSemana').innerHTML = '<option value="">Todas</option>';
   document.getElementById('folTrabajador').value = '';
@@ -3639,6 +3730,8 @@ async function buscarFolios() {
   if (subarea) q += `&subarea=eq.${encodeURIComponent(subarea)}`;
   const tipoPago = document.getElementById('folTipoPago').value;
   if (tipoPago) q += `&tipo_pago=eq.${tipoPago}`;
+  const destinoVig = document.getElementById('folDestinoVigilancia').value;
+  if (destinoVig) q += `&destino_vigilancia=eq.${destinoVig}`;
   const anio = document.getElementById('folAnio').value;
   if (anio) q += `&anio=eq.${anio}`;
   const semana = document.getElementById('folSemana').value;
