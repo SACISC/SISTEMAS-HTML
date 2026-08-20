@@ -2564,7 +2564,7 @@ function seleccionarDestinoVigilancia(valor) {
 
 function cambiarDestinoVigilanciaRapido() {
   capturaState.destinoVigilancia = capturaState.destinoVigilancia === 'HOSPITAL' ? 'FACTORIA' : 'HOSPITAL';
-  prepararPaso3();
+  renderIndicadorDestinoVigilancia();
 }
 
 // ── CARGA DE CATALOGOS DESDE SUPABASE ─────────────────────────
@@ -2675,8 +2675,13 @@ function prepararPaso3() {
     document.getElementById('resultadosFichaBusqueda').innerHTML = '';
   }
 
-  // Indicador de Destino (solo SCAD + Vigilancia + Doblete) con opcion de
-  // cambiarlo rapido, sin tener que regresar al Paso 1.
+  renderIndicadorDestinoVigilancia();
+}
+
+// Indicador de Destino (solo SCAD + Vigilancia + Doblete), separado de
+// prepararPaso3() para poder actualizarlo solo (ej. al cambiar de destino)
+// sin borrar la ficha que el usuario ya haya escrito o seleccionado.
+function renderIndicadorDestinoVigilancia() {
   const indicador = document.getElementById('destinoVigilanciaIndicador');
   const requiereDestino = areaValidada === 'SCAD' && tipoSubareaActual === 'vigilancia' && capturaState.tipoPago === 'DOBLETE';
   if (requiereDestino) {
