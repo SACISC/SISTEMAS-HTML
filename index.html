@@ -20155,20 +20155,24 @@ function renderPronostico() {
         const _esMesAct = mesBase === _mesHoy;
 
         if (_esMesAct) {
-          // ── Mes en curso: proyectar nivel físico al día 31 ──────────────
-          // Entradas reales del mes = surtidas. Los vales pendientes SE EJERCERÁN
-          // en julio (se detonan antes del 31) — forman parte del balance de julio.
-          // El saldo arrastre es lo que FÍSICAMENTE queda en tanque al día 31.
-          const _entTotalJulio = (_vblkPron?.vales?.length>0)
-            ? _entSurtidoVR + _entPendVR   // todo lo que entrará físicamente en julio
-            : _entHoja5;
+          // ── Mes en curso: proyectar nivel físico al cierre del mes ──────
+          //
+          // LÓGICA CORRECTA:
+          // 1. Consumo real acumulado hasta hoy (de RAW)
+          // 2. Promedio diario = consumo real / días con despacho
+          // 3. Días restantes del mes (desde mañana hasta el 31)
+          // 4. Consumo proyectado restante = promedio × días restantes
+          // 5. Entradas = surtidas YA + pendientes QUE SE EJERCERÁN antes del 31
+          //    (los vales pendientes se ejercen aunque haya volumen en tanque)
+          // 6. Saldo arrastre = invInicial + entradas totales − consumo total proyectado
 
-          // Consumo real hasta hoy
           const _consReal = realSerie[mesBase]||0;
-          // Promedio diario desde RAW
+
+          // Promedio diario desde RAW (días con despacho real)
           const _rawMesAct = RAW.filter(r => {
             const _e = normEst(r.estacion||r.estacionPemex||'');
-            return _e===est && String(r.producto||'').toUpperCase().trim()===prod && Number(r.mes)===mesBase;
+            return _e===est && String(r.producto||'').toUpperCase().trim()===prod
+              && Number(r.mes)===mesBase;
           });
           const _diasDesp = new Set(_rawMesAct.map(r => {
             const f = String(r.fecha||'').split('T')[0];
@@ -20177,14 +20181,25 @@ function renderPronostico() {
           }).filter(d=>d>0)).size || _diaHoy || 1;
           const _promDia = _diasDesp > 0 ? _consReal / _diasDesp : 0;
 
-          // Consumo proyectado al día 31 completo
           const _diasEnMes  = new Date(_hoy.getFullYear(), mesBase, 0).getDate();
-          const _consTotal  = _promDia * _diasEnMes; // consumo mes completo proyectado
+          const _diasRest   = Math.max(0, _diasEnMes - _diaHoy);
 
-          // Saldo arrastre = nivel físico en tanque al cierre del mes
-          entMes        = _entTotalJulio;
+          // Consumo total proyectado al cierre
+          const _consTotal  = _consReal + (_promDia * _diasRest);
+
+          // Entradas totales del mes:
+          // - Surtidas: ya físicamente en el tanque
+          // - Pendientes: se ejercerán antes del día 31 (regla operativa PEMEX)
+          //   Si el vale pendiente se pronostica llegar después del día en que se agota,
+          //   igual se cuenta porque el objetivo es ejercerlos antes del cierre
+          const _entTotal = (_vblkPron?.vales?.length>0)
+            ? _entSurtidoVR + _entPendVR
+            : _entHoja5;
+
+          entMes        = _entTotal;
           consMesBase   = _consTotal;
           saldoArrastre = invIniMes + entMes - consMesBase;
+
         } else {
           // Mes cerrado — datos reales definitivos
           entMes        = (_vblkPron?.vales?.length>0) ? _entSurtidoVR : _entHoja5;
