@@ -1440,9 +1440,9 @@
     <div class="area-modal-body">
       <div class="area-modal-label">Sub-área seleccionada</div>
       <div class="area-modal-area-name" id="subareaModalNombre">—</div>
-      <div class="area-modal-label">Clave de acceso (1 dígito)</div>
+      <div class="area-modal-label">Clave de acceso</div>
       <div class="area-pwd-wrap">
-        <input type="password" id="subareaPin" maxlength="1" placeholder="•"
+        <input type="password" id="subareaPin" maxlength="2" placeholder="•"
           onkeydown="if(event.key==='Enter')validarSubareaPin()">
         <button class="area-pwd-toggle" onclick="toggleSubareaPin()" tabindex="-1">
           <svg id="eyeIconSubarea" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1718,6 +1718,13 @@ function verificarVencimientoToken() {
 
 // ── PIN DE SUB-ÁREA (segundo nivel de acceso) ──────────────────
 const SUBAREA_PINS = { vigilancia: '1', hospital: '2', areas_verdes: '3', combustion_interna: '4' };
+// Excepciones por area especifica (si un area necesita un PIN distinto al
+// general de arriba). Por ahora: SCAD-Areas Verdes usa "3y" en vez de "3".
+const SUBAREA_PINS_EXCEPCION = { SCAD: { areas_verdes: '3y' } };
+
+function obtenerPinSubarea(area, tipo) {
+  return (SUBAREA_PINS_EXCEPCION[area] && SUBAREA_PINS_EXCEPCION[area][tipo]) || SUBAREA_PINS[tipo];
+}
 const SUBAREA_TIPO_NOMBRE = { vigilancia: 'Vigilancia', hospital: 'Hospital', areas_verdes: 'Áreas Verdes', combustion_interna: 'Combustión Interna' };
 let subareaTipoPendiente = null;
 
@@ -1750,7 +1757,7 @@ function validarSubareaPin() {
   const inputEl = document.getElementById('subareaPin');
   if (!tipo) return;
 
-  if (pin === SUBAREA_PINS[tipo]) {
+  if (pin === obtenerPinSubarea(areaValidada, tipo)) {
     inputEl.className = 'success';
     msgEl.className = 'area-pwd-msg ok';
     msgEl.textContent = '✅ Acceso autorizado';
