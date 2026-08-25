@@ -641,6 +641,10 @@ footer{background:var(--gd);color:rgba(255,255,255,.7);padding:22px 32px;margin-
       <div style="font-size:11px;color:var(--gray);font-family:'Inter',sans-serif" id="correoInfo"></div>
       <div class="btn-group">
         <button class="btn btn-outline" onclick="closeModal('modalVale')">Cerrar</button>
+        <button class="btn btn-primary" onclick="enviarPorCorreo()" style="background:#0d47a1;gap:7px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
+          Enviar por Correo
+        </button>
         <button class="btn btn-warn" onclick="imprimirVale()">🖨️ Imprimir</button>
       </div>
     </div>
@@ -1453,7 +1457,12 @@ function mostrarVale(v){
 
   document.getElementById('valePreview').innerHTML = html;
   document.getElementById('valeNum').textContent = v.folio;
-  document.getElementById('correoInfo').textContent = `📧 Enviar a: ${v.correo}`;
+  document.getElementById('correoInfo').innerHTML =
+    `<span style="display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-size:11px;color:#475569">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0d47a1" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 7L2 7"/></svg>
+      <strong style="color:#0d47a1">${v.correo}</strong>
+      &nbsp;·&nbsp; CC: angel.perez@pemex.com
+    </span>`;
   openModal('modalVale');
   valeActivo = v;
 }
@@ -1465,6 +1474,55 @@ function imprimirVale(){
     window.print();
     setTimeout(()=>{ pc.innerHTML=''; }, 1200);
   }, 200);
+}
+
+function enviarPorCorreo(){
+  if(!valeActivo){ toast('No hay vale activo','warn'); return; }
+  const v = valeActivo;
+  const fecha = v.fecha ? new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+  const asunto = encodeURIComponent(
+    `Vale No. ${v.folio} — Papel Bond (${v.cant} PAQ.) — ${v.mes} ${new Date(v.fecha+'T12:00:00').getFullYear()}`
+  );
+  const cuerpo = encodeURIComponent(
+`Estimado/a ${v.nombre},
+
+Por medio del presente, le informamos que su Vale-Pase de Salida de Papel Bond ha sido generado.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  VALE No. ${v.folio}   |   MES: ${v.mes}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pedido a:    SERVICIOS CORPORATIVOS SECTOR AGUA DULCE
+Lugar:       Agua Dulce, Ver.
+Fecha:       ${fecha}
+Área:        ${v.area}
+Cantidad:    ${v.cant} PAQ. — PAPEL PARA FOTOCOPIADORA TAMAÑO CARTA
+Para:        ${v.dept || v.area}
+
+NOTA: ${v.nota || 'DOTACION SEGÚN PROMEDIO DE CONSUMO'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ESTE VALE CORRESPONDE AL MES DE ${v.mes} DE ${new Date(v.fecha+'T12:00:00').getFullYear()}
+AL TÉRMINO DEL MISMO, SINO VIENEN A RECOGER SUS PAQUETES, SE CANCELARÁ EN AUTOMÁTICO.
+NOTA: LOS VALES NO SON ACUMULABLES, SOLO SE SUMINISTRARÁ EL MES ACTUAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Autorizado por: ING. JONATAN ERIC REYES GÓMEZ (F-374205)
+Jefe de Servicios Corporativos Agua Dulce
+Extensión: 27 912
+
+FO-URSC-PB-01 Rev. 2023 | Centro Logístico: JSCAD | Clave Depto: 78100
+Sistema SACISC — Hojas Blancas SCAD`
+  );
+
+  const correo = v.correo || '';
+  if(!correo){ toast('El usuario no tiene correo registrado','warn'); return; }
+
+  // CC al emisor (Ángel)
+  const cc = encodeURIComponent('angel.perez@pemex.com');
+  const mailto = `mailto:${correo}?cc=${cc}&subject=${asunto}&body=${cuerpo}`;
+  window.location.href = mailto;
+  toast(`📧 Abriendo cliente de correo para: ${correo}`,'ok');
 }
 
 // ═══ HISTORIAL ════════════════════════════════════════════════════════
@@ -1499,6 +1557,7 @@ function renderHistorial(){
     <td>
       <div class="btn-group">
         <button class="btn btn-outline btn-xs" onclick="verVale(${VALES.indexOf(v)})">👁️</button>
+        <button class="btn btn-xs" style="background:#0d47a1;color:#fff;border-radius:6px;padding:3px 7px;font-size:12px" title="Enviar por correo" onclick="enviarCorreoDirecto(${VALES.indexOf(v)})">✉️</button>
         <button class="btn btn-xs" style="background:var(--amber);color:#fff;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700" onclick="toggleEstado(${VALES.indexOf(v)})">✕/✓</button>
         <button class="btn btn-danger btn-xs" onclick="cancelarVale(${VALES.indexOf(v)})">🚫</button>
       </div>
@@ -1530,6 +1589,11 @@ function cancelarVale(idx){
   if(SB_READY) sbUpdate('hb_vales',`folio=eq.${v.folio}`,{status:'CANCELADO'}).catch(console.error);
   renderHistorial();
   toast(`Vale ${v.folio} cancelado`,'err');
+}
+
+function enviarCorreoDirecto(idx){
+  valeActivo = VALES[idx];
+  enviarPorCorreo();
 }
 
 function exportarHistorial(){
