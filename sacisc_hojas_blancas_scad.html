@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SACISC — Hojas Blancas SCAD · Agua Dulce</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ── VARIABLES ── */
+:root{
+  --gd:#002f2a; --gm:#1e5b4f; --gl:#2d9e7e; --ga:#11CD78;
+  --gray:#64748b; --border:#e2e8f0; --white:#fff;
+  --bg:#f0f4f2; --shadow:rgba(0,47,42,.12);
+  --red:#c62828; --amber:#e65100; --blue:#0d47a1;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#1e293b;min-height:100vh;display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+input,select,textarea{font-family:inherit;outline:none}
+table{border-collapse:collapse}
+
+/* ── HEADER ── */
+header{
+  background:var(--white);border-bottom:3px solid var(--gm);
+  padding:0 28px;display:flex;align-items:center;justify-content:space-between;
+  height:76px;box-shadow:0 2px 12px var(--shadow);
+  position:sticky;top:0;z-index:200;
+}
+.hdr-logo{display:flex;align-items:center;gap:14px}
+.hdr-logo img{height:50px;width:auto;object-fit:contain;flex-shrink:0}
+.hdr-sep{width:2px;height:44px;background:rgba(30,91,79,.25);flex-shrink:0}
+.hdr-titles{display:flex;flex-direction:column;gap:1px}
+.hdr-titles .t1{font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;font-weight:800;color:var(--gd);letter-spacing:.04em;text-transform:uppercase}
+.hdr-titles .t1 em{font-style:normal;color:var(--gm)}
+.hdr-titles .t2{font-size:11px;color:var(--gray);font-weight:400;letter-spacing:.02em}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.hdr-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:.18s;border:1.5px solid}
+.hdr-btn.outline{color:var(--gm);background:#f0f9f6;border-color:#c3ddd7}
+.hdr-btn.outline:hover{background:#d8f0e8;border-color:var(--gm)}
+.hdr-btn.filled{color:#fff;background:var(--gm);border-color:var(--gm)}
+.hdr-btn.filled:hover{background:var(--gd);border-color:var(--gd)}
+
+/* ── NAV ── */
+.main-nav{
+  background:var(--gd);display:flex;gap:2px;
+  overflow-x:auto;padding:0 12px;
+  box-shadow:0 2px 8px rgba(0,47,42,.25);
+  scrollbar-width:none;
+}
+.main-nav::-webkit-scrollbar{display:none}
+.nav-tab{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:10px 20px;min-width:100px;
+  color:rgba(255,255,255,.5);font-family:'Inter',sans-serif;
+  cursor:pointer;border:none;
+  border-bottom:3px solid transparent;border-top:3px solid transparent;
+  white-space:nowrap;transition:all .2s;background:none;
+}
+.nav-icon{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.06);transition:.2s}
+.nav-label{font-family:'Barlow Condensed',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1;transition:.2s}
+.nav-sub{font-family:'Inter',sans-serif;font-size:9px;font-weight:400;color:rgba(255,255,255,.3);line-height:1;letter-spacing:.03em}
+.nav-tab:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05)}
+.nav-tab:hover .nav-icon{background:rgba(255,255,255,.12)}
+.nav-tab.active{color:#fff;border-bottom-color:var(--ga);background:rgba(255,255,255,.07)}
+.nav-tab.active .nav-icon{background:rgba(17,205,120,.2);box-shadow:0 0 0 1px rgba(17,205,120,.35)}
+.nav-tab.active .nav-icon svg{stroke:var(--ga)}
+.nav-tab.active .nav-label{color:var(--ga)}
+.nav-tab.active .nav-sub{color:rgba(17,205,120,.65)}
+
+/* ── MAIN ── */
+.main-content{flex:1;max-width:1440px;width:100%;margin:0 auto;padding:22px 24px}
+.panel{display:none}.panel.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:12px;box-shadow:0 1px 6px var(--shadow);margin-bottom:18px;border:1px solid rgba(30,91,79,.08);overflow:hidden}
+.card-hdr{padding:13px 18px;background:var(--gd);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-hdr h3{font-family:'Barlow Condensed',sans-serif;font-size:13.5px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.card-body{padding:18px}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--white);border-radius:10px;padding:14px 16px;border:1px solid var(--border);border-left:4px solid var(--gm);box-shadow:0 1px 4px var(--shadow);transition:.2s}
+.kpi:hover{transform:translateY(-1px);box-shadow:0 3px 10px var(--shadow)}
+.kpi-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gray);margin-bottom:5px;font-family:'Inter',sans-serif}
+.kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--gd);line-height:1}
+.kpi-sub{font-size:10px;color:var(--gray);margin-top:2px;font-family:'Inter',sans-serif}
+.kpi.warn{border-left-color:var(--amber)}.kpi.warn .kpi-val{color:var(--amber)}
+.kpi.danger{border-left-color:var(--red)}.kpi.danger .kpi-val{color:var(--red)}
+.kpi.info{border-left-color:var(--blue)}.kpi.info .kpi-val{color:var(--blue)}
+.kpi.success{border-left-color:#27ae60}.kpi.success .kpi-val{color:#27ae60}
+
+/* ── FORMS ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:10px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.08em;font-family:'Inter',sans-serif}
+.fc{border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;font-family:'Inter',sans-serif;color:#1e293b;background:var(--white);transition:.18s;width:100%}
+.fc:focus{border-color:var(--gm);box-shadow:0 0 0 3px rgba(30,91,79,.1)}
+.fc[readonly]{background:#f8fafc;color:var(--gray)}
+.folio-box{background:#e8f5f0;border:1.5px dashed var(--gm);border-radius:8px;padding:8px 14px;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--gd);letter-spacing:1px;text-align:center}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:.18s;border:none}
+.btn-primary{background:var(--gm);color:#fff;box-shadow:0 2px 8px rgba(30,91,79,.25)}.btn-primary:hover{background:var(--gd)}
+.btn-outline{background:var(--white);color:var(--gm);border:1.5px solid var(--gm)}.btn-outline:hover{background:#e8f5f0}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#b71c1c}
+.btn-warn{background:var(--amber);color:#fff}.btn-warn:hover{background:#bf360c}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-xs{padding:3px 7px;font-size:10px}
+.btn-group{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl thead th{background:var(--gd);color:#fff;padding:9px 11px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.tbl tbody td{padding:8px 11px;border-bottom:1px solid var(--border);font-family:'Inter',sans-serif;font-size:12.5px;vertical-align:middle}
+.tbl tbody tr:nth-child(even){background:#f7faf9}
+.tbl tbody tr:hover{background:#eaf3f0}
+.tbl-num{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:var(--gd)}
+.tbl-center{text-align:center}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:12px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em}
+.badge-green{background:#e8f5e9;color:#1b6b2b;border:1.5px solid #a5d6a7}
+.badge-red{background:#ffebee;color:var(--red);border:1.5px solid #ef9a9a}
+.badge-amber{background:#fff3e0;color:var(--amber);border:1.5px solid #ffcc80}
+.badge-blue{background:#e3f2fd;color:var(--blue);border:1.5px solid #90caf9}
+.badge-gray{background:#f1f5f9;color:var(--gray);border:1.5px solid #cbd5e1}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,47,42,.65);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:14px;box-shadow:0 24px 80px rgba(0,47,42,.35);width:100%;max-width:820px;margin:auto;animation:mIn .22s ease}
+.modal-lg{max-width:1000px}.modal-xl{max-width:1200px}
+@keyframes mIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-hdr{padding:15px 20px;background:var(--gd);color:#fff;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h2{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.modal-close{background:rgba(255,255,255,.15);color:#fff;border-radius:50%;width:28px;height:28px;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;transition:.18s}
+.modal-close:hover{background:rgba(255,255,255,.3)}
+.modal-body{padding:20px}
+.modal-footer{padding:13px 20px;background:#f8fafc;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;border-radius:0 0 14px 14px}
+
+/* ── AUTOCOMPLETE ── */
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--white);border:1.5px solid var(--gm);border-radius:8px;box-shadow:0 6px 20px var(--shadow);z-index:300;max-height:220px;overflow-y:auto}
+.ac-item{padding:8px 12px;cursor:pointer;font-size:12.5px;font-family:'Inter',sans-serif;border-bottom:1px solid var(--border);transition:.12s}
+.ac-item:hover{background:#e8f5f0;color:var(--gd)}
+.ac-item .ac-sub{font-size:10px;color:var(--gray);margin-top:1px}
+
+/* ── INFO BANNERS ── */
+.info-banner{background:#e8f5f0;border:1px solid #c3ddd7;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--gd);display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;font-family:'Inter',sans-serif;line-height:1.6}
+.warn-banner{background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--amber);margin-bottom:12px;font-family:'Inter',sans-serif;line-height:1.6}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;top:88px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 4px 14px rgba(0,47,42,.25);display:flex;align-items:center;gap:8px;min-width:240px;font-family:'Inter',sans-serif;animation:tIn .25s ease}
+@keyframes tIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast-ok{background:var(--gm);color:#fff}
+.toast-err{background:var(--red);color:#fff}
+.toast-warn{background:var(--amber);color:#fff}
+.toast-info{background:var(--gd);color:#fff}
+
+/* ── VALE PDF PREVIEW ── */
+.vale-preview{font-family:'Arial',sans-serif;font-size:11px;color:#000;background:#fff;padding:0}
+.vale-top-ref{text-align:right;font-size:10px;margin-bottom:6px;color:#333}
+.vale-main-border{border:2px solid #000}
+.vale-header-row{display:grid;grid-template-columns:130px 1fr 160px;border-bottom:2px solid #000}
+.vale-logo-cell{padding:8px;border-right:2px solid #000;display:flex;align-items:center;justify-content:center}
+.vale-logo-cell img{height:44px;width:auto}
+.vale-center-cell{padding:6px 10px;border-right:2px solid #000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center}
+.vale-center-cell .v-title1{font-weight:700;font-size:12px;letter-spacing:.02em}
+.vale-center-cell .v-title2{font-weight:700;font-size:13px;letter-spacing:.02em}
+.vale-right-cell{display:grid;grid-template-rows:auto auto;}
+.vale-right-row{display:grid;grid-template-columns:1fr 80px;border-bottom:1px solid #000}
+.vale-right-row:last-child{border-bottom:none}
+.vale-rl{padding:4px 6px;font-size:9.5px;font-weight:700;text-transform:uppercase;border-right:1px solid #000;background:#f5f5f5;display:flex;align-items:center}
+.vale-rv{padding:4px 6px;font-size:11px;font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center}
+.vale-rv.big{font-size:18px;font-weight:900}
+.vale-data-row{display:grid;grid-template-columns:80px 1fr;border-bottom:1px solid #000}
+.vale-data-row .vdr-label{padding:4px 6px;font-size:9.5px;font-weight:700;text-transform:uppercase;border-right:1px solid #000;background:#f5f5f5}
+.vale-data-row .vdr-val{padding:4px 8px;font-size:11.5px;color:#1565c0;font-style:italic}
+.vale-table-hdr{display:grid;grid-template-columns:100px 1fr 90px 80px;border-bottom:1px solid #000;background:#e0e0e0}
+.vale-table-hdr .vth{padding:5px 6px;font-size:9.5px;font-weight:700;text-transform:uppercase;text-align:center;border-right:1px solid #000}
+.vale-table-hdr .vth:last-child{border-right:none}
+.vale-table-row{display:grid;grid-template-columns:100px 1fr 90px 80px;border-bottom:1px solid #000}
+.vale-table-row .vtd{padding:6px;font-size:11px;border-right:1px solid #000;text-align:center}
+.vale-table-row .vtd.desc{text-align:left;font-size:10.5px;text-transform:uppercase;font-weight:600}
+.vale-table-row .vtd:last-child{border-right:none}
+.vale-para-row{padding:5px 8px;border-bottom:1px solid #000;font-size:10.5px}
+.vale-doc-row{padding:5px 8px;border-bottom:1px solid #000;font-size:10px}
+.vale-nota-row{border-bottom:1px solid #000;display:grid;grid-template-columns:120px 1fr}
+.vale-nota-row .vn-label{padding:5px 6px;font-size:9.5px;font-weight:700;border-right:1px solid #000;background:#f5f5f5;display:flex;align-items:center}
+.vale-nota-row .vn-val{padding:5px 8px;font-size:10.5px;font-weight:600;font-style:italic}
+.vale-obs-row{padding:4px 8px;border-bottom:1px solid #000;background:#ffcccc;font-size:10.5px;min-height:20px}
+.vale-firmas{display:grid;grid-template-columns:1fr 1fr 1fr}
+.vale-firma{border-right:1px solid #000;padding:8px}
+.vale-firma:last-child{border-right:none}
+.vale-firma .vf-label{font-size:9px;font-weight:700;text-transform:uppercase;margin-bottom:30px}
+.vale-firma .vf-name{font-size:10.5px;font-weight:700;text-transform:uppercase;color:#1565c0;margin-bottom:2px}
+.vale-firma .vf-detail{font-size:9px;color:#333;line-height:1.4}
+.vale-footer{background:#ffff00;padding:5px 8px;font-size:9.5px;font-weight:700;border-top:2px solid #000}
+.vale-original{padding:3px 8px;border-top:1px solid #000;font-size:9px}
+
+/* ── PRINT ── */
+#print-container{display:none}
+@media print{
+  body>*{display:none!important}
+  #print-container{display:block!important;position:fixed!important;top:0!important;left:0!important;width:100%!important;padding:8mm 10mm!important;background:#fff!important;z-index:99999!important}
+  @page{margin:6mm;size:A4 portrait}
+}
+
+/* ── MISC ── */
+.empty-state{text-align:center;padding:36px 20px;color:var(--gray)}
+.empty-state .icon{font-size:34px;margin-bottom:8px;opacity:.5}
+.empty-state p{font-size:13px;font-family:'Inter',sans-serif}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+.filter-sel{border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:'Inter',sans-serif;background:var(--white);cursor:pointer;color:#1e293b}
+.filter-sel:focus{border-color:var(--gm);outline:none}
+.search-inp{border:1.5px solid var(--border);border-radius:8px;padding:7px 11px;font-size:12.5px;font-family:'Inter',sans-serif;background:var(--white);min-width:200px}
+.search-inp:focus{border-color:var(--gm);outline:none}
+
+/* ── FOOTER ── */
+footer{background:var(--gd);color:rgba(255,255,255,.7);padding:22px 32px;margin-top:auto}
+.ftr-inner{max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:18px}
+.ftr-org p{font-size:.8rem;line-height:1.9;font-family:'Inter',sans-serif}
+.ftr-org p:first-child{color:#fff;font-weight:600;font-size:.85rem}
+.ftr-credits{text-align:right}
+.ftr-credits p{font-size:.78rem;line-height:1.9;font-family:'Inter',sans-serif}
+.ftr-credits p:first-child{color:#fff;font-weight:600}
+</style>
+</head>
+<body>
+<div id="print-container"></div>
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="hdr-logo">
+    <img src="data:image/png;base64,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" alt="PEMEX">
+    <div class="hdr-sep"></div>
+    <div class="hdr-titles">
+      <div class="t1"><em>SACISC</em> · Hojas Blancas SCAD</div>
+      <div class="t2">Control de Vale-Pase de Salida de Papel Bond · Agua Dulce, Ver.</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <input type="file" id="inputRestaurar" accept=".json" onchange="restaurarSesion(this)" style="display:none">
+    <div id="sbStatus" style="display:flex;align-items:center;gap:5px;font-size:10px;font-family:Inter,sans-serif;color:var(--gray)">
+      <div id="sbDot" style="width:8px;height:8px;border-radius:50%;background:var(--border);transition:.3s"></div>
+      <span id="sbStatusTxt">Conectando…</span>
+    </div>
+    <button class="hdr-btn outline" onclick="guardarSesion()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Guardar
+    </button>
+    <button class="hdr-btn filled" onclick="document.getElementById('inputRestaurar').click()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+      Restaurar
+    </button>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="main-nav">
+  <button class="nav-tab active" data-panel="pan-dash" onclick="showPanel('pan-dash')" id="tab-pan-dash">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+    <span class="nav-label">Dashboard</span>
+    <span class="nav-sub">Inicio</span>
+  </button>
+  <button class="nav-tab" data-panel="pan-entrada" onclick="showPanel('pan-entrada')" id="tab-pan-entrada">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+    <span class="nav-label">Entrada</span>
+    <span class="nav-sub">Recepción</span>
+  </button>
+  <button class="nav-tab" data-panel="pan-vale" onclick="showPanel('pan-vale')" id="tab-pan-vale">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+    <span class="nav-label">Nuevo Vale</span>
+    <span class="nav-sub">Salida</span>
+  </button>
+  <button class="nav-tab" data-panel="pan-hist" onclick="showPanel('pan-hist')" id="tab-pan-hist">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+    <span class="nav-label">Historial</span>
+    <span class="nav-sub">Vales</span>
+  </button>
+  <button class="nav-tab" data-panel="pan-catalogo" onclick="showPanel('pan-catalogo')" id="tab-pan-catalogo">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+    <span class="nav-label">Catálogo</span>
+    <span class="nav-sub">Usuarios</span>
+  </button>
+  <button class="nav-tab" data-panel="pan-inventario" onclick="showPanel('pan-inventario')" id="tab-pan-inventario">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73L13 2.27a2 2 0 0 0-2 0L4 6.27A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l6 3.46a2 2 0 0 0 2 0l6-3.46A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+    <span class="nav-label">Inventario</span>
+    <span class="nav-sub">Stock</span>
+  </button>
+  <button class="nav-tab" data-panel="pan-analisis" onclick="showPanel('pan-analisis')" id="tab-pan-analisis">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+    <span class="nav-label">Análisis</span>
+    <span class="nav-sub">Reportes</span>
+  </button>
+</nav>
+
+<div class="main-content">
+
+<!-- ═══ PANEL: DASHBOARD ═══ -->
+<div id="pan-dash" class="panel active">
+  <div class="kpi-grid" id="kpiDash"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="card-hdr"><h3>📋 Últimos Vales Emitidos</h3></div>
+      <div class="card-body" style="padding:0">
+        <div class="tbl-wrap">
+          <table class="tbl"><thead><tr><th>Vale</th><th>Fecha</th><th>Usuario</th><th>Área</th><th>Cant.</th><th>Estado</th></tr></thead>
+          <tbody id="tbodyDashVales"></tbody></table>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><h3>📦 Últimas Entradas de Embarque</h3></div>
+      <div class="card-body" style="padding:0">
+        <div class="tbl-wrap">
+          <table class="tbl"><thead><tr><th>Fecha</th><th>Cant. (PAQ)</th><th>Referencia RM</th><th>Estado</th></tr></thead>
+          <tbody id="tbodyDashEntradas"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL: ENTRADA ═══ -->
+<div id="pan-entrada" class="panel">
+  <div class="card">
+    <div class="card-hdr">
+      <h3>📦 Registro de Entrada — Papel Bond</h3>
+      <button class="btn btn-primary" onclick="guardarEntrada()">💾 Registrar Entrada</button>
+    </div>
+    <div class="card-body">
+      <div class="info-banner">📌 Única partida: <strong>PAPEL PARA FOTOCOPIADORA E IMPRESIONES TAMAÑO CARTA (PAQ.)</strong> — Procedente de Coatzacoalcos.</div>
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>Folio de Ingreso</label>
+          <div class="folio-box" id="folioEntrada">—</div>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Recepción</label>
+          <input type="date" class="fc" id="fechaEntrada">
+        </div>
+        <div class="form-group">
+          <label>Cantidad Recibida (PAQ.)</label>
+          <input type="number" class="fc" id="cantEntrada" min="1" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Referencia RM / No. Vale</label>
+          <input type="text" class="fc" id="refEntrada" placeholder="Ej: RM00825-001" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Observaciones</label>
+          <input type="text" class="fc" id="obsEntrada" placeholder="Opcional">
+        </div>
+        <div class="form-group">
+          <label>Vale de Ingreso</label>
+          <select class="fc" id="valeIngreso">
+            <option value="1">✅ Sí — Con vale físico</option>
+            <option value="0">❌ No — Sin vale físico</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:#f0f9f5;border:1.5px solid #c3ddd7;border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Stock Actual en Bodega</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:var(--gd)" id="stockActualEnt">0 PAQ.</div>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Stock Después de Esta Entrada</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:#27ae60" id="stockDespuesEnt">— PAQ.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <h3>📋 Historial de Entradas</h3>
+      <button class="btn btn-outline btn-sm" onclick="exportarEntradas()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3" width="20" height="18" rx="2" fill="#1D6F42"/><text x="3" y="15" font-family="Arial" font-size="6" font-weight="900" fill="#fff">XLS</text></svg>
+        Excel
+      </button>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="tbl-wrap">
+        <table class="tbl"><thead><tr><th>Folio</th><th>Fecha</th><th>Cant. (PAQ.)</th><th>Referencia RM</th><th>Vale Ingreso</th><th>Observaciones</th><th>Acciones</th></tr></thead>
+        <tbody id="tbodyEntradas"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL: NUEVO VALE ═══ -->
+<div id="pan-vale" class="panel">
+  <div class="card">
+    <div class="card-hdr">
+      <h3>📄 Nuevo Vale-Pase de Salida</h3>
+      <button class="btn btn-primary" onclick="generarVale()">📄 Generar Vale</button>
+    </div>
+    <div class="card-body">
+      <div class="form-grid" style="margin-bottom:14px">
+        <div class="form-group">
+          <label>No. Vale</label>
+          <div class="folio-box" id="noVale">417</div>
+        </div>
+        <div class="form-group">
+          <label>Mes de Cargo</label>
+          <select class="fc" id="mesCargo">
+            <option>ENERO</option><option>FEBRERO</option><option>MARZO</option>
+            <option>ABRIL</option><option>MAYO</option><option>JUNIO</option>
+            <option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option>
+            <option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" class="fc" id="fechaVale">
+        </div>
+        <div class="form-group">
+          <label>Cantidad (PAQ.)</label>
+          <input type="number" class="fc" id="cantVale" min="1" placeholder="0" oninput="actualizarStockVale()">
+        </div>
+      </div>
+      <!-- Buscador de usuario -->
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Buscar Usuario del Catálogo</label>
+        <div class="ac-wrap">
+          <input type="text" class="fc" id="buscarUsuario" placeholder="Nombre, ficha o área…" oninput="acUsuario(this)" onfocus="acUsuario(this)" autocomplete="off">
+          <div class="ac-list" id="acUsuarioList" style="display:none"></div>
+        </div>
+      </div>
+      <!-- Datos del usuario seleccionado -->
+      <div id="usuarioSelCard" style="display:none;background:#f0f9f5;border:1.5px solid #c3ddd7;border-radius:10px;padding:14px 18px;margin-bottom:14px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">✅ Usuario Seleccionado</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input class="fc" id="uNombre" readonly>
+          </div>
+          <div class="form-group">
+            <label>Ficha</label>
+            <input class="fc" id="uFicha" readonly>
+          </div>
+          <div class="form-group">
+            <label>Cargo</label>
+            <input class="fc" id="uCargo" readonly>
+          </div>
+          <div class="form-group">
+            <label>Área Usuaria</label>
+            <input class="fc" id="uArea" readonly>
+          </div>
+          <div class="form-group">
+            <label>Correo (Destinatario del Vale)</label>
+            <input class="fc" id="uCorreo" readonly>
+          </div>
+          <div class="form-group">
+            <label>Dirección</label>
+            <input class="fc" id="uDir" readonly>
+          </div>
+        </div>
+      </div>
+      <!-- Documento soporte y nota -->
+      <div class="form-grid" style="margin-bottom:14px">
+        <div class="form-group">
+          <label>Documento Soporte</label>
+          <input type="text" class="fc" id="docSoporte" placeholder="Nombre o referencia del doc. soporte">
+        </div>
+        <div class="form-group">
+          <label>Nota (Justificación)</label>
+          <input type="text" class="fc" id="notaVale" value="DOTACION SEGÚN PROMEDIO DE CONSUMO">
+        </div>
+        <div class="form-group">
+          <label>Para Entrega al Departamento</label>
+          <input type="text" class="fc" id="deptEntrega" placeholder="Ej: HOSPITAL GENERAL EL PLAN">
+        </div>
+        <div class="form-group">
+          <label>Observaciones (fondo rosa)</label>
+          <input type="text" class="fc" id="obsVale" value="NINGUNO" placeholder="NINGUNO">
+        </div>
+      </div>
+      <!-- Stock display -->
+      <div style="background:#f0f9f5;border:1.5px solid #c3ddd7;border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:30px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em">Stock Disponible</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--gd)" id="stockDisp">— PAQ.</div>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em">Después de Este Vale</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--amber)" id="stockTrasVale">— PAQ.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL: HISTORIAL ═══ -->
+<div id="pan-hist" class="panel">
+  <div class="card">
+    <div class="card-hdr">
+      <h3>📋 Historial de Vales — Papel Bond</h3>
+      <div class="btn-group">
+        <button class="btn btn-outline btn-sm" onclick="exportarHistorial()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#1D6F42"/><text x="3" y="15" font-family="Arial" font-size="6" font-weight="900" fill="#fff">XLS</text></svg>
+          Excel
+        </button>
+      </div>
+    </div>
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);background:#f8fafc;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div class="form-group" style="margin:0">
+        <label style="font-size:10px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em">Año</label>
+        <select class="filter-sel" id="fltAno" onchange="renderHistorial()">
+          <option value="">Todos</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:10px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em">Mes</label>
+        <select class="filter-sel" id="fltMes" onchange="renderHistorial()">
+          <option value="">Todos</option>
+          <option>ENERO</option><option>FEBRERO</option><option>MARZO</option>
+          <option>ABRIL</option><option>MAYO</option><option>JUNIO</option>
+          <option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option>
+          <option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:10px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em">Estado</label>
+        <select class="filter-sel" id="fltEstado" onchange="renderHistorial()">
+          <option value="">Todos</option>
+          <option value="ENTREGADO">Entregado</option>
+          <option value="NO_RECIBIDO">No recibido</option>
+          <option value="CANCELADO">Cancelado</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;flex:1;min-width:180px">
+        <label style="font-size:10px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em">Buscar</label>
+        <input class="search-inp" id="fltBuscar" placeholder="Nombre, área, folio…" oninput="renderHistorial()">
+      </div>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Vale</th><th>Mes Cargo</th><th>Fecha</th><th>Cant.</th><th>Nombre</th><th>Área</th><th>Estado</th><th>Obs.</th><th>Acciones</th></tr></thead>
+          <tbody id="tbodyHistorial"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL: CATÁLOGO USUARIOS ═══ -->
+<div id="pan-catalogo" class="panel">
+  <div class="card">
+    <div class="card-hdr">
+      <h3>👥 Catálogo de Usuarios</h3>
+      <div class="btn-group">
+        <input class="search-inp" id="srchCat" placeholder="🔍 Buscar…" oninput="renderCatalogo()" style="min-width:200px">
+        <button class="btn btn-primary btn-sm" onclick="openModalUsuario()">➕ Nuevo Usuario</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Ficha</th><th>Nombre</th><th>Cargo</th><th>Área Usuaria</th><th>Correo</th><th>Dirección</th><th>Acciones</th></tr></thead>
+          <tbody id="tbodyCatalogo"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL: INVENTARIO ═══ -->
+<div id="pan-inventario" class="panel">
+  <div class="kpi-grid" id="kpiInv"></div>
+  <div class="card">
+    <div class="card-hdr">
+      <h3>📦 Kardex de Stock — Papel Bond (PAQ.)</h3>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Referencia</th><th>Entrada</th><th>Salida</th><th>Saldo</th><th>Detalle</th></tr></thead>
+          <tbody id="tbodyKardex"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL: ANÁLISIS ═══ -->
+<div id="pan-analisis" class="panel">
+  <div class="kpi-grid" id="kpiAnalisis"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div class="card-hdr"><h3>📊 Consumo Mensual (PAQ.)</h3></div>
+      <div class="card-body"><div id="chartMensual"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><h3>🏢 Top Áreas por Consumo</h3></div>
+      <div class="card-body"><div id="chartAreas"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><h3>📋 Reporte por Período</h3>
+      <div class="btn-group">
+        <select class="filter-sel" id="anaAno" onchange="renderAnalisis()"><option value="">Todos</option><option>2024</option><option>2025</option><option>2026</option></select>
+        <select class="filter-sel" id="anaMes" onchange="renderAnalisis()"><option value="">Todos</option><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option><option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option></select>
+        <button class="btn btn-outline btn-sm" onclick="exportarAnalisis()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#1D6F42"/><text x="3" y="15" font-family="Arial" font-size="6" font-weight="900" fill="#fff">XLS</text></svg> Excel</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0">
+      <table class="tbl"><thead><tr><th>Mes</th><th>Área</th><th>Nombre</th><th>Vale</th><th>Cant.</th><th>Estado</th></tr></thead>
+      <tbody id="tbodyAnalisis"></tbody></table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main-content -->
+
+<!-- MODALES -->
+<!-- Modal: Vista previa del Vale -->
+<div class="modal-overlay" id="modalVale">
+  <div class="modal modal-xl">
+    <div class="modal-hdr">
+      <h2>📄 Vale-Pase de Salida — No. <span id="valeNum">—</span></h2>
+      <button class="modal-close" onclick="closeModal('modalVale')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-banner" style="margin-bottom:14px">
+        ✅ Vale generado correctamente. Revise el documento antes de imprimir y enviar por correo.
+      </div>
+      <div id="valePreview"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:11px;color:var(--gray);font-family:'Inter',sans-serif" id="correoInfo"></div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="closeModal('modalVale')">Cerrar</button>
+        <button class="btn btn-warn" onclick="imprimirVale()">🖨️ Imprimir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Usuario CRUD -->
+<div class="modal-overlay" id="modalUsuario">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2>👤 <span id="tituloUsuario">Nuevo Usuario</span></h2>
+      <button class="modal-close" onclick="closeModal('modalUsuario')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Ficha PEMEX</label>
+          <input type="text" class="fc" id="uEditFicha" placeholder="Ej: 355363">
+        </div>
+        <div class="form-group">
+          <label>Nombre Completo</label>
+          <input type="text" class="fc" id="uEditNombre" placeholder="Título + Nombre completo">
+        </div>
+        <div class="form-group">
+          <label>Cargo</label>
+          <input type="text" class="fc" id="uEditCargo" placeholder="Cargo o puesto">
+        </div>
+        <div class="form-group">
+          <label>Área Usuaria</label>
+          <input type="text" class="fc" id="uEditArea" placeholder="Departamento o área">
+        </div>
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <input type="email" class="fc" id="uEditCorreo" placeholder="usuario@pemex.com">
+        </div>
+        <div class="form-group">
+          <label>Dirección</label>
+          <select class="fc" id="uEditDir">
+            <option value="DAS">DAS</option>
+            <option value="DEE">DEE</option>
+            <option value="DL">DL</option>
+            <option value="OTRA">OTRA</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalUsuario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarUsuario()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ftr-inner">
+    <div class="ftr-org">
+      <p>Unidad Regional de Servicios Corporativos Sur · PEMEX</p>
+      <p>Superintendencia de Servicios Corporativos Sur Zona Coatzacoalcos</p>
+      <p>SCAD — Servicios Corporativos Agua Dulce · FO-URSC-PB-01 Rev. 2023</p>
+    </div>
+    <div class="ftr-credits">
+      <p>SACISC · Hojas Blancas SCAD</p>
+      <p>Ing. Ángel Pérez Chávez · F-383573 · angel.perez@pemex.com · Ext. 27-301</p>
+      <p>Centro Logístico: JSCAD · Clave Depto: 78100</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ═══ DATOS ═══════════════════════════════════════════════════════════
+const USUARIOS = [
+  {ficha:'167505',nombre:'C.P MIGUEL ALFREDO CRUZ MARTÍNEZ',cargo:'',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'miguel.alfredo.cruz@pemex.com',direccion:'DAS'},
+  {ficha:'201717',nombre:'ARQ. MARIO VILLATORO RAMÍREZ',cargo:'',area:'G.M. DE MANTENIMIENTO Y CONSTRUCCIÓN',correo:'mario.villatoro@pemex.com',direccion:'DEE'},
+  {ficha:'203257',nombre:'C.P. MA. DE LOURDES RAMÍREZ MAULEÓN',cargo:'',area:'RECURSOS FINANCIEROS',correo:'maria.lourdes.ramirezm@pemex.com',direccion:'DAS'},
+  {ficha:'206661',nombre:'ENRICO GUZMAN MORALES',cargo:'',area:'SGDUOS',correo:'enrico.guzman@pemex.com',direccion:'DAS'},
+  {ficha:'268317',nombre:'LIC. REY DAVID JIMÉNEZ MANZANILLA',cargo:'',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'rey.david.jimenez@pemex.com',direccion:'DAS'},
+  {ficha:'268317',nombre:'LIC. REY DAVID JIMÉNEZ MANZANILLA',cargo:'',area:'RECURSOS HUMANOS CUICHAPA',correo:'rey.david.jimenez@pemex.com',direccion:'DAS'},
+  {ficha:'268317',nombre:'LIC. REY DAVID JIMÉNEZ MANZANILLA',cargo:'',area:'SERVICIOS CORPORATIVOS CUICHAPA',correo:'rey.david.jimenez@pemex.com',direccion:'DAS'},
+  {ficha:'279315',nombre:'C.P. JUAN ODON DOMÍNGUEZ MONTIEL',cargo:'',area:'ALMACÉN AGUA DULCE',correo:'juan.odon.dominguez@pemex.com',direccion:'DAS'},
+  {ficha:'314016',nombre:'LIC. JUAN DE DIOS ZUÑIGA CALLES',cargo:'',area:'RECURSOS HUMANOS EL PLAN',correo:'juan.dios.zuniga@pemex.com',direccion:'DAS'},
+  {ficha:'314016',nombre:'LIC. JUAN DE DIOS ZUÑIGA CALLES',cargo:'',area:'RECURSOS HUMANOS AGUA DULCE',correo:'juan.dios.zuniga@pemex.com',direccion:'DAS'},
+  {ficha:'315986',nombre:'SUSANA BARRIENTOS SOTO',cargo:'',area:'CENDI EL PLAN',correo:'susana.barrientos@pemex.com',direccion:'DAS'},
+  {ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',cargo:'',area:'COMBUSTION INTERNA-SERVICIOS AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',direccion:'DAS'},
+  {ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',cargo:'',area:'HOSPITAL GENERAL AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',direccion:'DAS'},
+  {ficha:'325167',nombre:'ING. ALFONSO OLIMPO GARCÍA CAMPOS',cargo:'',area:'CARTERA DE PROYECTOS',correo:'alfonso.olimpo.garcia@pemex.com',direccion:'DEE'},
+  {ficha:'325334',nombre:'ING. ÓSCAR MELO NARCIZO',cargo:'',area:'G.M. DE INTERVENCIONES A POZOS',correo:'oscar.melon@pemex.com',direccion:'DEE'},
+  {ficha:'335165',nombre:'ING. VÍCTOR HUGO MEJÍA CÓRDOVA',cargo:'',area:'TECNOLOGÍA DE INFORMACION AGUA DULCE',correo:'victor.hugo.mejia@pemex.com',direccion:'DAS'},
+  {ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',cargo:'',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',direccion:'DAS'},
+  {ficha:'337852',nombre:'MARGARITA BIELMA RAMOS',cargo:'',area:'ADMINISTRACIÓN PATRIMONIAL EL PLAN',correo:'margarita.bielma@pemex.com',direccion:'DAS'},
+  {ficha:'340651',nombre:'DRA. SANDRA BRITZ CASANGO',cargo:'',area:'HOSPITAL CUICHAPA',correo:'sandra.britz@pemex.com',direccion:'DAS'},
+  {ficha:'341318',nombre:'KARLA ROSALES AGUILAR',cargo:'',area:'ADMINISTRACION DEL ACTIVO',correo:'karla.rosales@pemex.com',direccion:'DEE'},
+  {ficha:'341401',nombre:'ING. SAÚL LEONARDO RODRÍGUEZ GARCÍA',cargo:'',area:'SEGURIDAD, SALUD EN EL TRABAJO Y PROTECCIÓN AMBIENTAL',correo:'saul.leonardo.rodriguez@pemex.com',direccion:'DEE'},
+  {ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',cargo:'',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',direccion:'DAS'},
+  {ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',cargo:'SUBDIRECTOR ADMINISTRATIVO HOSPITAL EL PLAN',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',direccion:'DAS'},
+  {ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',cargo:'SUBDIRECTOR ADMINISTRATIVO HOSPITAL AGUA DULCE',area:'HOSPITAL GENERAL AGUA DULCE',correo:'othon.padilla@pemex.com',direccion:'DAS'},
+  {ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',cargo:'',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',direccion:'DAS'},
+  {ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',cargo:'',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',direccion:'DAS'},
+  {ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',cargo:'',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'juan.martin.margalli@pemex.com',direccion:'DAS'},
+  {ficha:'374205',nombre:'MTRO. JONATAN ERIC REYES GÓMEZ',cargo:'JEFE SERVICIOS CORPORATIVOS AGUA DULCE',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'jonatan.eric.reyes@pemex.com',direccion:'DAS'},
+  {ficha:'379954',nombre:'ARACELI SUÁREZ BARAHONA',cargo:'',area:'CONSERVACION Y MANTENIMIENTO EL PLAN',correo:'araceli.suarez@pemex.com',direccion:'DAS'},
+  {ficha:'389178',nombre:'CRISTHIAN JESUS ADRIANO MARTINEZ',cargo:'',area:'G.M. DE MANTENIMIENTO',correo:'cristhian.jesus.adriano@pemex.com',direccion:'DAS'},
+  {ficha:'418145',nombre:'LIC. SUSAN MELGAR COLI',cargo:'',area:'RECURSOS HUMANOS CUICHAPA',correo:'susan.melgar@pemex.com',direccion:'DAS'},
+  {ficha:'418826',nombre:'LEONARDO MARCIAL RODRIGUEZ MUNIVE',cargo:'',area:'GERENCIA DE OBRA Y MANTENIMIENTO',correo:'leonardo.marcial.rodriguez@pemex.com',direccion:'DAS'},
+  {ficha:'429847',nombre:'DR. FRANCISCO JAVIER LÓPEZ REYES',cargo:'',area:'HOSPITAL GENERAL AGUA DULCE',correo:'francisco.javier.lopezr@pemex.com',direccion:'DAS'},
+  {ficha:'432563',nombre:'TATIANA TINOCO REYES',cargo:'',area:'SERVICIOS CORPORATIVOS CUICHAPA',correo:'tinocotati@gmail.com',direccion:'DAS'},
+  {ficha:'438507',nombre:'VICTOR EDWING RAHME RUBIERA',cargo:'',area:'SERVICIOS LOGISTICOS TERRESTRES',correo:'victor.edwing.rahme@pemex.com',direccion:'DEE'},
+  {ficha:'446157',nombre:'DORIS HEYDI HEREDIA GARFIAS',cargo:'',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'doris.heydi.heredia@pemex.com',direccion:'DAS'},
+  {ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',cargo:'',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',direccion:'DAS'},
+  {ficha:'501617',nombre:'MOISES CRUZ BALLANES',cargo:'',area:'TUZANDEPETL',correo:'moises.cruz@pemex.com',direccion:'DAS'},
+  {ficha:'555524',nombre:'JUAN CARLOS ACUÑA SOTO',cargo:'',area:'HOSPITAL-SERVICIOS AGUA DULCE',correo:'juan.carlos.acuna@pemex.com',direccion:'DL'},
+  {ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',cargo:'',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',direccion:'DAS'},
+  {ficha:'627212',nombre:'PEDRO MATUS VICENTE',cargo:'',area:'HOSPITAL-SERVICIOS AGUA DULCE',correo:'pedro.matus@pemex.com',direccion:'DAS'},
+  {ficha:'652768',nombre:'JESÚS ANTONIO ULLOA LEZAMA',cargo:'',area:'SERVICIOS CORPORATIVOS CUICHAPA',correo:'jesus.antonio.ulloa@pemex.com',direccion:'DAS'},
+  {ficha:'892496',nombre:'CONRADO HERNÁNDEZ PÉREZ',cargo:'',area:'SERVICIOS CORPORATIVOS HOSPITAL AGUA DULCE',correo:'conrado.hernández@pemex.com',direccion:'DAS'},
+];
+const VALES_HIST = [
+  {folio:1,mes:'ENERO',fecha:'2024-02-01',cant:3,ficha:'203257',nombre:'C.P. MA. DE LOURDES RAMÍREZ MAULEÓN',area:'RECURSOS FINANCIEROS',correo:'maria.lourdes.ramirezm@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:6,mes:'ENERO',fecha:'2024-02-01',cant:52,ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:8,mes:'ENERO',fecha:'2024-02-01',cant:18,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:14,mes:'ENERO',fecha:'2024-02-17',cant:2,ficha:'892496',nombre:'CONRADO HERNÁNDEZ PÉREZ',area:'SERVICIOS CORPORATIVOS HOSPITAL AGUA DULCE',correo:'conrado.hernández@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:15,mes:'ENERO',fecha:'2024-02-17',cant:2,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:17,mes:'ENERO',fecha:'2024-02-22',cant:6,ficha:'325334',nombre:'ING. ÓSCAR MELO NARCIZO',area:'G.M. DE INTERVENCIONES A POZOS',correo:'oscar.melon@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:18,mes:'ENERO',fecha:'2024-02-23',cant:2,ficha:'341401',nombre:'ING. SAÚL LEONARDO RODRÍGUEZ GARCÍA',area:'SEGURIDAD, SALUD EN EL TRABAJO Y PROTECCIÓN AMBIENTAL',correo:'saul.leonardo.rodriguez@pemex.com',recibido:0,obs:'LES ENVIE EL VALE PERO NO VINIERON',status:'NO_RECIBIDO'},
+  {folio:26,mes:'FEBRERO',fecha:'2024-03-04',cant:5,ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:27,mes:'FEBRERO',fecha:'2024-03-04',cant:5,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:29,mes:'FEBRERO',fecha:'2024-03-07',cant:2,ficha:'892496',nombre:'CONRADO HERNÁNDEZ PÉREZ',area:'SERVICIOS CORPORATIVOS HOSPITAL AGUA DULCE',correo:'conrado.hernández@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:33,mes:'FEBRERO',fecha:'2024-03-20',cant:52,ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:36,mes:'MARZO',fecha:'2024-03-21',cant:2,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:41,mes:'FEBRERO',fecha:'2024-03-25',cant:5,ficha:'325334',nombre:'ING. ÓSCAR MELO NARCIZO',area:'G.M. DE INTERVENCIONES A POZOS',correo:'oscar.melon@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:43,mes:'MARZO',fecha:'2024-03-27',cant:2,ficha:'446157',nombre:'DORIS HEYDI HEREDIA GARFIAS',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'doris.heydi.heredia@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:48,mes:'MARZO',fecha:'2024-03-31',cant:5,ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:49,mes:'MARZO',fecha:'2024-03-27',cant:20,ficha:'201717',nombre:'ARQ. MARIO VILLATORO RAMÍREZ',area:'G.M. DE MANTENIMIENTO Y CONSTRUCCIÓN',correo:'mario.villatoro@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:50,mes:'ABRIL',fecha:'2024-04-11',cant:2,ficha:'167505',nombre:'C.P MIGUEL ALFREDO CRUZ MARTÍNEZ',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'miguel.alfredo.cruz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:52,mes:'MARZO',fecha:'2024-04-16',cant:52,ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:58,mes:'ABRIL',fecha:'2024-04-18',cant:3,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:59,mes:'ABRIL',fecha:'2024-04-18',cant:5,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:61,mes:'ABRIL',fecha:'2024-04-25',cant:6,ficha:'374205',nombre:'MTRO. JONATAN ERIC REYES GÓMEZ',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'jonatan.eric.reyes@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:64,mes:'ABRIL',fecha:'2024-05-02',cant:22,ficha:'201717',nombre:'ARQ. MARIO VILLATORO RAMÍREZ',area:'G.M. DE MANTENIMIENTO Y CONSTRUCCIÓN',correo:'mario.villatoro@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:66,mes:'ABRIL',fecha:'2024-05-02',cant:5,ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:71,mes:'ABRIL',fecha:'2024-05-09',cant:5,ficha:'418145',nombre:'LIC. SUSAN MELGAR COLI',area:'RECURSOS HUMANOS CUICHAPA',correo:'susan.melgar@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:73,mes:'MAYO',fecha:'2024-05-20',cant:5,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:78,mes:'MAYO',fecha:'2024-05-28',cant:4,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:83,mes:'MAYO',fecha:'2024-05-31',cant:2,ficha:'892496',nombre:'CONRADO HERNÁNDEZ PÉREZ',area:'SERVICIOS CORPORATIVOS HOSPITAL AGUA DULCE',correo:'conrado.hernández@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:85,mes:'MAYO',fecha:'2024-06-03',cant:5,ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:87,mes:'MAYO',fecha:'2024-06-06',cant:5,ficha:'418145',nombre:'LIC. SUSAN MELGAR COLI',area:'RECURSOS HUMANOS CUICHAPA',correo:'susan.melgar@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:91,mes:'JUNIO',fecha:'2024-06-20',cant:2,ficha:'652768',nombre:'JESÚS ANTONIO ULLOA LEZAMA',area:'SERVICIOS CORPORATIVOS CUICHAPA',correo:'jesus.antonio.ulloa@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:93,mes:'JUNIO',fecha:'2024-06-22',cant:5,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:98,mes:'JUNIO',fecha:'2024-06-27',cant:4,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:102,mes:'JUNIO',fecha:'2024-06-29',cant:6,ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:104,mes:'JUNIO',fecha:'2024-07-04',cant:6,ficha:'418145',nombre:'LIC. SUSAN MELGAR COLI',area:'RECURSOS HUMANOS CUICHAPA',correo:'susan.melgar@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:106,mes:'JUNIO',fecha:'2024-07-12',cant:2,ficha:'892496',nombre:'CONRADO HERNÁNDEZ PÉREZ',area:'SERVICIOS CORPORATIVOS HOSPITAL AGUA DULCE',correo:'conrado.hernández@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:107,mes:'JUNIO',fecha:'2024-07-12',cant:4,ficha:'418826',nombre:'LEONARDO MARCIAL RODRIGUEZ MUNIVE',area:'GERENCIA DE OBRA Y MANTENIMIENTO',correo:'leonardo.marcial.rodriguez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:108,mes:'JUNIO',fecha:'2024-07-12',cant:3,ficha:'446157',nombre:'DORIS HEYDI HEREDIA GARFIAS',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'doris.heydi.heredia@pemex.com',recibido:1,obs:'SE LE SUMINISTRÓ 1 PAQ. A YARUMI VILLALOBOS, 1 PAQ. A LILIANA SARAUZ Y OTRO A LA IMPRESORA DE SERVICIOS.',status:'ENTREGADO'},
+  {folio:110,mes:'JUNIO',fecha:'2024-07-19',cant:52,ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:113,mes:'JULIO',fecha:'2024-07-23',cant:5,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:116,mes:'JULIO',fecha:'2024-07-24',cant:5,ficha:'418826',nombre:'LEONARDO MARCIAL RODRIGUEZ MUNIVE',area:'GERENCIA DE OBRA Y MANTENIMIENTO',correo:'leonardo.marcial.rodriguez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:119,mes:'JULIO',fecha:'2024-07-30',cant:4,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:124,mes:'JULIO',fecha:'2024-08-02',cant:5,ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:134,mes:'AGOSTO',fecha:'2024-08-27',cant:10,ficha:'446157',nombre:'DORIS HEYDI HEREDIA GARFIAS',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'doris.heydi.heredia@pemex.com',recibido:1,obs:'DOTACIÓN PARA LAS DOS IMPRESORAS DE SERVICIOS Y PARA IMPRESIÓN DE 20 BITACORAS DE VIGILANCIA',status:'ENTREGADO'},
+  {folio:135,mes:'AGOSTO',fecha:'2024-08-28',cant:10,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'DOTACIÓN PARA LAS DOS ÁREAS DE SEVICIOS EL PLAN',status:'ENTREGADO'},
+  {folio:138,mes:'AGOSTO',fecha:'2024-09-20',cant:10,ficha:'315986',nombre:'SUSANA BARRIENTOS SOTO',area:'CENDI EL PLAN',correo:'susana.barrientos@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:139,mes:'AGOSTO',fecha:'2024-09-24',cant:52,ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',recibido:1,obs:'ESTA DOTACIÓN FUE DEL MES DE AGOSTO',status:'ENTREGADO'},
+  {folio:142,mes:'SEPTIEMBRE',fecha:'2024-09-28',cant:5,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'DOTACIÓN PARA LAS DOS ÁREAS DE SEVICIOS EL PLAN',status:'ENTREGADO'},
+  {folio:145,mes:'AGOSTO',fecha:'2024-08-28',cant:10,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'POR FALLA EN EL SISTEMA CAMBIO EL FOLIO, PERO SU FOLIO ORIGINAL ES EL 135',status:'ENTREGADO'},
+  {folio:148,mes:'AGOSTO',fecha:'2024-09-03',cant:10,ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',recibido:1,obs:'POR FALLA EN EL SISTEMA CAMBIO EL FOLIO, PERO SU FOLIO ORIGINAL ES EL 137',status:'ENTREGADO'},
+  {folio:149,mes:'AGOSTO',fecha:'2024-09-03',cant:10,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'POR FALLA EN EL SISTEMA CAMBIO EL FOLIO, PERO SU FOLIO ORIGINAL ES EL 138',status:'ENTREGADO'},
+  {folio:154,mes:'AGOSTO',fecha:'2024-09-03',cant:3,ficha:'892496',nombre:'CONRADO HERNÁNDEZ PÉREZ',area:'SERVICIOS CORPORATIVOS HOSPITAL AGUA DULCE',correo:'conrado.hernández@pemex.com',recibido:1,obs:'POR FALLA EN EL SISTEMA CAMBIO EL FOLIO, PERO SU FOLIO ORIGINAL ES EL 143',status:'ENTREGADO'},
+  {folio:159,mes:'AGOSTO',fecha:'2024-09-07',cant:6,ficha:'418145',nombre:'LIC. SUSAN MELGAR COLI',area:'RECURSOS HUMANOS CUICHAPA',correo:'susan.melgar@pemex.com',recibido:1,obs:'POR FALLA EN EL SISTEMA CAMBIO EL FOLIO, PERO SU FOLIO ORIGINAL ES EL 149',status:'ENTREGADO'},
+  {folio:162,mes:'SEPTIEMBRE',fecha:'2024-10-05',cant:10,ficha:'492703',nombre:'LIC. FERNANDO MENESES HERNÁNDEZ',area:'RECURSOS FINANCIEROS',correo:'fernando.meneses@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:163,mes:'SEPTIEMBRE',fecha:'2024-10-08',cant:10,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:172,mes:'SEPTIEMBRE',fecha:'2024-10-22',cant:2,ficha:'892496',nombre:'CONRADO HERNÁNDEZ PÉREZ',area:'SERVICIOS CORPORATIVOS HOSPITAL AGUA DULCE',correo:'conrado.hernández@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:179,mes:'OCTUBRE',fecha:'2024-11-01',cant:5,ficha:'446157',nombre:'DORIS HEYDI HEREDIA GARFIAS',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'doris.heydi.heredia@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:192,mes:'OCTUBRE',fecha:'2024-11-13',cant:2,ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',area:'COMBUSTION INTERNA-SERVICIOS AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:196,mes:'OCTUBRE',fecha:'2024-11-22',cant:8,ficha:'325334',nombre:'ING. ÓSCAR MELO NARCIZO',area:'G.M. DE INTERVENCIONES A POZOS',correo:'oscar.melon@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:209,mes:'NOVIEMBRE',fecha:'2024-12-11',cant:6,ficha:'279315',nombre:'C.P. JUAN ODON DOMÍNGUEZ MONTIEL',area:'ALMACÉN AGUA DULCE',correo:'juan.odon.dominguez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:231,mes:'FEBRERO',fecha:'2025-02-28',cant:50,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'ninguna',status:'ENTREGADO'},
+  {folio:233,mes:'ENERO',fecha:'2025-02-28',cant:2,ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',area:'HOSPITAL GENERAL AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:236,mes:'ENERO',fecha:'2025-03-01',cant:50,ficha:'429847',nombre:'DR. FRANCISCO JAVIER LÓPEZ REYES',area:'HOSPITAL GENERAL AGUA DULCE',correo:'francisco.javier.lopezr@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:251,mes:'FEBRERO',fecha:'2025-03-27',cant:35,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:255,mes:'FEBRERO',fecha:'2025-04-01',cant:4,ficha:'555524',nombre:'JUAN CARLOS ACUÑA SOTO',area:'HOSPITAL-SERVICIOS AGUA DULCE',correo:'juan.carlos.acuna@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:256,mes:'FEBRERO',fecha:'2025-04-02',cant:3,ficha:'325167',nombre:'ING. ALFONSO OLIMPO GARCÍA CAMPOS',area:'CARTERA DE PROYECTOS',correo:'alfonso.olimpo.garcia@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:257,mes:'FEBRERO',fecha:'2025-04-02',cant:23,ficha:'314016',nombre:'LIC. JUAN DE DIOS ZUÑIGA CALLES',area:'RECURSOS HUMANOS EL PLAN',correo:'juan.dios.zuniga@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:260,mes:'FEBRERO',fecha:'2025-04-02',cant:4,ficha:'268317',nombre:'LIC. REY DAVID JIMÉNEZ MANZANILLA',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'rey.david.jimenez@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:261,mes:'FEBRERO',fecha:'2025-04-04',cant:6,ficha:'438507',nombre:'VICTOR EDWING RAHME RUBIERA',area:'SERVICIOS LOGISTICOS TERRESTRES',correo:'victor.edwing.rahme@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:262,mes:'FEBRERO',fecha:'2025-04-09',cant:3,ficha:'337852',nombre:'MARGARITA BIELMA RAMOS',area:'ADMINISTRACIÓN PATRIMONIAL EL PLAN',correo:'margarita.bielma@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:267,mes:'MARZO',fecha:'2025-04-25',cant:17,ficha:'501617',nombre:'MOISES CRUZ BALLANES',area:'TUZANDEPETL',correo:'moises.cruz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:280,mes:'MARZO',fecha:'2025-04-30',cant:4,ficha:'279315',nombre:'C.P. JUAN ODON DOMÍNGUEZ MONTIEL',area:'ALMACÉN AGUA DULCE',correo:'juan.odon.dominguez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:283,mes:'MARZO',fecha:'2025-05-05',cant:6,ficha:'341318',nombre:'KARLA ROSALES AGUILAR',area:'ADMINISTRACION DEL ACTIVO',correo:'karla.rosales@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:287,mes:'ABRIL',fecha:'2025-05-19',cant:4,ficha:'268317',nombre:'LIC. REY DAVID JIMÉNEZ MANZANILLA',area:'RECURSOS HUMANOS CUICHAPA',correo:'rey.david.jimenez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:305,mes:'ABRIL',fecha:'2025-06-05',cant:2,ficha:'379954',nombre:'ARACELI SUÁREZ BARAHONA',area:'CONSERVACION Y MANTENIMIENTO EL PLAN',correo:'araceli.suarez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:310,mes:'ABRIL',fecha:'2025-06-17',cant:20,ficha:'206661',nombre:'ENRICO GUZMAN MORALES',area:'SGDUOS',correo:'enrico.guzman@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:312,mes:'MAYO',fecha:'2025-06-20',cant:17,ficha:'501617',nombre:'MOISES CRUZ BALLANES',area:'TUZANDEPETL',correo:'moises.cruz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:320,mes:'JUNIO',fecha:'2025-07-02',cant:10,ficha:'368180',nombre:'JUAN MARTIN MARGALLI VALDIVIEZO',area:'SERVICIOS CORPORATIVOS AGUA DULCE',correo:'juan.martin.margalli@pemex.com',recibido:1,obs:'AUTORIZADO POR JERG',status:'ENTREGADO'},
+  {folio:335,mes:'JUNIO',fecha:'2025-07-09',cant:8,ficha:'335165',nombre:'ING. VÍCTOR HUGO MEJÍA CÓRDOVA',area:'TECNOLOGÍA DE INFORMACION AGUA DULCE',correo:'victor.hugo.mejia@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:337,mes:'JUNIO',fecha:'2025-07-09',cant:8,ficha:'389178',nombre:'CRISTHIAN JESUS ADRIANO MARTINEZ',area:'G.M. DE MANTENIMIENTO',correo:'cristhian.jesus.adriano@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:341,mes:'JUNIO',fecha:'2025-07-10',cant:6,ficha:'438507',nombre:'VICTOR EDWING RAHME RUBIERA',area:'SERVICIOS LOGISTICOS TERRESTRES',correo:'victor.edwing.rahme@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:346,mes:'JULIO',fecha:'2025-07-30',cant:40,ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:348,mes:'JULIO',fecha:'2025-08-02',cant:8,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:349,mes:'JULIO',fecha:'2025-08-02',cant:10,ficha:'501617',nombre:'MOISES CRUZ BALLANES',area:'TUZANDEPETL',correo:'moises.cruz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:359,mes:'SEPTIEMBRE',fecha:'2025-09-28',cant:15,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:360,mes:'SEPTIEMBRE',fecha:'2025-09-28',cant:2,ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',area:'COMBUSTION INTERNA-SERVICIOS AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:361,mes:'SEPTIEMBRE',fecha:'2025-09-30',cant:2,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:362,mes:'SEPTIEMBRE',fecha:'2025-09-28',cant:15,ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',recibido:1,obs:'ESTE VALE CORRESPONDE AL FOLIO 358 ENVIADO AL DOCTOR JAVIER ESTUARDO.',status:'ENTREGADO'},
+  {folio:363,mes:'OCTUBRE',fecha:'2025-10-11',cant:2,ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',area:'COMBUSTION INTERNA-SERVICIOS AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:364,mes:'OCTUBRE',fecha:'2025-10-12',cant:15,ficha:'365707',nombre:'JAVIER ESTUARDO PÉREZ LARA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'javier.estuardo.perez@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:365,mes:'OCTUBRE',fecha:'2025-10-19',cant:10,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:366,mes:'OCTUBRE',fecha:'2025-10-25',cant:15,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'CANCELADO — REEMPLAZADO POR FOLIO 369',status:'CANCELADO'},
+  {folio:367,mes:'NOVIEMBRE',fecha:'2025-11-01',cant:15,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'othon.padilla@pemex.com',recibido:1,obs:'CANCELADO — REEMPLAZADO POR FOLIO 371',status:'CANCELADO'},
+  {folio:368,mes:'OCTUBRE',fecha:'2025-11-04',cant:2,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:0,obs:'CANCELADO — REEMPLAZADO POR FOLIO 370',status:'CANCELADO'},
+  {folio:369,mes:'OCTUBRE',fecha:'2025-11-05',cant:27,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:370,mes:'OCTUBRE',fecha:'2025-11-05',cant:4,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:371,mes:'OCTUBRE',fecha:'2025-11-05',cant:60,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:372,mes:'NOVIEMBRE',fecha:'2025-11-19',cant:10,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:373,mes:'DICIEMBRE',fecha:'2025-11-29',cant:10,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:374,mes:'DICIEMBRE',fecha:'2025-11-29',cant:2,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:375,mes:'DICIEMBRE',fecha:'2025-12-11',cant:10,ficha:'314016',nombre:'LIC. JUAN DE DIOS ZUÑIGA CALLES',area:'RECURSOS HUMANOS AGUA DULCE',correo:'juan.dios.zuniga@pemex.com',recibido:1,obs:'SOLICITUD ESPECIAL',status:'ENTREGADO'},
+  {folio:376,mes:'DICIEMBRE',fecha:'2025-12-14',cant:1,ficha:'268317',nombre:'LIC. REY DAVID JIMÉNEZ MANZANILLA',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'rey.david.jimenez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:377,mes:'ENERO',fecha:'2026-01-12',cant:3,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:1,obs:'ninguna',status:'ENTREGADO'},
+  {folio:378,mes:'ENERO',fecha:'2026-01-14',cant:2,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:1,obs:'ninguno',status:'ENTREGADO'},
+  {folio:379,mes:'ENERO',fecha:'2026-01-14',cant:2,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:380,mes:'ENERO',fecha:'2026-01-20',cant:60,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:381,mes:'ENERO',fecha:'2026-01-21',cant:3,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:382,mes:'ENERO',fecha:'2026-01-20',cant:13,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL AGUA DULCE',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:383,mes:'ENERO',fecha:'2026-02-03',cant:2,ficha:'432563',nombre:'TATIANA TINOCO REYES',area:'SERVICIOS CORPORATIVOS CUICHAPA',correo:'tinocotati@gmail.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:384,mes:'FEBRERO',fecha:'2026-02-10',cant:10,ficha:'347110',nombre:'LIC. JOSÉ ANTONIO RIVERA HERNÁNDEZ',area:'RECURSOS HUMANOS AGUA DULCE',correo:'jose.antonio.riverah@pemex.com',recibido:0,obs:'VALE CANCELADO',status:'CANCELADO'},
+  {folio:385,mes:'FEBRERO',fecha:'2026-02-10',cant:3,ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',area:'COMBUSTION INTERNA-SERVICIOS AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:386,mes:'MARZO',fecha:'2026-03-03',cant:2,ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',area:'COMBUSTION INTERNA-SERVICIOS AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',recibido:1,obs:'ninguna',status:'ENTREGADO'},
+  {folio:387,mes:'MARZO',fecha:'2026-03-04',cant:16,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'ninguno',status:'ENTREGADO'},
+  {folio:388,mes:'MARZO',fecha:'2026-03-04',cant:2,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'ninguno',status:'ENTREGADO'},
+  {folio:389,mes:'MARZO',fecha:'2026-03-04',cant:35,ficha:'429847',nombre:'DR. FRANCISCO JAVIER LÓPEZ REYES',area:'HOSPITAL GENERAL AGUA DULCE',correo:'francisco.javier.lopezr@pemex.com',recibido:1,obs:'ninguno',status:'ENTREGADO'},
+  {folio:391,mes:'MARZO',fecha:'2026-03-06',cant:2,ficha:'627212',nombre:'PEDRO MATUS VICENTE',area:'HOSPITAL-SERVICIOS AGUA DULCE',correo:'pedro.matus@pemex.com',recibido:1,obs:'ninguna',status:'ENTREGADO'},
+  {folio:392,mes:'MARZO',fecha:'2026-03-25',cant:2,ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',area:'COMBUSTION INTERNA-SERVICIOS AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:393,mes:'MARZO',fecha:'2026-03-25',cant:7,ficha:'314016',nombre:'LIC. JUAN DE DIOS ZUÑIGA CALLES',area:'RECURSOS HUMANOS AGUA DULCE',correo:'juan.dios.zuniga@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:394,mes:'ABRIL',fecha:'2026-04-07',cant:2,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:395,mes:'ABRIL',fecha:'2026-04-07',cant:16,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:396,mes:'MAYO',fecha:'2026-05-28',cant:26,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:2,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:397,mes:'MAYO',fecha:'2026-05-28',cant:5,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:398,mes:'MAYO',fecha:'2026-05-28',cant:53,ficha:'429847',nombre:'DR. FRANCISCO JAVIER LÓPEZ REYES',area:'HOSPITAL GENERAL AGUA DULCE',correo:'francisco.javier.lopezr@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:399,mes:'MAYO',fecha:'2026-05-28',cant:2,ficha:'318979',nombre:'LILIANA DEL CARMEN SARAUZ SANTOS',area:'COMBUSTION INTERNA-SERVICIOS AGUA DULCE',correo:'liliana.carmen.sarauz@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:400,mes:'ABRIL',fecha:'2026-04-30',cant:3,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:401,mes:'ABRIL',fecha:'2026-04-30',cant:24,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:402,mes:'ABRIL',fecha:'2026-04-30',cant:51,ficha:'429847',nombre:'DR. FRANCISCO JAVIER LÓPEZ REYES',area:'HOSPITAL GENERAL AGUA DULCE',correo:'francisco.javier.lopezr@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:404,mes:'JUNIO',fecha:'2026-06-23',cant:2,ficha:'627212',nombre:'PEDRO MATUS VICENTE',area:'HOSPITAL-SERVICIOS AGUA DULCE',correo:'pedro.matus@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:405,mes:'JUNIO',fecha:'2026-06-28',cant:1,ficha:'268317',nombre:'LIC. REY DAVID JIMÉNEZ MANZANILLA',area:'SERVICIOS CORPORATIVOS EL PLAN',correo:'rey.david.jimenez@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:406,mes:'JUNIO',fecha:'2026-06-28',cant:1,ficha:'336341',nombre:'LIC. RAFAEL ÁNGEL FLORES LEYVA',area:'ADMINISTRACIÓN PATRIMONIAL AGUA DULCE',correo:'rafael.angel.flores@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:407,mes:'JUNIO',fecha:'2026-06-28',cant:26,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:408,mes:'JUNIO',fecha:'2026-06-30',cant:53,ficha:'429847',nombre:'DR. FRANCISCO JAVIER LÓPEZ REYES',area:'HOSPITAL GENERAL AGUA DULCE',correo:'francisco.javier.lopezr@pemex.com',recibido:1,obs:'NINGUNA',status:'ENTREGADO'},
+  {folio:409,mes:'JUNIO',fecha:'2026-06-30',cant:5,ficha:'558854',nombre:'DR. ALAIN BENITO GALLARDO JACOBO',area:'HOSPITAL CUICHAPA',correo:'alain.benito.gallardo@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:412,mes:'JULIO',fecha:'2026-07-13',cant:1,ficha:'268317',nombre:'LIC. REY DAVID JIMÉNEZ MANZANILLA',area:'SERVICIOS CORPORATIVOS CUICHAPA',correo:'rey.david.jimenez@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:415,mes:'AGOSTO',fecha:'2026-08-04',cant:26,ficha:'355363',nombre:'ING. OTHON PADILLA GUERRA',area:'HOSPITAL GENERAL EL PLAN',correo:'othon.padilla@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+  {folio:416,mes:'AGOSTO',fecha:'2026-08-04',cant:5,ficha:'340651',nombre:'DRA. SANDRA BRITZ CASANGO',area:'HOSPITAL CUICHAPA',correo:'sandra.britz@pemex.com',recibido:1,obs:'NINGUNO',status:'ENTREGADO'},
+];
+const ENTRADAS_HIST = [
+  {fecha:'2022-09-30',cant:260,ref:'RM030-012',vale:true},
+  {fecha:'2022-11-07',cant:300,ref:'RM029-013',vale:true},
+  {fecha:'2023-01-19',cant:300,ref:'RM00123-026',vale:true},
+  {fecha:'2023-02-22',cant:400,ref:'RM012-007',vale:true},
+  {fecha:'2023-03-27',cant:400,ref:'RM013-008',vale:true},
+  {fecha:'2023-05-05',cant:300,ref:'RM014-006',vale:true},
+  {fecha:'2023-07-03',cant:0,ref:'NO HUBO SURTIMIENTO',vale:false},
+  {fecha:'2023-08-21',cant:400,ref:'RM016-007',vale:true},
+  {fecha:'2023-09-29',cant:400,ref:'RM017-006',vale:true},
+  {fecha:'2023-11-24',cant:0,ref:'NO HUBO VALE',vale:false},
+  {fecha:'2023-12-28',cant:400,ref:'RM01924-007',vale:true},
+  {fecha:'2024-01-16',cant:400,ref:'RM02024-006',vale:true},
+  {fecha:'2024-02-22',cant:400,ref:'RM00125-020',vale:true},
+  {fecha:'2024-04-10',cant:120,ref:'RM00225-040',vale:true},
+  {fecha:'2024-05-08',cant:120,ref:'RM00325-036',vale:true},
+  {fecha:'2024-06-06',cant:120,ref:'RM00425-012',vale:true},
+  {fecha:'2024-06-06',cant:120,ref:'RM00525-029',vale:true},
+  {fecha:'2024-06-06',cant:120,ref:'RM00525-023',vale:true},
+  {fecha:'2024-06-06',cant:250,ref:'RECUENTO STOK OFICINA',vale:false},
+  {fecha:'2024-06-06',cant:400,ref:'RECUENTO RESERVA EN BODEGA',vale:false},
+  {fecha:'2025-07-04',cant:120,ref:'RM00725-014',vale:true},
+];
+
+// ═══ SUPABASE ══════════════════════════════════════════════════════════
+const SB_URL = 'https://epqyabsdgsthbtuluarq.supabase.co';
+const SB_KEY = 'sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0';
+const SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+
+async function sbGet(tabla, params=''){
+  const r = await fetch(`${SB_URL}/rest/v1/${tabla}?${params}`, {headers:SB_HDR});
+  if(!r.ok) throw new Error(`GET ${tabla}: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+async function sbInsert(tabla, body){
+  const r = await fetch(`${SB_URL}/rest/v1/${tabla}`, {method:'POST',headers:SB_HDR,body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(`INSERT ${tabla}: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+async function sbUpdate(tabla, match, body){
+  const r = await fetch(`${SB_URL}/rest/v1/${tabla}?${match}`, {method:'PATCH',headers:{...SB_HDR,'Prefer':'return=representation'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(`UPDATE ${tabla}: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+async function sbDelete(tabla, match){
+  const r = await fetch(`${SB_URL}/rest/v1/${tabla}?${match}`, {method:'DELETE',headers:SB_HDR});
+  if(!r.ok) throw new Error(`DELETE ${tabla}: ${r.status} ${await r.text()}`);
+  return true;
+}
+async function sbUpsert(tabla, body, onConflict='id'){
+  const r = await fetch(`${SB_URL}/rest/v1/${tabla}?on_conflict=${onConflict}`, {method:'POST',headers:{...SB_HDR,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(`UPSERT ${tabla}: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+// ── LocalStorage como caché offline ──────────────────────────────────
+const KEY = 'sacisc_hojas_v1_cache';
+function cacheSet(k,v){try{const d=JSON.parse(localStorage.getItem(KEY)||'{}');d[k]=v;localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}}
+function cacheGet(k,def){try{const d=JSON.parse(localStorage.getItem(KEY)||'{}');return d[k]??def}catch(e){return def}}
+
+// ═══ STATE (se carga desde Supabase al inicio) ═════════════════════════
+let VALES     = cacheGet('vales',   [...VALES_HIST]);
+let ENTRADAS  = cacheGet('entradas',[...ENTRADAS_HIST]);
+let CATALOGO  = cacheGet('catalogo',[...USUARIOS]);
+let editUsuIdx = -1;
+let valeActivo = null;
+let SB_READY = false;  // true cuando Supabase está disponible
+
+// ── Loader desde Supabase ──────────────────────────────────────────────
+async function cargarDesdeSB(){
+  try{
+    showLoader('Conectando con Supabase…');
+    const [vales, entradas, usuarios] = await Promise.all([
+      sbGet('hb_vales', 'order=folio.asc&limit=2000'),
+      sbGet('hb_entradas', 'order=fecha.asc&limit=500'),
+      sbGet('hb_usuarios', 'order=nombre.asc&limit=500'),
+    ]);
+    if(vales.length > 0){
+      VALES = vales.map(v=>mapValeFromDB(v));
+      cacheSet('vales', VALES);
+    } else {
+      // Primera vez — cargar datos históricos
+      await cargarHistoricoSB();
+    }
+    if(entradas.length > 0){
+      ENTRADAS = entradas.map(e=>mapEntradaFromDB(e));
+      cacheSet('entradas', ENTRADAS);
+    } else {
+      await cargarEntradasHistSB();
+    }
+    if(usuarios.length > 0){
+      CATALOGO = usuarios.map(u=>mapUsuarioFromDB(u));
+      cacheSet('catalogo', CATALOGO);
+    } else {
+      await cargarUsuariosSB();
+    }
+    SB_READY = true;
+    hideLoader();
+    toast('✅ Conectado a Supabase','ok');
+    const dot=document.getElementById('sbDot'); if(dot){dot.style.background='#27ae60';}
+    const txt=document.getElementById('sbStatusTxt'); if(txt){txt.textContent='Supabase ✓';txt.style.color='#27ae60';}
+    renderDash();
+  } catch(err){
+    console.error('Supabase error:', err);
+    hideLoader();
+    toast('⚠️ Modo offline — usando caché local','warn');
+    SB_READY = false;
+    const dot=document.getElementById('sbDot'); if(dot){dot.style.background='var(--amber)';}
+    const txt=document.getElementById('sbStatusTxt'); if(txt){txt.textContent='Offline';txt.style.color='var(--amber)';}
+    renderDash();
+  }
+}
+
+// ── Mappers DB → JS ────────────────────────────────────────────────────
+function mapValeFromDB(v){
+  return {folio:v.folio,mes:v.mes,fecha:v.fecha,cant:v.cant,ficha:v.ficha,nombre:v.nombre,cargo:v.cargo,area:v.area,correo:v.correo,direccion:v.direccion,nota:v.nota,obs:v.obs,docSop:v.doc_sop,dept:v.dept,status:v.status,recibido:v.recibido,ts:v.ts,_id:v.id};
+}
+function mapEntradaFromDB(e){
+  return {fecha:e.fecha,cant:e.cant,ref:e.ref,obs:e.obs,vale:e.vale,nuevo:e.nuevo,ts:e.ts,_id:e.id};
+}
+function mapUsuarioFromDB(u){
+  return {ficha:u.ficha,nombre:u.nombre,cargo:u.cargo,area:u.area,correo:u.correo,direccion:u.direccion,_id:u.id};
+}
+function mapValeToDb(v){
+  return {folio:v.folio,mes:v.mes,fecha:v.fecha,cant:v.cant,ficha:v.ficha,nombre:v.nombre,cargo:v.cargo||'',area:v.area,correo:v.correo,direccion:v.direccion||'DAS',nota:v.nota||'',obs:v.obs||'',doc_sop:v.docSop||'',dept:v.dept||'',status:v.status||'ENTREGADO',recibido:v.recibido!==false,ts:v.ts||Date.now()};
+}
+function mapEntradaToDb(e){
+  return {fecha:e.fecha,cant:e.cant,ref:e.ref||'',obs:e.obs||'',vale:e.vale!==false,nuevo:e.nuevo!==false,ts:e.ts||Date.now()};
+}
+function mapUsuarioToDb(u){
+  return {ficha:u.ficha,nombre:u.nombre,cargo:u.cargo||'',area:u.area,correo:u.correo,direccion:u.direccion||'DAS'};
+}
+
+// ── Carga histórica inicial (primera vez) ──────────────────────────────
+async function cargarHistoricoSB(){
+  toast('Cargando datos históricos en Supabase…','info');
+  const chunks = [];
+  for(let i=0;i<VALES_HIST.length;i+=50){
+    chunks.push(VALES_HIST.slice(i,i+50).map(v=>mapValeToDb(v)));
+  }
+  for(const chunk of chunks){
+    await sbUpsert('hb_vales', chunk, 'folio');
+  }
+  const valesDB = await sbGet('hb_vales','order=folio.asc&limit=2000');
+  VALES = valesDB.map(v=>mapValeFromDB(v));
+  cacheSet('vales', VALES);
+  toast(`${VALES.length} vales históricos cargados`,'ok');
+}
+async function cargarEntradasHistSB(){
+  const rows = ENTRADAS_HIST.map(e=>mapEntradaToDb(e));
+  await sbInsert('hb_entradas', rows);
+  const entsDB = await sbGet('hb_entradas','order=fecha.asc');
+  ENTRADAS = entsDB.map(e=>mapEntradaFromDB(e));
+  cacheSet('entradas', ENTRADAS);
+}
+async function cargarUsuariosSB(){
+  const rows = USUARIOS.map(u=>mapUsuarioToDb(u));
+  for(let i=0;i<rows.length;i+=50){
+    await sbInsert('hb_usuarios', rows.slice(i,i+50));
+  }
+  const usrsDB = await sbGet('hb_usuarios','order=nombre.asc');
+  CATALOGO = usrsDB.map(u=>mapUsuarioFromDB(u));
+  cacheSet('catalogo', CATALOGO);
+}
+
+// ── Loader UI ─────────────────────────────────────────────────────────
+function showLoader(msg){
+  let el = document.getElementById('sbLoader');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'sbLoader';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(0,47,42,.92);color:#fff;padding:10px 20px;font-family:Inter,sans-serif;font-size:12px;font-weight:600;display:flex;align-items:center;gap:10px';
+    el.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#11CD78" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></path></svg><span id="sbLoaderMsg">${msg}</span>`;
+    document.body.appendChild(el);
+  } else {
+    document.getElementById('sbLoaderMsg').textContent = msg;
+  }
+}
+function hideLoader(){const el=document.getElementById('sbLoader');if(el)el.remove();}
+
+// ═══ STOCK ════════════════════════════════════════════════════════════
+function calcStock() {
+  let s = 0;
+  ENTRADAS.forEach(e => { if(e.cant > 0 && e.ref !== 'RECUENTO STOK OFICINA' && e.ref !== 'RECUENTO RESERVA EN BODEGA' && e.ref !== 'NO HUBO SURTIMIENTO' && e.ref !== 'NO HUBO VALE') s += e.cant; else if (e.cnt) s += e.cnt });
+  ENTRADAS.forEach(e => { if(e.es_conteo) s = e.cant });
+  VALES.filter(v=>v.status==='ENTREGADO').forEach(v => s -= v.cant);
+  return Math.max(0, s);
+}
+
+function calcStockKardex() {
+  // Build chronological list for kardex
+  const events = [];
+  ENTRADAS.forEach(e => events.push({fecha:e.fecha, tipo:'ENTRADA', ref:e.ref||'—', entrada:e.cant||0, salida:0, detalle: e.obs||'', ts:e.fecha+'_E'}));
+  VALES.filter(v=>v.status!=='CANCELADO').forEach(v => events.push({fecha:v.fecha, tipo:'VALE', ref:'Vale #'+v.folio, entrada:0, salida:v.cant, detalle:`${v.nombre} · ${v.area}`, ts:v.fecha+'_V'+v.folio}));
+  events.sort((a,b) => a.fecha > b.fecha ? 1 : -1);
+  let saldo = 0;
+  return events.map(ev => { saldo += ev.entrada - ev.salida; return {...ev, saldo}; });
+}
+
+// ═══ UI UTILITIES ════════════════════════════════════════════════════
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector(`[data-panel="${id}"]`).classList.add('active');
+  const fns={
+    'pan-dash':renderDash,
+    'pan-entrada':initEntrada,
+    'pan-vale':initVale,
+    'pan-hist':renderHistorial,
+    'pan-catalogo':renderCatalogo,
+    'pan-inventario':renderInventario,
+    'pan-analisis':renderAnalisis,
+  };
+  if(fns[id]) fns[id]();
+}
+
+function toast(msg, tipo='ok'){
+  const d=document.createElement('div');
+  d.className=`toast toast-${tipo}`;
+  d.textContent=msg;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(()=>d.remove(), 3500);
+}
+
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+function fmtFecha(f){
+  if(!f) return '—';
+  try{ return new Date(f+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}); } catch(e){ return f; }
+}
+
+function badgeEstado(status){
+  if(status==='ENTREGADO') return `<span class="badge badge-green">✓ Entregado</span>`;
+  if(status==='NO_RECIBIDO') return `<span class="badge badge-amber">⚠ No recibido</span>`;
+  if(status==='CANCELADO') return `<span class="badge badge-red">✕ Cancelado</span>`;
+  return `<span class="badge badge-gray">${status}</span>`;
+}
+
+// ═══ DASHBOARD ═══════════════════════════════════════════════════════
+function renderDash(){
+  const stock = calcStock();
+  const totalVales = VALES.filter(v=>v.status==='ENTREGADO').length;
+  const totalSalida = VALES.filter(v=>v.status==='ENTREGADO').reduce((s,v)=>s+v.cant,0);
+  const cancelados = VALES.filter(v=>v.status==='CANCELADO').length;
+  const mesActual = new Date().toLocaleString('es-MX',{month:'long'}).toUpperCase();
+  const esteM = VALES.filter(v=>v.mes===mesActual && v.status==='ENTREGADO').reduce((s,v)=>s+v.cant,0);
+
+  document.getElementById('kpiDash').innerHTML = `
+    <div class="kpi success"><div class="kpi-label">📦 Stock Bodega</div><div class="kpi-val">${stock}</div><div class="kpi-sub">PAQ. disponibles</div></div>
+    <div class="kpi"><div class="kpi-label">📄 Total Vales</div><div class="kpi-val">${totalVales}</div><div class="kpi-sub">Histórico entregados</div></div>
+    <div class="kpi info"><div class="kpi-label">📤 Total Dispensado</div><div class="kpi-val">${totalSalida}</div><div class="kpi-sub">PAQ. entregados</div></div>
+    <div class="kpi warn"><div class="kpi-label">📅 Este Mes</div><div class="kpi-val">${esteM}</div><div class="kpi-sub">PAQ. en ${mesActual}</div></div>
+    <div class="kpi danger"><div class="kpi-label">✕ Cancelados</div><div class="kpi-val">${cancelados}</div><div class="kpi-sub">Vales cancelados</div></div>
+    <div class="kpi"><div class="kpi-label">👥 Usuarios</div><div class="kpi-val">${CATALOGO.length}</div><div class="kpi-sub">En catálogo</div></div>
+  `;
+
+  // Últimos 8 vales
+  const ultVales = [...VALES].sort((a,b)=>b.folio-a.folio).slice(0,8);
+  document.getElementById('tbodyDashVales').innerHTML = ultVales.map(v=>`<tr>
+    <td class="tbl-num">${v.folio}</td>
+    <td>${fmtFecha(v.fecha)}</td>
+    <td style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#1a2e28">${v.nombre}</td>
+    <td style="font-size:11px;color:var(--gray)">${v.area}</td>
+    <td class="tbl-center tbl-num">${v.cant}</td>
+    <td>${badgeEstado(v.status)}</td>
+  </tr>`).join('');
+
+  // Últimas 8 entradas
+  const ultEnt = [...ENTRADAS].sort((a,b)=>b.fecha>a.fecha?-1:1).slice(0,8);
+  document.getElementById('tbodyDashEntradas').innerHTML = ultEnt.map(e=>`<tr>
+    <td>${fmtFecha(e.fecha)}</td>
+    <td class="tbl-num">${e.cant||0} PAQ.</td>
+    <td style="font-size:11px">${e.ref||'—'}</td>
+    <td>${e.vale?'<span class="badge badge-green">✓ Con vale</span>':'<span class="badge badge-gray">Sin vale</span>'}</td>
+  </tr>`).join('');
+}
+
+// ═══ ENTRADA ══════════════════════════════════════════════════════════
+function initEntrada(){
+  const n = (ENTRADAS.filter(e=>e.nuevo).length + 1).toString().padStart(4,'0');
+  document.getElementById('folioEntrada').textContent = `ENT-${new Date().getFullYear()}-${n}`;
+  document.getElementById('fechaEntrada').value = new Date().toISOString().split('T')[0];
+  document.getElementById('stockActualEnt').textContent = calcStock() + ' PAQ.';
+  document.getElementById('stockDespuesEnt').textContent = '— PAQ.';
+  renderTablaEntradas();
+}
+
+document.addEventListener('input', function(e){
+  if(e.target.id==='cantEntrada'){
+    const stock = calcStock();
+    const cant = parseInt(e.target.value)||0;
+    document.getElementById('stockDespuesEnt').textContent = (stock+cant) + ' PAQ.';
+  }
+});
+
+async function guardarEntrada(){
+  const fecha = document.getElementById('fechaEntrada').value;
+  const cant = parseInt(document.getElementById('cantEntrada').value)||0;
+  const ref = document.getElementById('refEntrada').value.trim().toUpperCase();
+  const obs = document.getElementById('obsEntrada').value.trim();
+  const vale = document.getElementById('valeIngreso').value==='1';
+  if(!fecha){ toast('Selecciona la fecha','warn'); return; }
+  if(cant<=0){ toast('La cantidad debe ser mayor a cero','warn'); return; }
+  if(!ref){ toast('Ingresa la referencia RM','warn'); return; }
+  const entrada = { fecha, cant, ref, obs, vale, nuevo:true, ts:Date.now() };
+  ENTRADAS.push(entrada);
+  cacheSet('entradas', ENTRADAS);
+  if(SB_READY){
+    try{
+      const [row] = await sbInsert('hb_entradas', mapEntradaToDb(entrada));
+      entrada._id = row.id;
+    } catch(e){ toast('⚠️ Guardado solo en caché','warn'); console.error(e); }
+  }
+  toast(`✅ Entrada de ${cant} PAQ. registrada — Ref: ${ref}`, 'ok');
+  document.getElementById('cantEntrada').value = '';
+  document.getElementById('refEntrada').value = '';
+  document.getElementById('obsEntrada').value = '';
+  initEntrada();
+}
+
+function renderTablaEntradas(){
+  const tbody = document.getElementById('tbodyEntradas');
+  const ents = [...ENTRADAS].sort((a,b)=>b.fecha>a.fecha?-1:1).reverse();
+  tbody.innerHTML = ents.map((e,i)=>`<tr>
+    <td class="tbl-num">${(i+1).toString().padStart(3,'0')}</td>
+    <td>${fmtFecha(e.fecha)}</td>
+    <td class="tbl-num">${e.cant||0}</td>
+    <td style="font-size:11px">${e.ref||'—'}</td>
+    <td>${e.vale?'<span class="badge badge-green">✓</span>':'<span class="badge badge-gray">—</span>'}</td>
+    <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis">${e.obs||'—'}</td>
+    <td></td>
+  </tr>`).join('');
+}
+
+function exportarEntradas(){
+  const rows = ENTRADAS.map(e=>({'Fecha':e.fecha,'Cantidad':e.cant,'Referencia':e.ref,'Vale':e.vale?'Sí':'No','Observaciones':e.obs||''}));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:12},{wch:10},{wch:18},{wch:8},{wch:40}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Entradas');
+  XLSX.writeFile(wb, `Entradas_HojasBlancas_SCAD_${new Date().getFullYear()}.xlsx`);
+  toast('Excel descargado','ok');
+}
+
+// ═══ NUEVO VALE ══════════════════════════════════════════════════════
+let usuarioSel = null;
+
+function initVale(){
+  const nextFolio = Math.max(...VALES.map(v=>v.folio||0), 416) + 1;
+  document.getElementById('noVale').textContent = nextFolio;
+  document.getElementById('fechaVale').value = new Date().toISOString().split('T')[0];
+  const mes = new Date().toLocaleString('es-MX',{month:'long'}).toUpperCase();
+  const sel = document.getElementById('mesCargo');
+  for(let i=0;i<sel.options.length;i++){ if(sel.options[i].text===mes){sel.selectedIndex=i;break;} }
+  actualizarStockVale();
+}
+
+function actualizarStockVale(){
+  const stock = calcStock();
+  const cant = parseInt(document.getElementById('cantVale').value)||0;
+  document.getElementById('stockDisp').textContent = stock + ' PAQ.';
+  const tras = stock - cant;
+  const el = document.getElementById('stockTrasVale');
+  el.textContent = cant>0 ? tras+' PAQ.' : '— PAQ.';
+  el.style.color = tras<0?'var(--red)':tras<10?'var(--amber)':'var(--amber)';
+}
+
+function acUsuario(inp){
+  const q = inp.value.toLowerCase().trim();
+  const list = document.getElementById('acUsuarioList');
+  if(!q){ list.style.display='none'; return; }
+  const matches = CATALOGO.filter(u=>
+    u.nombre.toLowerCase().includes(q)||
+    u.ficha.includes(q)||
+    u.area.toLowerCase().includes(q)||
+    u.correo.toLowerCase().includes(q)
+  ).slice(0,12);
+  if(!matches.length){ list.style.display='none'; return; }
+  list.innerHTML = matches.map((u,i)=>`
+    <div class="ac-item" onclick="selectUsuario(${CATALOGO.indexOf(u)})">
+      <strong style="font-family:'Barlow Condensed',sans-serif;font-size:13px">${u.nombre}</strong>
+      <div class="ac-sub">F.${u.ficha} · ${u.area} · ${u.correo}</div>
+    </div>`).join('');
+  list.style.display='block';
+}
+
+function selectUsuario(idx){
+  usuarioSel = CATALOGO[idx];
+  document.getElementById('acUsuarioList').style.display='none';
+  document.getElementById('buscarUsuario').value = usuarioSel.nombre;
+  document.getElementById('uNombre').value = usuarioSel.nombre;
+  document.getElementById('uFicha').value = usuarioSel.ficha;
+  document.getElementById('uCargo').value = usuarioSel.cargo||'';
+  document.getElementById('uArea').value = usuarioSel.area;
+  document.getElementById('uCorreo').value = usuarioSel.correo;
+  document.getElementById('uDir').value = usuarioSel.direccion||'DAS';
+  document.getElementById('deptEntrega').value = usuarioSel.area;
+  document.getElementById('usuarioSelCard').style.display='block';
+}
+
+async function generarVale(){
+  if(!usuarioSel){ toast('Selecciona un usuario del catálogo','warn'); return; }
+  const cant = parseInt(document.getElementById('cantVale').value)||0;
+  if(cant<=0){ toast('Ingresa la cantidad de paquetes','warn'); return; }
+  const stock = calcStock();
+  if(cant>stock){ toast(`Stock insuficiente. Disponible: ${stock} PAQ.`,'warn'); return; }
+  const fecha = document.getElementById('fechaVale').value;
+  if(!fecha){ toast('Selecciona la fecha','warn'); return; }
+
+  const folio = Math.max(...VALES.map(v=>v.folio||0), 416) + 1;
+  const mes = document.getElementById('mesCargo').value;
+  const nota = document.getElementById('notaVale').value.trim();
+  const obs = document.getElementById('obsVale').value.trim();
+  const docSop = document.getElementById('docSoporte').value.trim();
+  const dept = document.getElementById('deptEntrega').value.trim();
+
+  const valeData = {
+    folio, mes, fecha, cant,
+    ficha: usuarioSel.ficha,
+    nombre: usuarioSel.nombre,
+    cargo: usuarioSel.cargo||'',
+    area: usuarioSel.area,
+    correo: usuarioSel.correo,
+    direccion: usuarioSel.direccion,
+    nota, obs, docSop, dept,
+    status: 'ENTREGADO',
+    recibido: true
+  };
+
+  VALES.push(valeData);
+  cacheSet('vales', VALES);
+  if(SB_READY){
+    try{
+      const [row] = await sbUpsert('hb_vales', mapValeToDb(valeData), 'folio');
+      valeData._id = row.id;
+    } catch(e){ toast('⚠️ Vale guardado solo en caché','warn'); console.error(e); }
+  }
+
+  // Mostrar preview del vale
+  mostrarVale(valeData);
+  toast(`✅ Vale No. ${folio} generado para ${usuarioSel.nombre}`,'ok');
+
+  // Reset form
+  document.getElementById('cantVale').value='';
+  document.getElementById('buscarUsuario').value='';
+  document.getElementById('usuarioSelCard').style.display='none';
+  usuarioSel=null;
+  actualizarStockVale();
+  initVale();
+}
+
+// ═══ RENDER VALE (réplica exacta FO-URSC-PB-01) ══════════════════════
+function mostrarVale(v){
+  const fecha = v.fecha ? new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'}).replace(/ /g,'-') : '—';
+  const html = `
+  <div class="vale-preview">
+    <div class="vale-top-ref">FO-URSC-PB-01 &nbsp;&nbsp; Rev. 2023</div>
+    <div class="vale-main-border">
+      <!-- FILA 1: Logo | Título | Centro logístico / No. Vale -->
+      <div class="vale-header-row">
+        <div class="vale-logo-cell">
+          <img src="data:image/png;base64,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" alt="PEMEX" style="height:44px">
+        </div>
+        <div class="vale-center-cell">
+          <div class="v-title1">PETRÓLEOS MEXICANOS</div>
+          <div class="v-title2">VALE-PASE, SALIDA DE PAPEL BOND</div>
+        </div>
+        <div class="vale-right-cell">
+          <div class="vale-right-row">
+            <span class="vale-rl">CENTRO LOGÍSTICO</span>
+            <span class="vale-rv">JSCAD</span>
+          </div>
+          <div class="vale-right-row">
+            <span class="vale-rl">CLAVE DEPTO:</span>
+            <span class="vale-rv">78100</span>
+          </div>
+          <div class="vale-right-row" style="border-bottom:none">
+            <span class="vale-rl">No. VALE</span>
+            <span class="vale-rv big">${v.folio}</span>
+          </div>
+        </div>
+      </div>
+      <!-- Datos del pedido -->
+      <div class="vale-data-row">
+        <span class="vdr-label">PEDIDO A:</span>
+        <span class="vdr-val" style="font-weight:700;font-size:13px;color:#000;font-style:normal">SERVICIOS CORPORATIVOS SECTOR AGUA DULCE</span>
+      </div>
+      <div class="vale-data-row">
+        <span class="vdr-label">LUGAR</span>
+        <span class="vdr-val">Agua Dulce, Ver.</span>
+      </div>
+      <div class="vale-data-row" style="border-bottom:2px solid #000">
+        <span class="vdr-label">FECHA</span>
+        <span class="vdr-val">${fecha}</span>
+      </div>
+      <!-- Texto de cargo -->
+      <div style="padding:4px 8px;border-bottom:1px solid #000;font-size:9.5px">
+        Por los siguientes artículos cuyo importe deberá cargarse a: &nbsp;
+        <a style="color:#1565c0;text-decoration:underline;font-size:9.5px">Jefatura de Servicios Corporativos Agua Dulce</a>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <strong>Ubicación:</strong> <span style="color:#1565c0">AGUA DULCE</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <strong>Extensión:</strong> <span style="color:#1565c0">27 912</span>
+      </div>
+      <!-- Encabezado tabla de artículos -->
+      <div class="vale-table-hdr">
+        <div class="vth">No. SAP CODIFICACIÓN</div>
+        <div class="vth">DESCRIPCIÓN</div>
+        <div class="vth">CANTIDAD ENTREGADA</div>
+        <div class="vth">UNIDAD DE MEDIDA</div>
+      </div>
+      <!-- Fila artículo -->
+      <div class="vale-table-row">
+        <div class="vtd"></div>
+        <div class="vtd desc">PAPEL PARA FOTOCOPIADORA TAMAÑO CARTA</div>
+        <div class="vtd" style="font-size:14px;font-weight:700">${v.cant}</div>
+        <div class="vtd">PAQ</div>
+      </div>
+      <!-- Para entrega -->
+      <div class="vale-para-row">PARA ENTREGA AL DEPARTAMENTO DE &nbsp;<strong style="text-transform:uppercase">${v.dept||v.area}</strong></div>
+      <!-- Documento soporte -->
+      <div class="vale-doc-row">DOCUMENTO SOPORTE: <span style="color:#1565c0">${v.docSop||v.correo}</span></div>
+      <!-- Nota -->
+      <div class="vale-nota-row">
+        <span class="vn-label">NOTA: (Justificación de lo requerido)</span>
+        <span class="vn-val">${v.nota||'DOTACION SEGÚN PROMEDIO DE CONSUMO'}</span>
+      </div>
+      <!-- Observaciones (fondo rosa) -->
+      <div class="vale-obs-row">${v.obs||'NINGUNO'}</div>
+      <!-- Firmas -->
+      <div class="vale-firmas">
+        <div class="vale-firma">
+          <div class="vf-label">AUTORIZADO POR:</div>
+          <div class="vf-name">ING. JONATAN ERIC REYES GÓMEZ</div>
+          <div class="vf-detail">F-374205<br>JEFE SERVICIOS CORPORATIVOS<br>AGUA DULCE</div>
+        </div>
+        <div class="vale-firma">
+          <div class="vf-label">RECIBE LOS EFECTOS:</div>
+          <div class="vf-name">${v.nombre.toUpperCase()}</div>
+          <div class="vf-detail">${v.ficha}<br>${v.cargo||v.area}<br>${v.area}</div>
+        </div>
+        <div class="vale-firma" style="border-right:none">
+          <div class="vf-label">ENTREGO:</div>
+        </div>
+      </div>
+      <!-- Footer del vale -->
+      <div class="vale-footer">
+        ESTE VALE CORRESPONDE <u>AL MES DE</u> <strong>${v.mes} DE ${new Date(v.fecha+'T12:00:00').getFullYear()}</strong><br>
+        AL TÉRMINO DEL MISMO, SINO VIENEN A RECOGER SUS PAQUETES, SE CANCELARÁ EN AUTOMÁTICO.<br>
+        NOTA: LOS VALES NO SON ACUMULABLES, SOLO SE SUMINISTRARÁ EL MES ACTUAL
+      </div>
+      <div class="vale-original">ORIGINAL: Expediente</div>
+    </div>
+  </div>`;
+
+  document.getElementById('valePreview').innerHTML = html;
+  document.getElementById('valeNum').textContent = v.folio;
+  document.getElementById('correoInfo').textContent = `📧 Enviar a: ${v.correo}`;
+  openModal('modalVale');
+  valeActivo = v;
+}
+
+function imprimirVale(){
+  const pc = document.getElementById('print-container');
+  pc.innerHTML = document.getElementById('valePreview').innerHTML;
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{ pc.innerHTML=''; }, 1200);
+  }, 200);
+}
+
+// ═══ HISTORIAL ════════════════════════════════════════════════════════
+function renderHistorial(){
+  const ano = document.getElementById('fltAno').value;
+  const mes = document.getElementById('fltMes').value;
+  const estado = document.getElementById('fltEstado').value;
+  const q = document.getElementById('fltBuscar').value.toLowerCase();
+
+  let items = VALES.filter(v=>{
+    if(ano && !v.fecha?.startsWith(ano)) return false;
+    if(mes && v.mes!==mes) return false;
+    if(estado && v.status!==estado) return false;
+    if(q && !v.nombre?.toLowerCase().includes(q) && !v.area?.toLowerCase().includes(q) && !String(v.folio).includes(q)) return false;
+    return true;
+  }).sort((a,b)=>b.folio-a.folio);
+
+  const tbody = document.getElementById('tbodyHistorial');
+  if(!items.length){
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--gray)">Sin resultados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map((v,idx)=>`<tr style="${v.status==='CANCELADO'?'text-decoration:line-through;opacity:.55':''}">
+    <td class="tbl-num">${v.folio}</td>
+    <td style="font-size:11px">${v.mes}</td>
+    <td>${fmtFecha(v.fecha)}</td>
+    <td class="tbl-num tbl-center">${v.cant}</td>
+    <td style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#1a2e28">${v.nombre}</td>
+    <td style="font-size:11px;color:var(--gray)">${v.area}</td>
+    <td>${badgeEstado(v.status)}</td>
+    <td style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${v.obs}">${v.obs||'—'}</td>
+    <td>
+      <div class="btn-group">
+        <button class="btn btn-outline btn-xs" onclick="verVale(${VALES.indexOf(v)})">👁️</button>
+        <button class="btn btn-xs" style="background:var(--amber);color:#fff;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700" onclick="toggleEstado(${VALES.indexOf(v)})">✕/✓</button>
+        <button class="btn btn-danger btn-xs" onclick="cancelarVale(${VALES.indexOf(v)})">🚫</button>
+      </div>
+    </td>
+  </tr>`).join('');
+}
+
+function verVale(idx){
+  mostrarVale(VALES[idx]);
+}
+
+function toggleEstado(idx){
+  const v = VALES[idx];
+  if(v.status==='CANCELADO'){ toast('Vale cancelado no puede modificarse','warn'); return; }
+  v.status = v.status==='ENTREGADO'?'NO_RECIBIDO':'ENTREGADO';
+  v.recibido = v.status==='ENTREGADO';
+  cacheSet('vales', VALES);
+  if(SB_READY && v._id) sbUpdate('hb_vales',`id=eq.${v._id}`,{status:v.status,recibido:v.recibido}).catch(console.error);
+  else if(SB_READY) sbUpdate('hb_vales',`folio=eq.${v.folio}`,{status:v.status,recibido:v.recibido}).catch(console.error);
+  renderHistorial();
+  toast(`Vale ${v.folio} marcado como: ${v.status}`,'info');
+}
+
+function cancelarVale(idx){
+  const v = VALES[idx];
+  if(!confirm(`¿Cancelar el Vale No. ${v.folio} — ${v.nombre}?\nEsta acción no puede revertirse.`)) return;
+  v.status = 'CANCELADO';
+  cacheSet('vales', VALES);
+  if(SB_READY) sbUpdate('hb_vales',`folio=eq.${v.folio}`,{status:'CANCELADO'}).catch(console.error);
+  renderHistorial();
+  toast(`Vale ${v.folio} cancelado`,'err');
+}
+
+function exportarHistorial(){
+  const rows = VALES.map(v=>({'Vale':v.folio,'Mes Cargo':v.mes,'Fecha':v.fecha,'Cantidad':v.cant,'Ficha':v.ficha,'Nombre':v.nombre,'Área':v.area,'Correo':v.correo,'Estado':v.status,'Observaciones':v.obs||''}));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:6},{wch:12},{wch:12},{wch:8},{wch:8},{wch:34},{wch:34},{wch:34},{wch:12},{wch:40}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Historial Vales');
+  XLSX.writeFile(wb,`Historial_HojasBlancas_SCAD.xlsx`);
+  toast('Excel descargado','ok');
+}
+
+// ═══ CATÁLOGO ════════════════════════════════════════════════════════
+function renderCatalogo(){
+  const q = document.getElementById('srchCat').value.toLowerCase();
+  const items = q ? CATALOGO.filter(u=>u.nombre.toLowerCase().includes(q)||u.ficha.includes(q)||u.area.toLowerCase().includes(q)||u.correo.toLowerCase().includes(q)) : CATALOGO;
+  const tbody = document.getElementById('tbodyCatalogo');
+  tbody.innerHTML = items.map(u=>`<tr>
+    <td class="tbl-num">${u.ficha}</td>
+    <td style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#1a2e28">${u.nombre}</td>
+    <td style="font-size:11px">${u.cargo||'<span style="color:var(--gray)">—</span>'}</td>
+    <td style="font-size:11px">${u.area}</td>
+    <td style="font-size:11px"><a href="mailto:${u.correo}" style="color:var(--gm)">${u.correo}</a></td>
+    <td><span class="badge badge-blue">${u.direccion||'DAS'}</span></td>
+    <td>
+      <div class="btn-group">
+        <button class="btn btn-outline btn-xs" onclick="editUsuario(${CATALOGO.indexOf(u)})">✏️</button>
+        <button class="btn btn-danger btn-xs" onclick="eliminarUsuario(${CATALOGO.indexOf(u)})">🗑️</button>
+      </div>
+    </td>
+  </tr>`).join('');
+}
+
+function openModalUsuario(idx=-1){
+  editUsuIdx=idx;
+  document.getElementById('tituloUsuario').textContent=idx<0?'Nuevo Usuario':'Editar Usuario';
+  const u=idx>=0?CATALOGO[idx]:{ficha:'',nombre:'',cargo:'',area:'',correo:'',direccion:'DAS'};
+  document.getElementById('uEditFicha').value=u.ficha;
+  document.getElementById('uEditNombre').value=u.nombre;
+  document.getElementById('uEditCargo').value=u.cargo||'';
+  document.getElementById('uEditArea').value=u.area;
+  document.getElementById('uEditCorreo').value=u.correo;
+  document.getElementById('uEditDir').value=u.direccion||'DAS';
+  openModal('modalUsuario');
+}
+
+function editUsuario(idx){openModalUsuario(idx)}
+
+function guardarUsuario(){
+  const u={
+    ficha:document.getElementById('uEditFicha').value.trim(),
+    nombre:document.getElementById('uEditNombre').value.trim().toUpperCase(),
+    cargo:document.getElementById('uEditCargo').value.trim(),
+    area:document.getElementById('uEditArea').value.trim().toUpperCase(),
+    correo:document.getElementById('uEditCorreo').value.trim().toLowerCase(),
+    direccion:document.getElementById('uEditDir').value,
+  };
+  if(!u.ficha||!u.nombre||!u.correo){toast('Ficha, nombre y correo son obligatorios','warn');return;}
+  if(editUsuIdx<0){
+    CATALOGO.push(u);
+    if(SB_READY) sbInsert('hb_usuarios', mapUsuarioToDb(u)).then(([r])=>{u._id=r.id;cacheSet('catalogo',CATALOGO);}).catch(console.error);
+  } else {
+    const old = CATALOGO[editUsuIdx];
+    CATALOGO[editUsuIdx]=u;
+    if(SB_READY && old._id) sbUpdate('hb_usuarios',`id=eq.${old._id}`,mapUsuarioToDb(u)).catch(console.error);
+  }
+  cacheSet('catalogo',CATALOGO);
+  closeModal('modalUsuario');
+  renderCatalogo();
+  toast('Usuario guardado','ok');
+}
+
+function eliminarUsuario(idx){
+  if(!confirm(`¿Eliminar a ${CATALOGO[idx].nombre}?`)) return;
+  const u = CATALOGO[idx];
+  if(SB_READY && u._id) sbDelete('hb_usuarios',`id=eq.${u._id}`).catch(console.error);
+  CATALOGO.splice(idx,1);
+  cacheSet('catalogo',CATALOGO);
+  renderCatalogo();
+  toast('Usuario eliminado','ok');
+}
+
+// ═══ INVENTARIO (KARDEX) ══════════════════════════════════════════════
+function renderInventario(){
+  const stock = calcStock();
+  const totalEnt = ENTRADAS.filter(e=>e.cant>0).reduce((s,e)=>s+e.cant,0);
+  const totalSal = VALES.filter(v=>v.status==='ENTREGADO').reduce((s,v)=>s+v.cant,0);
+  document.getElementById('kpiInv').innerHTML=`
+    <div class="kpi success"><div class="kpi-label">📦 Stock Actual</div><div class="kpi-val">${stock}</div><div class="kpi-sub">PAQ. en bodega</div></div>
+    <div class="kpi info"><div class="kpi-label">📥 Total Entrado</div><div class="kpi-val">${totalEnt}</div><div class="kpi-sub">PAQ. histórico</div></div>
+    <div class="kpi warn"><div class="kpi-label">📤 Total Salido</div><div class="kpi-val">${totalSal}</div><div class="kpi-sub">PAQ. despachados</div></div>
+    <div class="kpi"><div class="kpi-label">📋 Movimientos</div><div class="kpi-val">${ENTRADAS.length+VALES.length}</div><div class="kpi-sub">Registros totales</div></div>
+  `;
+  const kardex = calcStockKardex();
+  const tbody = document.getElementById('tbodyKardex');
+  tbody.innerHTML = [...kardex].reverse().map(ev=>`<tr>
+    <td>${fmtFecha(ev.fecha)}</td>
+    <td>${ev.tipo==='ENTRADA'?'<span class="badge badge-green">📥 Entrada</span>':'<span class="badge badge-amber">📤 Vale</span>'}</td>
+    <td style="font-size:11px">${ev.ref}</td>
+    <td class="tbl-num tbl-center" style="color:#27ae60">${ev.entrada||''}</td>
+    <td class="tbl-num tbl-center" style="color:var(--amber)">${ev.salida||''}</td>
+    <td class="tbl-num" style="font-size:17px;font-weight:800;color:${ev.saldo<10?'var(--red)':ev.saldo<30?'var(--amber)':'var(--gd)'}">${ev.saldo}</td>
+    <td style="font-size:10.5px;color:var(--gray)">${ev.detalle}</td>
+  </tr>`).join('');
+}
+
+// ═══ ANÁLISIS ════════════════════════════════════════════════════════
+function renderAnalisis(){
+  const ano = document.getElementById('anaAno').value;
+  const mes = document.getElementById('anaMes').value;
+  const items = VALES.filter(v=>{
+    if(v.status==='CANCELADO') return false;
+    if(ano && !v.fecha?.startsWith(ano)) return false;
+    if(mes && v.mes!==mes) return false;
+    return true;
+  }).sort((a,b)=>b.folio-a.folio);
+
+  const total = items.reduce((s,v)=>s+v.cant,0);
+  const areas = {};
+  items.forEach(v=>{ areas[v.area]=(areas[v.area]||0)+v.cant; });
+  const topArea = Object.entries(areas).sort((a,b)=>b[1]-a[1]);
+  const meses = {};
+  items.forEach(v=>{ meses[v.mes]=(meses[v.mes]||0)+v.cant; });
+
+  document.getElementById('kpiAnalisis').innerHTML=`
+    <div class="kpi info"><div class="kpi-label">📄 Vales en Período</div><div class="kpi-val">${items.length}</div><div class="kpi-sub">Entregados</div></div>
+    <div class="kpi warn"><div class="kpi-label">📦 PAQ. Despachados</div><div class="kpi-val">${total}</div><div class="kpi-sub">Total período</div></div>
+    <div class="kpi"><div class="kpi-label">🏢 Áreas Atendidas</div><div class="kpi-val">${Object.keys(areas).length}</div><div class="kpi-sub">Únicas</div></div>
+    <div class="kpi success"><div class="kpi-label">📊 Prom. por Vale</div><div class="kpi-val">${items.length?Math.round(total/items.length):0}</div><div class="kpi-sub">PAQ. por vale</div></div>
+  `;
+
+  // Chart mensual (simple bars)
+  const mesesOrder=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const maxVal = Math.max(...mesesOrder.map(m=>meses[m]||0), 1);
+  document.getElementById('chartMensual').innerHTML=`
+    <div style="display:flex;align-items:flex-end;gap:6px;height:140px;padding:8px 0">
+      ${mesesOrder.map(m=>{
+        const v=meses[m]||0;
+        const h=v?Math.max(4,Math.round((v/maxVal)*120)):2;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+          <span style="font-size:9px;font-weight:700;color:var(--gm)">${v||''}</span>
+          <div style="width:100%;height:${h}px;background:${v?'var(--gm)':'var(--border)'};border-radius:4px 4px 0 0;transition:.3s"></div>
+          <span style="font-size:7.5px;color:var(--gray);text-align:center">${m.slice(0,3)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // Top áreas
+  document.getElementById('chartAreas').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:7px">
+      ${topArea.slice(0,8).map(([area,qty])=>{
+        const maxA = topArea[0][1];
+        const pct = Math.round((qty/maxA)*100);
+        return `<div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+            <span style="font-size:10px;color:#1e293b;font-family:'Inter',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%">${area}</span>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--gd)">${qty} PAQ.</span>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:3px">
+            <div style="height:100%;width:${pct}%;background:var(--gm);border-radius:3px;transition:.3s"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // Tabla
+  document.getElementById('tbodyAnalisis').innerHTML = items.map(v=>`<tr>
+    <td style="font-size:11px">${v.mes}</td>
+    <td style="font-size:11px">${v.area}</td>
+    <td style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#1a2e28">${v.nombre}</td>
+    <td class="tbl-num">${v.folio}</td>
+    <td class="tbl-num tbl-center">${v.cant}</td>
+    <td>${badgeEstado(v.status)}</td>
+  </tr>`).join('');
+}
+
+function exportarAnalisis(){
+  const ano=document.getElementById('anaAno').value;
+  const mes=document.getElementById('anaMes').value;
+  const items=VALES.filter(v=>{
+    if(v.status==='CANCELADO') return false;
+    if(ano && !v.fecha?.startsWith(ano)) return false;
+    if(mes && v.mes!==mes) return false;
+    return true;
+  });
+  const rows=items.map(v=>({'Vale':v.folio,'Mes':v.mes,'Fecha':v.fecha,'Ficha':v.ficha,'Nombre':v.nombre,'Área':v.area,'Cantidad':v.cant,'Estado':v.status}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Análisis');
+  XLSX.writeFile(wb,`Analisis_HojasBlancas_SCAD${ano?'_'+ano:''}${mes?'_'+mes:''}.xlsx`);
+  toast('Excel descargado','ok');
+}
+
+// ═══ GUARDAR / RESTAURAR SESIÓN ═══════════════════════════════════════
+async function guardarSesion(){
+  // Forzar sincronización antes de descargar
+  if(SB_READY){
+    try{
+      const [v,e,u] = await Promise.all([
+        sbGet('hb_vales','order=folio.asc&limit=2000'),
+        sbGet('hb_entradas','order=fecha.asc'),
+        sbGet('hb_usuarios','order=nombre.asc'),
+      ]);
+      VALES=v.map(mapValeFromDB); ENTRADAS=e.map(mapEntradaFromDB); CATALOGO=u.map(mapUsuarioFromDB);
+    }catch(e){console.error(e);}
+  }
+  const datos={v:'SACISC-HB-v1',fecha:new Date().toISOString(),vales:VALES,entradas:ENTRADAS,catalogo:CATALOGO};
+  const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`SACISC_HojasBlancas_SCAD_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  toast('Sesión guardada','ok');
+}
+
+function restaurarSesion(inp){
+  const file=inp.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d.v!=='SACISC-HB-v1') throw new Error('Versión incorrecta');
+      if(!confirm(`¿Restaurar sesión del ${d.fecha?.split('T')[0]}? Se reemplazarán todos los datos actuales.`)) return;
+      VALES=d.vales||[]; ENTRADAS=d.entradas||[]; CATALOGO=d.catalogo||[];
+      save('vales',VALES); save('entradas',ENTRADAS); save('catalogo',CATALOGO);
+      toast('Sesión restaurada correctamente','ok');
+      renderDash();
+    }catch(e){ toast('Error al restaurar: '+e.message,'err'); }
+  };
+  r.readAsText(file);
+  inp.value='';
+}
+
+// Cerrar dropdowns al hacer clic fuera
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.ac-wrap')) document.querySelectorAll('.ac-list').forEach(l=>l.style.display='none');
+});
+
+// ═══ INIT ════════════════════════════════════════════════════════════
+// Renderizar con caché mientras conecta a Supabase
+renderDash();
+// Conectar a Supabase en background
+cargarDesdeSB();
+</script>
+</body>
+</html>
