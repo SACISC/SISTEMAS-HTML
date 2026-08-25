@@ -336,6 +336,33 @@ footer{background:var(--gd);color:rgba(255,255,255,.7);padding:22px 32px;margin-
     </div>
     <div class="card-body">
       <div class="info-banner">📌 Única partida: <strong>PAPEL PARA FOTOCOPIADORA E IMPRESIONES TAMAÑO CARTA (PAQ.)</strong> — Procedente de Coatzacoalcos.</div>
+
+      <!-- EXISTENCIA INICIAL -->
+      <div style="background:#fff3e0;border:1.5px solid #ffcc80;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">📦 Existencia Inicial de Apertura</div>
+          <div style="font-size:11px;color:#5f3700;font-family:'Inter',sans-serif;line-height:1.5">
+            Captura el stock físico disponible al momento de iniciar el sistema.<br>
+            Este valor se suma al inventario como base de cálculo.
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0">
+          <div class="form-group" style="margin:0">
+            <label style="font-size:10px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.06em">Stock Inicial (PAQ.)</label>
+            <input type="number" id="existInicialInput" class="fc" min="0" placeholder="0"
+              style="width:110px;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;text-align:center;color:var(--gd);border-color:#ffcc80"
+              value="" oninput="prevExistInicial()">
+          </div>
+          <button class="btn" onclick="guardarExistInicial()"
+            style="background:var(--amber);color:#fff;margin-top:16px;padding:8px 16px;font-size:12px">
+            💾 Aplicar
+          </button>
+          <div style="text-align:center;margin-top:16px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.06em">Actual</div>
+            <div id="existInicialActual" style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--gd)">0</div>
+          </div>
+        </div>
+      </div>
       <div class="form-grid" style="margin-bottom:16px">
         <div class="form-group">
           <label>Folio de Ingreso</label>
@@ -1083,8 +1110,15 @@ function showLoader(msg){
 function hideLoader(){const el=document.getElementById('sbLoader');if(el)el.remove();}
 
 // ═══ STOCK ════════════════════════════════════════════════════════════
+function getExistenciaInicial(){
+  return parseInt(localStorage.getItem('hb_exist_inicial')||'0');
+}
+function setExistenciaInicial(val){
+  localStorage.setItem('hb_exist_inicial', val);
+}
+
 function calcStock() {
-  let s = 0;
+  let s = getExistenciaInicial();
   ENTRADAS.forEach(e => { if(e.cant > 0 && e.ref !== 'RECUENTO STOK OFICINA' && e.ref !== 'RECUENTO RESERVA EN BODEGA' && e.ref !== 'NO HUBO SURTIMIENTO' && e.ref !== 'NO HUBO VALE') s += e.cant; else if (e.cnt) s += e.cnt });
   ENTRADAS.forEach(e => { if(e.es_conteo) s = e.cant });
   VALES.filter(v=>v.status==='ENTREGADO').forEach(v => s -= v.cant);
@@ -1154,7 +1188,7 @@ function renderDash(){
   document.getElementById('kpiDash').innerHTML = `
     <div class="kpi success"><div class="kpi-label">📦 Stock Bodega</div><div class="kpi-val">${stock}</div><div class="kpi-sub">PAQ. disponibles</div></div>
     <div class="kpi"><div class="kpi-label">📄 Total Vales</div><div class="kpi-val">${totalVales}</div><div class="kpi-sub">Histórico entregados</div></div>
-    <div class="kpi info"><div class="kpi-label">📤 Total Dispensado</div><div class="kpi-val">${totalSalida}</div><div class="kpi-sub">PAQ. entregados</div></div>
+    <div class="kpi info"><div class="kpi-label">📤 Total Dispersado</div><div class="kpi-val">${totalSalida}</div><div class="kpi-sub">PAQ. dispersados</div></div>
     <div class="kpi warn"><div class="kpi-label">📅 Este Mes</div><div class="kpi-val">${esteM}</div><div class="kpi-sub">PAQ. en ${mesActual}</div></div>
     <div class="kpi danger"><div class="kpi-label">✕ Cancelados</div><div class="kpi-val">${cancelados}</div><div class="kpi-sub">Vales cancelados</div></div>
     <div class="kpi"><div class="kpi-label">👥 Usuarios</div><div class="kpi-val">${CATALOGO.length}</div><div class="kpi-sub">En catálogo</div></div>
@@ -1182,11 +1216,27 @@ function renderDash(){
 }
 
 // ═══ ENTRADA ══════════════════════════════════════════════════════════
+function prevExistInicial(){
+  // Solo preview — no guarda todavía
+}
+function guardarExistInicial(){
+  const val = parseInt(document.getElementById('existInicialInput').value)||0;
+  if(val < 0){ toast('El valor no puede ser negativo','warn'); return; }
+  setExistenciaInicial(val);
+  document.getElementById('existInicialActual').textContent = val;
+  document.getElementById('stockActualEnt').textContent = calcStock() + ' PAQ.';
+  document.getElementById('stockDisp') && (document.getElementById('stockDisp').textContent = calcStock() + ' PAQ.');
+  toast(`✅ Existencia inicial establecida: ${val} PAQ.`,'ok');
+  renderDash();
+}
 function initEntrada(){
   const n = (ENTRADAS.filter(e=>e.nuevo).length + 1).toString().padStart(4,'0');
   document.getElementById('folioEntrada').textContent = `ENT-${new Date().getFullYear()}-${n}`;
   document.getElementById('fechaEntrada').value = new Date().toISOString().split('T')[0];
   document.getElementById('stockActualEnt').textContent = calcStock() + ' PAQ.';
+  const ei = getExistenciaInicial();
+  document.getElementById('existInicialInput').value = ei || '';
+  document.getElementById('existInicialActual').textContent = ei;
   document.getElementById('stockDespuesEnt').textContent = '— PAQ.';
   renderTablaEntradas();
 }
