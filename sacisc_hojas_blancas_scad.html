@@ -1184,7 +1184,11 @@ async function cargarDesdeSB(){
     toast('✅ Conectado a Supabase','ok');
     const dot=document.getElementById('sbDot'); if(dot){dot.style.background='#27ae60';}
     const txt=document.getElementById('sbStatusTxt'); if(txt){txt.textContent='Supabase ✓';txt.style.color='#27ae60';}
+    // Re-renderizar SIEMPRE tras carga completa (stock ya tiene existencia inicial correcta)
     renderDash();
+    // Actualizar también el panel de inventario si está activo
+    const panInv = document.getElementById('pan-inventario');
+    if(panInv && panInv.classList.contains('active')) renderInventario();
   } catch(err){
     console.error('Supabase error:', err);
     hideLoader();
@@ -1198,7 +1202,9 @@ async function cargarDesdeSB(){
 
 // ── Mappers DB → JS ────────────────────────────────────────────────────
 function mapValeFromDB(v){
-  return {folio:v.folio,mes:v.mes,fecha:v.fecha,cant:v.cant,ficha:v.ficha,nombre:v.nombre,cargo:v.cargo,area:v.area,correo:v.correo,direccion:v.direccion,nota:v.nota,obs:v.obs,docSop:v.doc_sop,dept:v.dept,status:v.status,recibido:v.recibido,ts:v.ts,_id:v.id};
+  // Restaurar flag historico: vales con folio <= 416 son históricos
+  const historico = (v.folio <= 416) || v.historico || false;
+  return {folio:v.folio,mes:v.mes,fecha:v.fecha,cant:v.cant,ficha:v.ficha,nombre:v.nombre,cargo:v.cargo,area:v.area,correo:v.correo,direccion:v.direccion,nota:v.nota,obs:v.obs,docSop:v.doc_sop,dept:v.dept,status:v.status,recibido:v.recibido,ts:v.ts,_id:v.id,historico};
 }
 function mapEntradaFromDB(e){
   return {fecha:e.fecha,cant:e.cant,ref:e.ref,obs:e.obs,vale:e.vale,nuevo:e.nuevo,ts:e.ts,_id:e.id};
@@ -1557,11 +1563,14 @@ function initVale(){
 function actualizarStockVale(){
   const stock = calcStock();
   const cant = parseInt(document.getElementById('cantVale').value)||0;
-  document.getElementById('stockDisp').textContent = stock + ' PAQ.';
+  const dispEl = document.getElementById('stockDisp');
+  if(dispEl) dispEl.textContent = stock + ' PAQ.';
   const tras = stock - cant;
   const el = document.getElementById('stockTrasVale');
-  el.textContent = cant>0 ? tras+' PAQ.' : '— PAQ.';
-  el.style.color = tras<0?'var(--red)':tras<10?'var(--amber)':'var(--amber)';
+  if(el){
+    el.textContent = cant>0 ? tras+' PAQ.' : '— PAQ.';
+    el.style.color = tras<0?'var(--red)':tras<10?'var(--amber)':'#27ae60';
+  }
 }
 
 function acUsuario(inp){
@@ -1658,7 +1667,8 @@ async function generarVale(){
   const cant = parseInt(document.getElementById('cantVale').value)||0;
   if(cant<=0){ toast('Ingresa la cantidad de paquetes','warn'); return; }
   const stock = calcStock();
-  if(cant>stock){ toast(`Stock insuficiente. Disponible: ${stock} PAQ.`,'warn'); return; }
+  const stockReal = calcStock();
+  if(cant>stockReal){ toast(`Stock insuficiente. Disponible: ${stockReal} PAQ.`,'warn'); return; }
   const fecha = document.getElementById('fechaVale').value;
   if(!fecha){ toast('Selecciona la fecha','warn'); return; }
 
@@ -2266,9 +2276,11 @@ document.addEventListener('click', e=>{
 });
 
 // ═══ INIT ════════════════════════════════════════════════════════════
+// Aplicar existencia inicial inmediatamente (antes del primer render)
+getExistenciaInicial(); // Asegura que el default quede en localStorage
 // Renderizar con caché mientras conecta a Supabase
 renderDash();
-// Conectar a Supabase en background
+// Conectar a Supabase en background (actualiza existencia y re-renderiza)
 cargarDesdeSB();
 </script>
 </body>
