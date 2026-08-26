@@ -569,6 +569,27 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
         </div>
       </div>
 
+      <!-- Autorizante -->
+      <div style="background:#f0f9f5;border:1.5px solid #c3ddd7;border-radius:10px;padding:14px 18px;margin-bottom:14px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+          🖊️ Autorizado Por
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre del Autorizante</label>
+            <input type="text" class="fc" id="autNombre" value="JONATAN ERIC REYES GÓMEZ">
+          </div>
+          <div class="form-group">
+            <label>Ficha del Autorizante</label>
+            <input type="text" class="fc" id="autFicha" value="374205">
+          </div>
+          <div class="form-group">
+            <label>Cargo del Autorizante</label>
+            <input type="text" class="fc" id="autCargo" value="Jefe de Servicios Corporativos A.D.">
+          </div>
+        </div>
+      </div>
+
       <!-- Documento soporte y nota -->
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
@@ -1613,7 +1634,7 @@ function acUsuario(inp){
 }
 
 // Palabras clave que identifican área hospitalaria/clínica/guardería
-const HOSPITAL_KEYWORDS = ['HOSPITAL','CLÍNICA','CLINICA','CONSULTORIO','CENDI','MÉDICO','MEDICO'];
+const HOSPITAL_KEYWORDS = ['HOSPITAL','CLÍNICA','CLINICA','CONSULTORIO','MÉDICO','MEDICO'];
 
 function esAreaHospitalaria(area){
   if(!area) return false;
@@ -1698,6 +1719,9 @@ async function generarVale(){
   while(foliosUsados2.has(folio)) folio++;
 
   const mes = document.getElementById('mesCargo').value;
+  const autNombre = document.getElementById('autNombre').value.trim();
+  const autFicha  = document.getElementById('autFicha').value.trim();
+  const autCargo  = document.getElementById('autCargo').value.trim();
   const nota = document.getElementById('notaVale').value.trim();
   const obs = document.getElementById('obsVale').value.trim();
   const docSop = document.getElementById('docSoporte').value.trim();
@@ -1725,6 +1749,7 @@ async function generarVale(){
     correo: usuarioSel.correo,
     direccion: usuarioSel.direccion,
     nota, obs, docSop, dept,
+    autorizante: {nombre:autNombre, ficha:autFicha, cargo:autCargo},
     entregante: esHosp ? null : {nombre:entNombre, ficha:entFicha, cargo:entCargo},
     status: 'ENTREGADO',
     recibido: true
@@ -1760,7 +1785,7 @@ async function generarVale(){
 
 function esHospitalVal(area){
   if(!area) return false;
-  const kw = ['HOSPITAL','CLÍNICA','CLINICA','CONSULTORIO','CENDI'];
+  const kw = ['HOSPITAL','CLÍNICA','CLINICA','CONSULTORIO'];
   return kw.some(k=>area.toUpperCase().includes(k));
 }
 
@@ -1879,9 +1904,9 @@ function buildValeA(v){
       <tr>
         <td style="border-right:1px solid #000;padding:6px 8px;width:33%;vertical-align:top">
           <div style="font-size:10px;font-weight:700;font-style:italic;margin-bottom:28px">AUTORIZADO POR:</div>
-          <div style="margin-bottom:4px"><strong>NOMBRE:</strong> Jonatan Eric Reyes Gómez</div>
-          <div style="margin-bottom:4px"><strong>FICHA:</strong> 374205</div>
-          <div><strong>CARGO:</strong> <u>Jefe</u> de Servicios Corporativos A.D.</div>
+          <div style="margin-bottom:4px"><strong>NOMBRE:</strong> ${{v.autorizante?.nombre||'Jonatan Eric Reyes Gómez'}}</div>
+          <div style="margin-bottom:4px"><strong>FICHA:</strong> ${{v.autorizante?.ficha||'374205'}}</div>
+          <div><strong>CARGO:</strong> ${{v.autorizante?.cargo||'Jefe de Servicios Corporativos A.D.'}}</div>
         </td>
         <td style="border-right:1px solid #000;padding:6px 8px;width:33%;vertical-align:top">
           <div style="font-size:10px;font-weight:700;font-style:italic;margin-bottom:28px">RECIBE LOS EFECTOS:</div>
@@ -2006,9 +2031,9 @@ function buildValeB(v){
       <tr>
         <td style="border-right:1px solid #000;padding:6px 8px;width:33%;vertical-align:top">
           <div style="font-size:10px;font-weight:700;font-style:italic;margin-bottom:28px">AUTORIZADO POR:</div>
-          <div style="margin-bottom:4px"><strong>NOMBRE:</strong> Jonatan Eric Reyes Gómez</div>
-          <div style="margin-bottom:4px"><strong>FICHA:</strong> 374205</div>
-          <div><strong>CARGO:</strong> <u>Jefe</u> de Servicios Corporativos A.D.</div>
+          <div style="margin-bottom:4px"><strong>NOMBRE:</strong> ${{v.autorizante?.nombre||'Jonatan Eric Reyes Gómez'}}</div>
+          <div style="margin-bottom:4px"><strong>FICHA:</strong> ${{v.autorizante?.ficha||'374205'}}</div>
+          <div><strong>CARGO:</strong> ${{v.autorizante?.cargo||'Jefe de Servicios Corporativos A.D.'}}</div>
         </td>
         <td style="border-right:1px solid #000;padding:6px 8px;width:33%;vertical-align:top">
           <div style="font-size:10px;font-weight:700;font-style:italic;margin-bottom:28px">RECIBE LOS EFECTOS:</div>
