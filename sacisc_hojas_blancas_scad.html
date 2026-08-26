@@ -544,6 +544,31 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
           </div>
         </div>
       </div>
+      <!-- Entregante — solo para áreas no hospitalarias -->
+      <div id="entreganteSection" style="display:none;background:#e3f2fd;border:1.5px solid #90caf9;border-radius:10px;padding:14px 18px;margin-bottom:14px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#0d47a1;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+          🧑‍💼 Datos del Entregante
+          <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:400;color:#1565c0;text-transform:none;letter-spacing:0;margin-left:8px">(Requerido para áreas no hospitalarias)</span>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre del Entregante</label>
+            <div style="position:relative">
+              <input type="text" class="fc" id="entreganteNombre" placeholder="Nombre completo" oninput="acEntregante(this)" onfocus="acEntregante(this)" autocomplete="off">
+              <div id="acEntreganteList" style="position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1.5px solid #90caf9;border-radius:8px;box-shadow:0 6px 20px rgba(0,47,42,.12);z-index:300;max-height:180px;overflow-y:auto;display:none"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Ficha del Entregante</label>
+            <input type="text" class="fc" id="entreganteFicha" placeholder="Ej: F-383573">
+          </div>
+          <div class="form-group">
+            <label>Cargo del Entregante</label>
+            <input type="text" class="fc" id="entreganteCargo" placeholder="Ej: Materialista">
+          </div>
+        </div>
+      </div>
+
       <!-- Documento soporte y nota -->
       <div class="form-grid" style="margin-bottom:14px">
         <div class="form-group">
@@ -1245,10 +1270,12 @@ function setExistenciaInicial(val){
 }
 
 function calcStock() {
+  // Stock = Existencia Inicial + Entradas nuevas - Vales nuevos (no históricos)
   let s = getExistenciaInicial();
-  ENTRADAS.forEach(e => { if(e.cant > 0 && e.ref !== 'RECUENTO STOK OFICINA' && e.ref !== 'RECUENTO RESERVA EN BODEGA' && e.ref !== 'NO HUBO SURTIMIENTO' && e.ref !== 'NO HUBO VALE') s += e.cant; else if (e.cnt) s += e.cnt });
-  ENTRADAS.forEach(e => { if(e.es_conteo) s = e.cant });
-  VALES.filter(v=>v.status==='ENTREGADO').forEach(v => s -= v.cant);
+  // Sumar solo entradas nuevas registradas en el sistema (no históricas)
+  ENTRADAS.filter(e=>e.nuevo && e.cant>0).forEach(e => s += e.cant);
+  // Restar solo vales nuevos (no históricos)
+  VALES.filter(v=>v.status==='ENTREGADO' && !v.historico).forEach(v => s -= v.cant);
   return Math.max(0, s);
 }
 
@@ -1496,6 +1523,15 @@ function acUsuario(inp){
   list.style.display='block';
 }
 
+// Palabras clave que identifican área hospitalaria/clínica/guardería
+const HOSPITAL_KEYWORDS = ['HOSPITAL','CLÍNICA','CLINICA','CONSULTORIO','CENDI','MÉDICO','MEDICO'];
+
+function esAreaHospitalaria(area){
+  if(!area) return false;
+  const aUp = area.toUpperCase();
+  return HOSPITAL_KEYWORDS.some(k=>aUp.includes(k));
+}
+
 function selectUsuario(idx){
   usuarioSel = CATALOGO[idx];
   document.getElementById('acUsuarioList').style.display='none';
@@ -1508,6 +1544,53 @@ function selectUsuario(idx){
   document.getElementById('uDir').value = usuarioSel.direccion||'DAS';
   document.getElementById('deptEntrega').value = usuarioSel.area;
   document.getElementById('usuarioSelCard').style.display='block';
+
+  // Mostrar/ocultar sección entregante según tipo de área
+  const esHosp = esAreaHospitalaria(usuarioSel.area);
+  const secEnt = document.getElementById('entreganteSection');
+  secEnt.style.display = esHosp ? 'none' : 'block';
+  if(esHosp){
+    // Limpiar campos si se cambia a hospital
+    document.getElementById('entreganteNombre').value='';
+    document.getElementById('entreganteFicha').value='';
+    document.getElementById('entreganteCargo').value='';
+  }
+}
+
+// Autocomplete de entregante con histórico guardado en localStorage
+function getEntregantesHist(){
+  try{ return JSON.parse(localStorage.getItem('hb_entregantes')||'[]'); } catch(e){ return []; }
+}
+function saveEntreganteHist(e){
+  let hist = getEntregantesHist();
+  // Evitar duplicados por ficha
+  hist = hist.filter(h=>h.ficha!==e.ficha);
+  hist.unshift(e);
+  if(hist.length>50) hist=hist.slice(0,50);
+  localStorage.setItem('hb_entregantes', JSON.stringify(hist));
+}
+
+function acEntregante(inp){
+  const q = inp.value.toLowerCase().trim();
+  const list = document.getElementById('acEntreganteList');
+  const hist = getEntregantesHist();
+  const matches = q
+    ? hist.filter(h=>h.nombre.toLowerCase().includes(q)||h.ficha.includes(q))
+    : hist.slice(0,8);
+  if(!matches.length){ list.style.display='none'; return; }
+  list.innerHTML = matches.map(h=>`
+    <div class="ac-item" onclick="selectEntregante(${JSON.stringify(h).replace(/"/g,'&quot;')})">
+      <strong style="font-family:'Barlow Condensed',sans-serif;font-size:13px">${h.nombre}</strong>
+      <div class="ac-sub">F.${h.ficha} · ${h.cargo}</div>
+    </div>`).join('');
+  list.style.display='block';
+}
+
+function selectEntregante(h){
+  document.getElementById('entreganteNombre').value = h.nombre;
+  document.getElementById('entreganteFicha').value = h.ficha;
+  document.getElementById('entreganteCargo').value = h.cargo;
+  document.getElementById('acEntreganteList').style.display='none';
 }
 
 async function generarVale(){
@@ -1519,12 +1602,29 @@ async function generarVale(){
   const fecha = document.getElementById('fechaVale').value;
   if(!fecha){ toast('Selecciona la fecha','warn'); return; }
 
-  const folio = Math.max(...VALES.map(v=>v.folio||0), 416) + 1;
+  // Buscar primer folio disponible (reutiliza huecos por eliminaciones)
+  const foliosUsados2 = new Set(VALES.map(v=>v.folio));
+  let folio = 417;
+  while(foliosUsados2.has(folio)) folio++;
+
   const mes = document.getElementById('mesCargo').value;
   const nota = document.getElementById('notaVale').value.trim();
   const obs = document.getElementById('obsVale').value.trim();
   const docSop = document.getElementById('docSoporte').value.trim();
   const dept = document.getElementById('deptEntrega').value.trim();
+
+  // Entregante (solo para áreas no hospitalarias)
+  const esHosp = esAreaHospitalaria(usuarioSel.area);
+  const entNombre = document.getElementById('entreganteNombre').value.trim();
+  const entFicha  = document.getElementById('entreganteFicha').value.trim();
+  const entCargo  = document.getElementById('entreganteCargo').value.trim();
+  if(!esHosp && !entNombre){ toast('Ingresa el nombre del entregante','warn'); return; }
+  if(!esHosp && !entFicha){  toast('Ingresa la ficha del entregante','warn'); return; }
+
+  // Guardar entregante en histórico
+  if(!esHosp && entNombre){
+    saveEntreganteHist({nombre:entNombre, ficha:entFicha, cargo:entCargo});
+  }
 
   const valeData = {
     folio, mes, fecha, cant,
@@ -1535,6 +1635,7 @@ async function generarVale(){
     correo: usuarioSel.correo,
     direccion: usuarioSel.direccion,
     nota, obs, docSop, dept,
+    entregante: esHosp ? null : {nombre:entNombre, ficha:entFicha, cargo:entCargo},
     status: 'ENTREGADO',
     recibido: true
   };
@@ -1556,6 +1657,10 @@ async function generarVale(){
   document.getElementById('cantVale').value='';
   document.getElementById('buscarUsuario').value='';
   document.getElementById('usuarioSelCard').style.display='none';
+  document.getElementById('entreganteSection').style.display='none';
+  document.getElementById('entreganteNombre').value='';
+  document.getElementById('entreganteFicha').value='';
+  document.getElementById('entreganteCargo').value='';
   usuarioSel=null;
   actualizarStockVale();
   initVale();
@@ -1653,6 +1758,10 @@ function mostrarVale(v){
         </div>
         <div class="vale-firma" style="border-right:none">
           <div class="vf-label">ENTREGO:</div>
+          ${v.entregante ? `
+          <div class="vf-name">${v.entregante.nombre.toUpperCase()}</div>
+          <div class="vf-detail">${v.entregante.ficha}<br>${v.entregante.cargo}</div>
+          ` : ''}
         </div>
       </div>
       <!-- Footer del vale -->
@@ -1765,10 +1874,13 @@ function renderHistorial(){
     <td style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${v.obs}">${v.obs||'—'}</td>
     <td>
       <div class="btn-group">
-        <button class="btn btn-outline btn-xs" onclick="verVale(${VALES.indexOf(v)})">👁️</button>
+        <button class="btn btn-outline btn-xs" title="Ver vale" onclick="verVale(${VALES.indexOf(v)})">👁️</button>
         <button class="btn btn-xs" style="background:#0d47a1;color:#fff;border-radius:6px;padding:3px 7px;font-size:12px" title="Enviar por correo" onclick="enviarCorreoDirecto(${VALES.indexOf(v)})">✉️</button>
-        <button class="btn btn-xs" style="background:var(--amber);color:#fff;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700" onclick="toggleEstado(${VALES.indexOf(v)})">✕/✓</button>
-        <button class="btn btn-danger btn-xs" onclick="cancelarVale(${VALES.indexOf(v)})">🚫</button>
+        <button class="btn btn-xs" style="background:var(--amber);color:#fff;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700" title="Cambiar estado" onclick="toggleEstado(${VALES.indexOf(v)})">✕/✓</button>
+        <button class="btn btn-xs" style="background:#c62828;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:.03em;display:inline-flex;align-items:center;gap:4px" title="Eliminar permanentemente" onclick="cancelarVale(${VALES.indexOf(v)})">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          BORRAR
+        </button>
       </div>
     </td>
   </tr>`).join('');
