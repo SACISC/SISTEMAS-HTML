@@ -1809,7 +1809,7 @@ function mostrarVale(v){
 ══════════════════════════════════════════════════════ */
 function buildValeA(v){
   const fecha = v.fecha ? new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
-  const mesAnio = `${v.mes} ${v.fecha?new Date(v.fecha+'T12:00:00').getFullYear():''}`;
+  const mesAnio = v.mes + (v.fecha ? ' ' + new Date(v.fecha+'T12:00:00').getFullYear() : '');
   const ent = v.entregante||{};
   return `
   <div style="font-family:'Arial',sans-serif;font-size:11px;color:#000;background:#fff;padding:0;width:100%">
@@ -1916,10 +1916,7 @@ function buildValeA(v){
         </td>
         <td style="padding:6px 8px;width:33%;vertical-align:top">
           <div style="font-size:10px;font-weight:700;font-style:italic;margin-bottom:28px">ENTREGA:</div>
-          ${ent.nombre ? `
-          <div style="margin-bottom:4px"><strong>NOMBRE:</strong> ${ent.nombre}</div>
-          <div style="margin-bottom:4px"><strong>FICHA:</strong> ${ent.ficha}</div>
-          <div><strong>CARGO:</strong> ${ent.cargo||''}</div>` : ''}
+          ${ent.nombre ? '<div style=\"margin-bottom:4px\"><strong>NOMBRE:</strong> '+ent.nombre+'</div><div style=\"margin-bottom:4px\"><strong>FICHA:</strong> '+ent.ficha+'</div><div><strong>CARGO:</strong> '+(ent.cargo||'')+'</div>' : ''}
         </td>
       </tr>
     </table>
@@ -1932,7 +1929,7 @@ function buildValeA(v){
 ══════════════════════════════════════════════════════ */
 function buildValeB(v){
   const fecha = v.fecha ? new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}) : '—';
-  const mesAnio = `${v.mes} ${v.fecha?new Date(v.fecha+'T12:00:00').getFullYear():''}`;
+  const mesAnio = v.mes + (v.fecha ? ' ' + new Date(v.fecha+'T12:00:00').getFullYear() : '');
   return `
   <div style="font-family:'Arial',sans-serif;font-size:11px;color:#000;background:#fff;padding:0;width:100%">
     <table style="width:100%;border-collapse:collapse;border:1.5px solid #000">
