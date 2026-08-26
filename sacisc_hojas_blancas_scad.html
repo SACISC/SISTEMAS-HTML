@@ -1285,23 +1285,39 @@ function setExistenciaInicial(val){
 }
 
 function calcStock() {
-  // Stock = Existencia Inicial + Entradas nuevas - Vales nuevos (no históricos)
+  // Stock = Existencia Inicial + Entradas nuevas - Vales nuevos
+  // "Nuevo" = registrado después de la fecha de arranque del sistema (2026-08-26)
+  // Todo lo anterior es histórico y NO afecta el stock actual
+  const FECHA_ARRANQUE = '2026-08-26'; // Fecha en que se inició el sistema
   let s = getExistenciaInicial();
-  // Sumar solo entradas nuevas (excluir la entrada especial EXISTENCIA_INICIAL)
-  ENTRADAS.filter(e=>e.nuevo && e.cant>0 && e.ref !== 'EXISTENCIA_INICIAL').forEach(e => s += e.cant);
-  // Restar solo vales nuevos (no históricos)
-  VALES.filter(v=>v.status==='ENTREGADO' && !v.historico).forEach(v => s -= v.cant);
+  // Sumar entradas nuevas (posteriores a arranque, excluir EXISTENCIA_INICIAL)
+  ENTRADAS.filter(e => e.nuevo && e.cant > 0
+    && e.ref !== 'EXISTENCIA_INICIAL'
+    && e.fecha >= FECHA_ARRANQUE
+  ).forEach(e => s += e.cant);
+  // Restar solo vales nuevos (posteriores a arranque)
+  VALES.filter(v => v.status === 'ENTREGADO'
+    && !v.historico
+    && v.fecha >= FECHA_ARRANQUE
+  ).forEach(v => s -= v.cant);
   return Math.max(0, s);
 }
 
 function calcStockKardex() {
-  // Build chronological list for kardex
+  const FECHA_ARRANQUE = '2026-08-26';
   const events = [];
-  ENTRADAS.forEach(e => events.push({fecha:e.fecha, tipo:'ENTRADA', ref:e.ref||'—', entrada:e.cant||0, salida:0, detalle: e.obs||'', ts:e.fecha+'_E'}));
-  VALES.filter(v=>v.status!=='CANCELADO').forEach(v => events.push({fecha:v.fecha, tipo:'VALE', ref:'Vale #'+v.folio, entrada:0, salida:v.cant, detalle:`${v.nombre} · ${v.area}`, ts:v.fecha+'_V'+v.folio}));
-  events.sort((a,b) => a.fecha > b.fecha ? 1 : -1);
+  // Entrada especial: existencia inicial
+  const ei = getExistenciaInicial();
+  if(ei > 0) events.push({fecha:FECHA_ARRANQUE, tipo:'ENTRADA', ref:'EXISTENCIA_INICIAL', entrada:ei, salida:0, detalle:'Stock de apertura del sistema'});
+  // Solo entradas nuevas
+  ENTRADAS.filter(e=>e.nuevo && e.cant>0 && e.ref!=='EXISTENCIA_INICIAL' && e.fecha>=FECHA_ARRANQUE)
+    .forEach(e=>events.push({fecha:e.fecha,tipo:'ENTRADA',ref:e.ref||'—',entrada:e.cant,salida:0,detalle:e.obs||''}));
+  // Solo vales nuevos (posteriores al arranque)
+  VALES.filter(v=>v.status!=='CANCELADO' && v.fecha>=FECHA_ARRANQUE)
+    .forEach(v=>events.push({fecha:v.fecha,tipo:'VALE',ref:'Vale #'+v.folio,entrada:0,salida:v.cant,detalle:`${v.nombre} · ${v.area}`}));
+  events.sort((a,b)=>a.fecha>b.fecha?1:a.fecha<b.fecha?-1:0);
   let saldo = 0;
-  return events.map(ev => { saldo += ev.entrada - ev.salida; return {...ev, saldo}; });
+  return events.map(ev=>{ saldo += ev.entrada - ev.salida; return {...ev,saldo}; });
 }
 
 // ═══ UI UTILITIES ════════════════════════════════════════════════════
@@ -2126,8 +2142,9 @@ function eliminarUsuario(idx){
 // ═══ INVENTARIO (KARDEX) ══════════════════════════════════════════════
 function renderInventario(){
   const stock = calcStock();
-  const totalEnt = ENTRADAS.filter(e=>e.cant>0).reduce((s,e)=>s+e.cant,0);
-  const totalSal = VALES.filter(v=>v.status==='ENTREGADO').reduce((s,v)=>s+v.cant,0);
+  const FECHA_ARRANQUE = '2026-08-26';
+  const totalEnt = ENTRADAS.filter(e=>e.nuevo && e.cant>0 && e.ref!=='EXISTENCIA_INICIAL' && e.fecha>=FECHA_ARRANQUE).reduce((s,e)=>s+e.cant,0);
+  const totalSal = VALES.filter(v=>v.status==='ENTREGADO' && v.fecha>=FECHA_ARRANQUE).reduce((s,v)=>s+v.cant,0);
   document.getElementById('kpiInv').innerHTML=`
     <div class="kpi success"><div class="kpi-label">📦 Stock Actual</div><div class="kpi-val">${stock}</div><div class="kpi-sub">PAQ. en bodega</div></div>
     <div class="kpi info"><div class="kpi-label">📥 Total Entrado</div><div class="kpi-val">${totalEnt}</div><div class="kpi-sub">PAQ. histórico</div></div>
