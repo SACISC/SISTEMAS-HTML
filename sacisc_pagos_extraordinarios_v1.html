@@ -3673,9 +3673,9 @@ async function generarOficioRH() {
     const base = slugificarNombreArchivo(`OFICIO_RH_${f0.area}_${payload.folio_ctx.subarea_corta}_${f0.tipo_pago}_${f0.anio}_S${f0.num_semana}`.replace(/ /g, '_'));
     const bucket = 'oficios-rh-generados';
 
-    btnEl.textContent = '⏳ Esperando archivo...';
+    btnEl.textContent = '⏳ Generando... (puede tardar hasta 3 min)';
     let encontrado = false;
-    for (let intento = 0; intento < 24; intento++) {
+    for (let intento = 0; intento < 42; intento++) {
       await new Promise(r => setTimeout(r, 5000));
       const check = await fetch(`${SUPABASE_URL}/storage/v1/object/public/${bucket}/${base}.docx`, { method: 'HEAD' });
       if (check.ok) { encontrado = true; break; }
@@ -3995,10 +3995,10 @@ async function generarFormato7(folioId, btnEl) {
     const base = slugificarNombreArchivo(`FORMATO7_${folio.area}_${folio.subarea}_${folio.anio}_${folio.folio}`.replace(/ /g, '_'));
 
     // 3. Sondear Supabase Storage hasta que aparezca el archivo (maximo ~2 minutos)
-    btnEl.textContent = '⏳ Esperando archivo...';
+    btnEl.textContent = '⏳ Generando... (puede tardar hasta 3 min)';
     const bucket = 'formato7-generados';
     let encontrado = null;
-    for (let intento = 0; intento < 24; intento++) {
+    for (let intento = 0; intento < 42; intento++) {
       await new Promise(r => setTimeout(r, 5000));
       const check = await fetch(`${SUPABASE_URL}/storage/v1/object/public/${bucket}/${base}.xlsx`, { method: 'HEAD' });
       if (check.ok) { encontrado = base; break; }
