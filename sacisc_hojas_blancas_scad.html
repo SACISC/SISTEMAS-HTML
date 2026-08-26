@@ -1390,24 +1390,36 @@ function renderDash(){
 // ═══ ENTRADA ══════════════════════════════════════════════════════════
 async function sincronizarExistenciaInicial(){
   try{
-    // Buscar entrada especial con ref='EXISTENCIA_INICIAL' en Supabase
     const rows = await sbGet('hb_entradas', "ref=eq.EXISTENCIA_INICIAL&limit=1");
-    if(rows.length > 0){
-      // Existe en Supabase — sincronizar a localStorage
+    if(rows.length > 0 && rows[0].cant > 0){
+      // Existe en Supabase con valor > 0 — sincronizar a localStorage
       const val = rows[0].cant;
       localStorage.setItem('hb_exist_inicial', val);
       console.log('Existencia inicial cargada de Supabase:', val);
+    } else if(rows.length > 0 && rows[0].cant === 0){
+      // Existe pero con cero — actualizar Supabase con el valor correcto
+      const val = getExistenciaInicial();
+      if(val > 0){
+        await fetch(`${SB_URL}/rest/v1/hb_entradas?ref=eq.EXISTENCIA_INICIAL`,
+          {method:'DELETE', headers:SB_HDR});
+        await sbInsert('hb_entradas', {
+          fecha: new Date().toISOString().split('T')[0],
+          cant: val,
+          ref: 'EXISTENCIA_INICIAL',
+          obs: 'Stock de apertura del sistema SACISC Hojas Blancas SCAD',
+          vale: false, nuevo: false, ts: Date.now()
+        });
+        console.log('Existencia inicial corregida en Supabase:', val);
+      }
     } else {
-      // No existe en Supabase — subir el valor actual del localStorage
+      // No existe — subir el valor actual
       const val = getExistenciaInicial();
       await sbInsert('hb_entradas', {
         fecha: new Date().toISOString().split('T')[0],
         cant: val,
         ref: 'EXISTENCIA_INICIAL',
         obs: 'Stock de apertura del sistema SACISC Hojas Blancas SCAD',
-        vale: false,
-        nuevo: false,
-        ts: Date.now()
+        vale: false, nuevo: false, ts: Date.now()
       });
       console.log('Existencia inicial subida a Supabase:', val);
     }
