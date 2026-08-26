@@ -1177,6 +1177,8 @@ async function cargarDesdeSB(){
     } else {
       await cargarUsuariosSB();
     }
+    // Sincronizar existencia inicial desde/hacia Supabase via hb_entradas especial
+    await sincronizarExistenciaInicial();
     SB_READY = true;
     hideLoader();
     toast('✅ Conectado a Supabase','ok');
@@ -1262,8 +1264,16 @@ function showLoader(msg){
 function hideLoader(){const el=document.getElementById('sbLoader');if(el)el.remove();}
 
 // ═══ STOCK ════════════════════════════════════════════════════════════
+const EXIST_INICIAL_DEFAULT = 70; // PAQ. — stock de apertura del sistema
+
 function getExistenciaInicial(){
-  return parseInt(localStorage.getItem('hb_exist_inicial')||'0');
+  const stored = localStorage.getItem('hb_exist_inicial');
+  // Si nunca se ha guardado, usar el valor por defecto y guardarlo
+  if(stored === null){
+    localStorage.setItem('hb_exist_inicial', EXIST_INICIAL_DEFAULT);
+    return EXIST_INICIAL_DEFAULT;
+  }
+  return parseInt(stored)||0;
 }
 function setExistenciaInicial(val){
   localStorage.setItem('hb_exist_inicial', val);
@@ -1272,8 +1282,8 @@ function setExistenciaInicial(val){
 function calcStock() {
   // Stock = Existencia Inicial + Entradas nuevas - Vales nuevos (no históricos)
   let s = getExistenciaInicial();
-  // Sumar solo entradas nuevas registradas en el sistema (no históricas)
-  ENTRADAS.filter(e=>e.nuevo && e.cant>0).forEach(e => s += e.cant);
+  // Sumar solo entradas nuevas (excluir la entrada especial EXISTENCIA_INICIAL)
+  ENTRADAS.filter(e=>e.nuevo && e.cant>0 && e.ref !== 'EXISTENCIA_INICIAL').forEach(e => s += e.cant);
   // Restar solo vales nuevos (no históricos)
   VALES.filter(v=>v.status==='ENTREGADO' && !v.historico).forEach(v => s -= v.cant);
   return Math.max(0, s);
@@ -1372,6 +1382,34 @@ function renderDash(){
 }
 
 // ═══ ENTRADA ══════════════════════════════════════════════════════════
+async function sincronizarExistenciaInicial(){
+  try{
+    // Buscar entrada especial con ref='EXISTENCIA_INICIAL' en Supabase
+    const rows = await sbGet('hb_entradas', "ref=eq.EXISTENCIA_INICIAL&limit=1");
+    if(rows.length > 0){
+      // Existe en Supabase — sincronizar a localStorage
+      const val = rows[0].cant;
+      localStorage.setItem('hb_exist_inicial', val);
+      console.log('Existencia inicial cargada de Supabase:', val);
+    } else {
+      // No existe en Supabase — subir el valor actual del localStorage
+      const val = getExistenciaInicial();
+      await sbInsert('hb_entradas', {
+        fecha: new Date().toISOString().split('T')[0],
+        cant: val,
+        ref: 'EXISTENCIA_INICIAL',
+        obs: 'Stock de apertura del sistema SACISC Hojas Blancas SCAD',
+        vale: false,
+        nuevo: false,
+        ts: Date.now()
+      });
+      console.log('Existencia inicial subida a Supabase:', val);
+    }
+  } catch(e){
+    console.warn('No se pudo sincronizar existencia inicial:', e.message);
+  }
+}
+
 async function limpiarEntradasSB(){
   if(!SB_READY){ toast('Supabase no conectado','warn'); return; }
   if(!confirm('¿Borrar TODAS las entradas en Supabase?\nEsta acción no puede revertirse.\n\nEl stock inicial deberá capturarse manualmente.')) return;
@@ -1399,14 +1437,36 @@ async function limpiarEntradasSB(){
 function prevExistInicial(){
   // Solo preview — no guarda todavía
 }
-function guardarExistInicial(){
+async function guardarExistInicial(){
   const val = parseInt(document.getElementById('existInicialInput').value)||0;
   if(val < 0){ toast('El valor no puede ser negativo','warn'); return; }
   setExistenciaInicial(val);
   document.getElementById('existInicialActual').textContent = val;
   document.getElementById('stockActualEnt').textContent = calcStock() + ' PAQ.';
-  document.getElementById('stockDisp') && (document.getElementById('stockDisp').textContent = calcStock() + ' PAQ.');
-  toast(`✅ Existencia inicial establecida: ${val} PAQ.`,'ok');
+  const sdEl = document.getElementById('stockDisp');
+  if(sdEl) sdEl.textContent = calcStock() + ' PAQ.';
+  // Actualizar en Supabase
+  if(SB_READY){
+    try{
+      // Eliminar registro anterior y crear nuevo
+      await fetch(`${SB_URL}/rest/v1/hb_entradas?ref=eq.EXISTENCIA_INICIAL`,
+        {method:'DELETE', headers:SB_HDR});
+      await sbInsert('hb_entradas', {
+        fecha: new Date().toISOString().split('T')[0],
+        cant: val,
+        ref: 'EXISTENCIA_INICIAL',
+        obs: 'Stock de apertura del sistema SACISC Hojas Blancas SCAD',
+        vale: false,
+        nuevo: false,
+        ts: Date.now()
+      });
+      toast(`✅ Existencia inicial: ${val} PAQ. — guardada en Supabase`,'ok');
+    } catch(e){
+      toast(`✅ Existencia inicial: ${val} PAQ. (solo local)`,'ok');
+    }
+  } else {
+    toast(`✅ Existencia inicial establecida: ${val} PAQ.`,'ok');
+  }
   renderDash();
 }
 function initEntrada(){
