@@ -916,6 +916,49 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
           <input type="text" class="fc" id="evObs">
         </div>
       </div>
+
+      <!-- AUTORIZADO POR -->
+      <div style="background:#f0f9f5;border:1.5px solid #c3ddd7;border-radius:10px;padding:14px 18px;margin-bottom:14px">
+        <div style="font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:700;color:var(--gm);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+          🖊️ Autorizado Por
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" class="fc" id="evAutNombre">
+          </div>
+          <div class="form-group">
+            <label>Ficha</label>
+            <input type="text" class="fc" id="evAutFicha">
+          </div>
+          <div class="form-group">
+            <label>Cargo</label>
+            <input type="text" class="fc" id="evAutCargo">
+          </div>
+        </div>
+      </div>
+
+      <!-- ENTREGA (solo áreas no hospitalarias) -->
+      <div id="evEntreganteSection" style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:10px;padding:14px 18px;margin-bottom:6px">
+        <div style="font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:700;color:#0d47a1;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
+          🧑‍💼 Entrega
+          <span style="font-family:Inter,sans-serif;font-size:10px;font-weight:400;color:#1565c0;text-transform:none;letter-spacing:0;margin-left:8px">(Solo para áreas no hospitalarias)</span>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" class="fc" id="evEntNombre">
+          </div>
+          <div class="form-group">
+            <label>Ficha</label>
+            <input type="text" class="fc" id="evEntFicha">
+          </div>
+          <div class="form-group">
+            <label>Cargo</label>
+            <input type="text" class="fc" id="evEntCargo">
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalEditVale')">Cancelar</button>
@@ -1360,22 +1403,22 @@ async function cargarDesdeSB(){
 function mapValeFromDB(v){
   // Restaurar flag historico: vales con folio <= 416 son históricos
   const historico = (v.folio <= 416) || v.historico || false;
-  return {folio:v.folio,mes:v.mes,fecha:v.fecha,cant:v.cant,ficha:v.ficha,nombre:v.nombre,cargo:v.cargo,area:v.area,correo:v.correo,direccion:v.direccion,nota:v.nota,obs:v.obs,docSop:v.doc_sop,dept:v.dept,status:v.status,recibido:v.recibido,ts:v.ts,_id:v.id,historico};
+  return {folio:v.folio,mes:v.mes,fecha:v.fecha,cant:v.cant,ficha:v.ficha,nombre:v.nombre,cargo:v.cargo,area:v.area,correo:v.correo,direccion:v.direccion,nota:v.nota,obs:v.obs,docSop:v.doc_sop,dept:v.dept,status:v.status,recibido:v.recibido,ts:v.ts,_id:v.id,historico,autorizante:v.autorizante?(typeof v.autorizante==='string'?JSON.parse(v.autorizante):v.autorizante):null,entregante:v.entregante?(typeof v.entregante==='string'?JSON.parse(v.entregante):v.entregante):null};
 }
 function mapEntradaFromDB(e){
   return {fecha:e.fecha,cant:e.cant,ref:e.ref,obs:e.obs,vale:e.vale,nuevo:e.nuevo,ts:e.ts,_id:e.id};
 }
 function mapUsuarioFromDB(u){
-  return {ficha:u.ficha,nombre:u.nombre,cargo:u.cargo,area:u.area,correo:u.correo,direccion:u.direccion,_id:u.id};
+  return {ficha:u.ficha,nombre:u.nombre,cargo:u.cargo,area:u.area,correo:u.correo,direccion:u.direccion,ciudad:u.ciudad||'',_id:u.id};
 }
 function mapValeToDb(v){
-  return {folio:v.folio,mes:v.mes,fecha:v.fecha,cant:v.cant,ficha:v.ficha,nombre:v.nombre,cargo:v.cargo||'',area:v.area,correo:v.correo,direccion:v.direccion||'DAS',nota:v.nota||'',obs:v.obs||'',doc_sop:v.docSop||'',dept:v.dept||'',status:v.status||'ENTREGADO',recibido:v.recibido!==false,ts:v.ts||Date.now()};
+  return {folio:v.folio,mes:v.mes,fecha:v.fecha,cant:v.cant,ficha:v.ficha,nombre:v.nombre,cargo:v.cargo||'',area:v.area,correo:v.correo,direccion:v.direccion||'DAS',nota:v.nota||'',obs:v.obs||'',doc_sop:v.docSop||'',dept:v.dept||'',status:v.status||'ENTREGADO',recibido:v.recibido!==false,ts:v.ts||Date.now(),autorizante:v.autorizante?JSON.stringify(v.autorizante):null,entregante:v.entregante?JSON.stringify(v.entregante):null};
 }
 function mapEntradaToDb(e){
   return {fecha:e.fecha,cant:e.cant,ref:e.ref||'',obs:e.obs||'',vale:e.vale!==false,nuevo:e.nuevo!==false,ts:e.ts||Date.now()};
 }
 function mapUsuarioToDb(u){
-  return {ficha:u.ficha,nombre:u.nombre,cargo:u.cargo||'',area:u.area,correo:u.correo,direccion:u.direccion||'DAS'};
+  return {ficha:u.ficha,nombre:u.nombre,cargo:u.cargo||'',area:u.area,correo:u.correo,direccion:u.direccion||'DAS',ciudad:u.ciudad||''};
 }
 
 // ── Carga histórica inicial (primera vez) ──────────────────────────────
@@ -2297,6 +2340,18 @@ function openEditVale(idx){
   document.getElementById('evArea').value = v.area||'';
   document.getElementById('evCorreo').value = v.correo||'';
   document.getElementById('evObs').value = v.obs||'';
+  // Autorizante
+  const au = v.autorizante||{};
+  document.getElementById('evAutNombre').value = au.nombre||'JONATAN ERIC REYES GÓMEZ';
+  document.getElementById('evAutFicha').value  = au.ficha||'374205';
+  document.getElementById('evAutCargo').value  = au.cargo||'Jefe de Servicios Corporativos A.D.';
+  // Entregante — mostrar solo si NO es área hospitalaria
+  const ent = v.entregante||{};
+  const esHosp = esHospitalVal(v.area);
+  document.getElementById('evEntreganteSection').style.display = esHosp ? 'none' : 'block';
+  document.getElementById('evEntNombre').value = ent.nombre||'';
+  document.getElementById('evEntFicha').value  = ent.ficha||'';
+  document.getElementById('evEntCargo').value  = ent.cargo||'';
   openModal('modalEditVale');
 }
 async function guardarEditVale(){
@@ -2314,6 +2369,20 @@ async function guardarEditVale(){
     area:   document.getElementById('evArea').value.trim(),
     correo: document.getElementById('evCorreo').value.trim(),
     obs:    document.getElementById('evObs').value.trim(),
+    autorizante: {
+      nombre: document.getElementById('evAutNombre').value.trim(),
+      ficha:  document.getElementById('evAutFicha').value.trim(),
+      cargo:  document.getElementById('evAutCargo').value.trim(),
+    },
+    entregante: (function(){
+      const n = document.getElementById('evEntNombre').value.trim();
+      if(!n) return null;
+      return {
+        nombre: n,
+        ficha:  document.getElementById('evEntFicha').value.trim(),
+        cargo:  document.getElementById('evEntCargo').value.trim(),
+      };
+    })(),
   };
   VALES[editValeIdx] = updated;
   cacheSet('vales', VALES);
@@ -2322,7 +2391,9 @@ async function guardarEditVale(){
       await sbUpdate('hb_vales', 'folio=eq.'+v.folio, {
         mes:updated.mes, fecha:updated.fecha, cant:updated.cant,
         status:updated.status, nombre:updated.nombre, ficha:updated.ficha,
-        cargo:updated.cargo, area:updated.area, correo:updated.correo, obs:updated.obs
+        cargo:updated.cargo, area:updated.area, correo:updated.correo, obs:updated.obs,
+        autorizante: updated.autorizante ? JSON.stringify(updated.autorizante) : null,
+        entregante:  updated.entregante  ? JSON.stringify(updated.entregante)  : null
       });
     } catch(e){ toast('Error al guardar en Supabase: '+e.message,'warn'); }
   }
