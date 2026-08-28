@@ -632,6 +632,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="card-hdr">
       <h3>📋 Historial de Vales — Papel Bond</h3>
       <div class="btn-group">
+        <button class="btn btn-xs" style="background:var(--gm);color:#fff;border-radius:6px;padding:5px 10px;font-family:Barlow Condensed,sans-serif;font-size:11px;font-weight:700" onclick="sincronizarAreasHistorial()" title="Actualizar áreas del historial según catálogo actual">🔄 Sincronizar Áreas</button>
         <button class="btn btn-outline btn-sm" onclick="exportarHistorial()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#1D6F42"/><text x="3" y="15" font-family="Arial" font-size="6" font-weight="900" fill="#fff">XLS</text></svg>
           Excel
@@ -694,9 +695,18 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       </div>
     </div>
     <div class="card-body" style="padding:0">
-      <div class="tbl-wrap">
-        <table class="tbl">
-          <thead><tr><th>Ficha</th><th>Nombre</th><th>Cargo</th><th>Área Usuaria</th><th>Correo</th><th>Ciudad</th><th>Dirección</th><th>Acciones</th></tr></thead>
+      <div style="overflow-x:auto;width:100%">
+        <table class="tbl" style="min-width:1100px;table-layout:auto">
+          <thead><tr>
+            <th style="white-space:nowrap;min-width:80px">Ficha</th>
+            <th style="white-space:nowrap;min-width:200px">Nombre</th>
+            <th style="white-space:nowrap;min-width:80px">Cargo</th>
+            <th style="white-space:nowrap;min-width:220px">Área Usuaria</th>
+            <th style="white-space:nowrap;min-width:180px">Correo</th>
+            <th style="white-space:nowrap;min-width:70px">Dirección</th>
+            <th style="white-space:nowrap;min-width:150px;color:#11CD78">Ciudad</th>
+            <th style="white-space:nowrap;min-width:90px">Acciones</th>
+          </tr></thead>
           <tbody id="tbodyCatalogo"></tbody>
         </table>
       </div>
@@ -2197,9 +2207,87 @@ ${document.getElementById('valePreview').innerHTML}
   toast(`📄 Vale No. ${v.folio} — selecciona "Guardar como PDF" en el diálogo`,'ok');
 }
 
+let editValeIdx = -1;
+function openEditVale(idx){
+  const v = VALES[idx];
+  if(!v){ toast('Vale no encontrado','warn'); return; }
+  editValeIdx = idx;
+  document.getElementById('editValeNum').textContent = v.folio;
+  document.getElementById('evMes').value = v.mes||'ENERO';
+  document.getElementById('evFecha').value = v.fecha||'';
+  document.getElementById('evCant').value = v.cant||0;
+  document.getElementById('evStatus').value = v.status||'ENTREGADO';
+  document.getElementById('evNombre').value = v.nombre||'';
+  document.getElementById('evFicha').value = v.ficha||'';
+  document.getElementById('evCargo').value = v.cargo||'';
+  document.getElementById('evArea').value = v.area||'';
+  document.getElementById('evCorreo').value = v.correo||'';
+  document.getElementById('evObs').value = v.obs||'';
+  openModal('modalEditVale');
+}
+async function guardarEditVale(){
+  if(editValeIdx<0){ toast('Error: índice inválido','warn'); return; }
+  const v = VALES[editValeIdx];
+  const updated = {
+    ...v,
+    mes:    document.getElementById('evMes').value,
+    fecha:  document.getElementById('evFecha').value,
+    cant:   parseInt(document.getElementById('evCant').value)||v.cant,
+    status: document.getElementById('evStatus').value,
+    nombre: document.getElementById('evNombre').value.trim(),
+    ficha:  document.getElementById('evFicha').value.trim(),
+    cargo:  document.getElementById('evCargo').value.trim(),
+    area:   document.getElementById('evArea').value.trim(),
+    correo: document.getElementById('evCorreo').value.trim(),
+    obs:    document.getElementById('evObs').value.trim(),
+  };
+  VALES[editValeIdx] = updated;
+  cacheSet('vales', VALES);
+  if(SB_READY){
+    try{
+      await sbUpdate('hb_vales', 'folio=eq.'+v.folio, {
+        mes:updated.mes, fecha:updated.fecha, cant:updated.cant,
+        status:updated.status, nombre:updated.nombre, ficha:updated.ficha,
+        cargo:updated.cargo, area:updated.area, correo:updated.correo, obs:updated.obs
+      });
+    } catch(e){ toast('Error al guardar en Supabase: '+e.message,'warn'); }
+  }
+  closeModal('modalEditVale');
+  renderHistorial();
+  renderDash();
+  toast('Vale '+v.folio+' actualizado','ok');
+}
+
 function enviarCorreoDirecto(idx){
   valeActivo = VALES[idx];
   enviarPorCorreo();
+}
+
+async function sincronizarAreasHistorial(){
+  if(!confirm('¿Actualizar el ÁREA de todos los vales según el catálogo actual?\nSe buscará cada ficha en el catálogo y se actualizará el área correspondiente.\nEsta operación NO puede revertirse.')) return;
+  let actualizados = 0;
+  const updates = [];
+  VALES.forEach((v,i)=>{
+    const usuario = CATALOGO.find(u=>u.ficha===v.ficha && u.area);
+    if(usuario && usuario.area !== v.area){
+      VALES[i] = {...v, area: usuario.area};
+      updates.push({folio: v.folio, area: usuario.area});
+      actualizados++;
+    }
+  });
+  cacheSet('vales', VALES);
+  if(SB_READY && updates.length){
+    showLoader('Sincronizando áreas en Supabase...');
+    try{
+      for(const u of updates){
+        await sbUpdate('hb_vales','folio=eq.'+u.folio,{area:u.area});
+      }
+    } catch(e){ toast('Error Supabase: '+e.message,'warn'); }
+    hideLoader();
+  }
+  renderHistorial();
+  renderDash();
+  toast('✅ '+actualizados+' vales actualizados con área del catálogo','ok');
 }
 
 function exportarHistorial(){
@@ -2506,12 +2594,14 @@ function acArea(inp){
 const MESES_ORDER=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 
 function renderMatriz(){
-  const ano = document.getElementById('matAno')?.value||'';
-  const dir = document.getElementById('matDir')?.value||'';
+  const anoEl = document.getElementById('matAno');
+  const dirEl = document.getElementById('matDir');
+  const ano = anoEl ? anoEl.value : '';
+  const dir = dirEl ? dirEl.value : '';
 
   // Filtrar vales
   let items = VALES.filter(v=>v.status==='ENTREGADO');
-  if(ano) items = items.filter(v=>v.fecha&&v.fecha.startsWith(ano));
+  if(ano) items = items.filter(v=>v.fecha && v.fecha.startsWith(ano));
   if(dir){
     const usersDir = new Set(CATALOGO.filter(u=>u.direccion===dir).map(u=>u.area));
     items = items.filter(v=>usersDir.has(v.area));
