@@ -691,6 +691,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <h3>👥 Catálogo de Usuarios</h3>
       <div class="btn-group">
         <input class="search-inp" id="srchCat" placeholder="🔍 Buscar…" oninput="renderCatalogo()" style="min-width:200px">
+        <button class="btn btn-xs" style="background:var(--amber);color:#fff;border-radius:6px;padding:6px 11px;font-family:Barlow Condensed,sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em" onclick="actualizarCiudadesMasivo()" title="Asignar ciudad automáticamente según el área">🏙️ Asignar Ciudades</button>
         <button class="btn btn-primary btn-sm" onclick="openModalUsuario()">➕ Nuevo Usuario</button>
       </div>
     </div>
@@ -2480,6 +2481,57 @@ function acArea(inp){
   list.style.display = 'block';
 }
 
+function inferirCiudad(area){
+  if(!area) return 'Agua Dulce, Ver.';
+  const a = area.toUpperCase();
+  if(a.includes('PLAN'))     return 'Las Choapas, Ver.';
+  if(a.includes('CUICHAPA')) return 'Cuichapa, Ver.';
+  return 'Agua Dulce, Ver.';
+}
+
+async function actualizarCiudadesMasivo(){
+  const preview = CATALOGO.map(u=>({
+    nombre: u.nombre,
+    area:   u.area,
+    ciudadActual: u.ciudad||'(vacío)',
+    ciudadNueva:  inferirCiudad(u.area)
+  }));
+  const cambios = preview.filter(p=>p.ciudadActual !== p.ciudadNueva);
+  if(!cambios.length){ toast('Todas las ciudades ya están correctas','info'); return; }
+
+  const resumen = {};
+  cambios.forEach(cm=>{ resumen[cm.ciudadNueva]=(resumen[cm.ciudadNueva]||0)+1; });
+  const detalle = Object.entries(resumen).map(([ciu,n])=>`  • ${ciu}: ${n} usuarios`).join('\n');
+
+  if(!confirm(`¿Asignar ciudad automáticamente a ${cambios.length} usuarios?\n\nReglas aplicadas:\n  • Área contiene "PLAN" → Las Choapas, Ver.\n  • Área contiene "CUICHAPA" → Cuichapa, Ver.\n  • Resto → Agua Dulce, Ver.\n\nResumen de cambios:\n${detalle}`)) return;
+
+  let actualizados = 0;
+  const updates = [];
+  CATALOGO.forEach((u,i)=>{
+    const nueva = inferirCiudad(u.area);
+    if(u.ciudad !== nueva){
+      CATALOGO[i] = {...u, ciudad: nueva};
+      if(u._id) updates.push({id:u._id, ciudad:nueva});
+      actualizados++;
+    }
+  });
+  cacheSet('catalogo', CATALOGO);
+
+  if(SB_READY && updates.length){
+    showLoader('Actualizando ciudades en Supabase…');
+    let ok=0, fail=0;
+    for(const up of updates){
+      try{ await sbUpdate('hb_usuarios','id=eq.'+up.id,{ciudad:up.ciudad}); ok++; }
+      catch(e){ fail++; console.error(e); }
+    }
+    hideLoader();
+    if(fail) toast(`${ok} actualizados en Supabase, ${fail} con error`,'warn');
+  }
+
+  renderCatalogo();
+  toast(`✅ ${actualizados} ciudades asignadas correctamente`,'ok');
+}
+
 function openModalUsuario(idx=-1){
   editUsuIdx=idx;
   document.getElementById('tituloUsuario').textContent=idx<0?'Nuevo Usuario':'Editar Usuario';
@@ -2661,8 +2713,14 @@ function renderMatriz(){
   // Obtener meses presentes en los datos
   const mesesPresentes = MESES_ORDER.filter(m => items.some(v => v.mes === m));
 
-  // Construir matriz área × mes
+  // Construir matriz área × mes (con dirección)
   const areas = [...new Set(items.map(v => v.area))].sort();
+  // Mapa área → dirección (desde catálogo)
+  const dirDeArea = {};
+  areas.forEach(a => {
+    const u = CATALOGO.find(x => x.area === a);
+    dirDeArea[a] = u ? (u.direccion||'—') : '—';
+  });
   const matrix = {};
   areas.forEach(a => {
     matrix[a] = {};
@@ -2686,7 +2744,8 @@ function renderMatriz(){
   // Construir HTML
   let html = '<table style="border-collapse:collapse;font-size:11px;white-space:nowrap;width:100%">';
   html += '<thead><tr>';
-  html += '<th style="background:var(--gd);color:#fff;padding:7px 10px;text-align:left;position:sticky;left:0;z-index:2;min-width:200px;letter-spacing:.05em">ÁREA USUARIA</th>';
+  html += '<th style="background:var(--gd);color:#fff;padding:7px 10px;text-align:center;position:sticky;left:0;z-index:3;min-width:70px;letter-spacing:.05em">DIR.</th>';
+  html += '<th style="background:var(--gd);color:#fff;padding:7px 10px;text-align:left;position:sticky;left:70px;z-index:2;min-width:200px;letter-spacing:.05em">ÁREA USUARIA</th>';
   mesesPresentes.forEach(m => {
     html += '<th style="background:var(--gd);color:#fff;padding:7px 8px;text-align:center;letter-spacing:.04em">'+m.substring(0,3)+'</th>';
   });
@@ -2695,8 +2754,11 @@ function renderMatriz(){
 
   areas.forEach((area, idx) => {
     const bg = idx%2===0 ? '#f7faf9' : '#fff';
+    const dirArea = dirDeArea[area]||'—';
+    const dirColor = dirArea==='DAS'?'#0d47a1':dirArea==='DEE'?'#e65100':dirArea==='DL'?'#6a1b9a':'#64748b';
     html += '<tr style="background:'+bg+'">';
-    html += '<td style="padding:6px 10px;font-weight:600;color:var(--gd);position:sticky;left:0;background:'+bg+';z-index:1;border-right:2px solid var(--border);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="'+area+'">'+area+'</td>';
+    html += '<td style="padding:6px 8px;text-align:center;position:sticky;left:0;background:'+bg+';z-index:2;border-right:1px solid var(--border)"><span style="background:#fff;color:'+dirColor+';border:1.5px solid '+dirColor+';padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;font-family:Barlow Condensed,sans-serif">'+dirArea+'</span></td>';
+    html += '<td style="padding:6px 10px;font-weight:600;color:var(--gd);position:sticky;left:70px;background:'+bg+';z-index:1;border-right:2px solid var(--border);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="'+area+'">'+area+'</td>';
     mesesPresentes.forEach(m => {
       const v = matrix[area][m] || 0;
       html += '<td style="padding:6px 8px;text-align:center;font-size:14px;font-weight:'+(v?'700':'400')+';color:'+(v?'var(--gd)':'#cbd5e1')+'">'+(v||'—')+'</td>';
@@ -2707,7 +2769,8 @@ function renderMatriz(){
 
   // Fila de totales
   html += '<tr style="background:var(--gd)">';
-  html += '<td style="padding:7px 10px;font-weight:800;color:#11CD78;position:sticky;left:0;background:var(--gd);z-index:1;border-right:2px solid rgba(255,255,255,.2)">TOTAL</td>';
+  html += '<td style="padding:7px 8px;position:sticky;left:0;background:var(--gd);z-index:2;border-right:1px solid rgba(255,255,255,.2)"></td>';
+  html += '<td style="padding:7px 10px;font-weight:800;color:#11CD78;position:sticky;left:70px;background:var(--gd);z-index:1;border-right:2px solid rgba(255,255,255,.2)">TOTAL</td>';
   mesesPresentes.forEach(m => {
     html += '<td style="padding:7px 8px;text-align:center;font-size:14px;font-weight:800;color:'+(totCol[m]?'#11CD78':'rgba(255,255,255,.3)')+'">'+(totCol[m]||'—')+'</td>';
   });
@@ -2764,7 +2827,13 @@ function exportarMatriz(){
   const data={};
   areas.forEach(a=>{data[a]={};MESES_ORDER.forEach(m=>data[a][m]=0);});
   items.forEach(v=>{if(data[v.area]&&v.mes)data[v.area][v.mes]=(data[v.area][v.mes]||0)+v.cant;});
-  const rows=areas.map(a=>{const r={'Área':a};MESES_ORDER.forEach(m=>r[m]=data[a][m]||0);r['TOTAL']=MESES_ORDER.reduce((s,m)=>s+data[a][m],0);return r;});
+  const rows=areas.map(a=>{
+    const usr = CATALOGO.find(x=>x.area===a);
+    const r={'Dirección': usr?(usr.direccion||'—'):'—', 'Área':a};
+    MESES_ORDER.forEach(m=>r[m]=data[a][m]||0);
+    r['TOTAL']=MESES_ORDER.reduce((s,m)=>s+data[a][m],0);
+    return r;
+  });
   const ws=XLSX.utils.json_to_sheet(rows);
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Matriz');
   XLSX.writeFile(wb,'Matriz_HojasBlancas_SCAD_'+ano+'_'+dir+'.xlsx');
