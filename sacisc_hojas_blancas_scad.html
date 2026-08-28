@@ -1982,9 +1982,11 @@ function mostrarVale(v){
 }
 
 function getCiudadUsuario(v){
-  // Buscar la ciudad del usuario en el catálogo por ficha
-  const u = CATALOGO.find(x => x.ficha === v.ficha);
-  return (u && u.ciudad) ? u.ciudad : 'Agua Dulce, Ver.';
+  // Buscar por ficha Y área (un usuario puede tener varias áreas/ciudades)
+  let u = CATALOGO.find(x => x.ficha === v.ficha && x.area === v.area);
+  // Si no hay coincidencia exacta, inferir la ciudad desde el área del vale
+  if(!u || !u.ciudad) return inferirCiudad(v.area);
+  return u.ciudad;
 }
 
 function logoSSAB(){
@@ -2484,8 +2486,10 @@ function acArea(inp){
 function inferirCiudad(area){
   if(!area) return 'Agua Dulce, Ver.';
   const a = area.toUpperCase();
-  if(a.includes('PLAN'))     return 'Las Choapas, Ver.';
-  if(a.includes('CUICHAPA')) return 'Cuichapa, Ver.';
+  // AGUA DULCE tiene prioridad — si el área lo menciona explícitamente
+  if(a.includes('AGUA DULCE')) return 'Agua Dulce, Ver.';
+  if(a.includes('CUICHAPA'))   return 'Cuichapa, Ver.';
+  if(a.includes('PLAN'))       return 'Las Choapas, Ver.';
   return 'Agua Dulce, Ver.';
 }
 
