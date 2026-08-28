@@ -1459,14 +1459,14 @@ function renderDash(){
   const cancelados = VALES.filter(v=>v.status==='CANCELADO').length;
   const mesActual = new Date().toLocaleString('es-MX',{month:'long'}).toUpperCase();
   const anoActual = new Date().getFullYear().toString();
-  // Solo contar vales nuevos (no históricos) para "Este Mes"
-  const esteM = VALES.filter(v=>v.mes===mesActual && v.status==='ENTREGADO' && v.fecha && v.fecha.startsWith(anoActual) && !v.historico).reduce((s,v)=>s+v.cant,0);
+  // Contar vales del mes y año actuales (todos, históricos incluidos)
+  const esteM = VALES.filter(v=>v.mes===mesActual && v.status==='ENTREGADO' && v.fecha && v.fecha.slice(0,4)===anoActual).reduce((s,v)=>s+v.cant,0);
 
   document.getElementById('kpiDash').innerHTML = `
     <div class="kpi success"><div class="kpi-label">📦 Stock Bodega</div><div class="kpi-val">${stock}</div><div class="kpi-sub">PAQ. disponibles</div></div>
-    <div class="kpi"><div class="kpi-label">📄 Total Vales</div><div class="kpi-val">${totalVales}</div><div class="kpi-sub">Histórico entregados</div></div>
-    <div class="kpi info"><div class="kpi-label">📤 Total Dispersado</div><div class="kpi-val">${totalSalida}</div><div class="kpi-sub">PAQ. dispersados</div></div>
-    <div class="kpi warn"><div class="kpi-label">📅 Este Mes</div><div class="kpi-val">${esteM}</div><div class="kpi-sub">PAQ. en ${mesActual}</div></div>
+    <div class="kpi"><div class="kpi-label">📄 Total Vales</div><div class="kpi-val">${totalVales}</div><div class="kpi-sub">Desde enero 2024</div></div>
+    <div class="kpi info"><div class="kpi-label">📤 Total Dispersado</div><div class="kpi-val">${totalSalida}</div><div class="kpi-sub">PAQ. desde enero 2024</div></div>
+    <div class="kpi warn"><div class="kpi-label">📅 Este Mes</div><div class="kpi-val">${esteM}</div><div class="kpi-sub">PAQ. en ${mesActual} ${anoActual}</div></div>
     <div class="kpi danger"><div class="kpi-label">✕ Cancelados</div><div class="kpi-val">${cancelados}</div><div class="kpi-sub">Vales cancelados</div></div>
     <div class="kpi"><div class="kpi-label">👥 Usuarios</div><div class="kpi-val">${CATALOGO.length}</div><div class="kpi-sub">En catálogo</div></div>
   `;
@@ -2119,6 +2119,7 @@ function renderHistorial(){
       <div class="btn-group">
         <button class="btn btn-outline btn-xs" title="Ver vale" onclick="verVale(${VALES.indexOf(v)})">👁️</button>
         <button class="btn btn-xs" style="background:#0d47a1;color:#fff;border-radius:6px;padding:3px 7px;font-size:12px" title="Enviar por correo" onclick="enviarCorreoDirecto(${VALES.indexOf(v)})">✉️</button>
+        <button class="btn btn-xs" style="background:var(--gm);color:#fff;border-radius:6px;padding:3px 7px;font-size:12px" title="Editar vale" onclick="openEditVale(${VALES.indexOf(v)})">✏️</button>
         <button class="btn btn-xs" style="background:var(--amber);color:#fff;border-radius:6px;font-family:Barlow Condensed,sans-serif;font-size:10px;font-weight:700" title="Cambiar estado" onclick="toggleEstado(${VALES.indexOf(v)})">✕/✓</button>
         <button class="btn btn-xs" style="background:#c62828;color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;font-family:Barlow Condensed,sans-serif;letter-spacing:.03em;display:inline-flex;align-items:center;gap:4px" title="Eliminar permanentemente" onclick="cancelarVale(${VALES.indexOf(v)})">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -2488,8 +2489,8 @@ function showMatriz(){
 }
 
 function renderMatriz(){
-  const anoEl = document.getElementById('matAno');
-  const dirEl = document.getElementById('matDir');
+  const anoEl = document.getElementById('matrizAno');
+  const dirEl = document.getElementById('matrizDir');
   const ano = anoEl ? anoEl.value : '';
   const dir = dirEl ? dirEl.value : '';
 
@@ -2609,68 +2610,9 @@ function acArea(inp){
 // Matriz Áreas × Meses
 const MESES_ORDER=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 
-function renderMatriz(){
-  const anoEl = document.getElementById('matAno');
-  const dirEl = document.getElementById('matDir');
-  const ano = anoEl ? anoEl.value : '';
-  const dir = dirEl ? dirEl.value : '';
-
-  // Filtrar vales
-  let items = VALES.filter(v=>v.status==='ENTREGADO');
-  if(ano) items = items.filter(v=>v.fecha && v.fecha.startsWith(ano));
-  if(dir){
-    const usersDir = new Set(CATALOGO.filter(u=>u.direccion===dir).map(u=>u.area));
-    items = items.filter(v=>usersDir.has(v.area));
-  }
-
-  // Agrupar por área y mes
-  const areas = [...new Set(items.map(v=>v.area))].sort();
-  const data = {};
-  areas.forEach(a=>{ data[a]={}; MESES_ORDER.forEach(m=>data[a][m]=0); });
-  items.forEach(v=>{ if(data[v.area]&&v.mes) data[v.area][v.mes]=(data[v.area][v.mes]||0)+v.cant; });
-
-  // Totales
-  const totMeses = {};
-  MESES_ORDER.forEach(m=>totMeses[m]=areas.reduce((s,a)=>s+(data[a][m]||0),0));
-  const totAreas = {};
-  areas.forEach(a=>totAreas[a]=MESES_ORDER.reduce((s,m)=>s+(data[a][m]||0),0));
-  const gran = MESES_ORDER.reduce((s,m)=>s+totMeses[m],0);
-
-  if(!areas.length){
-    document.getElementById('matrizContainer').innerHTML='<div class="empty-state"><div class="icon">🗂️</div><p>Sin datos para los filtros seleccionados</p></div>';
-    return;
-  }
-
-  let html = '<table style="border-collapse:collapse;font-size:11px;font-family:Inter,sans-serif;min-width:100%">';
-  // Header
-  html += '<thead><tr><th style="background:var(--gd);color:#fff;padding:7px 10px;text-align:left;position:sticky;left:0;z-index:2;white-space:nowrap;border-right:2px solid rgba(255,255,255,.2)">Área Usuaria</th>';
-  MESES_ORDER.forEach(m=>html+='<th style="background:var(--gd);color:#fff;padding:7px 8px;text-align:center;white-space:nowrap;min-width:70px">'+m.slice(0,3)+'</th>');
-  html+='<th style="background:var(--gm);color:#fff;padding:7px 10px;text-align:center;font-weight:800">TOTAL</th></tr></thead>';
-  // Rows
-  html += '<tbody>';
-  areas.forEach((a,idx)=>{
-    const bg = idx%2===0?'#f7faf9':'#fff';
-    html+='<tr style="background:'+bg+'">';
-    html+='<td style="padding:6px 10px;font-weight:600;color:var(--gd);position:sticky;left:0;background:'+bg+';z-index:1;border-right:2px solid var(--border);white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis" title="'+a+'">'+a+'</td>';
-    MESES_ORDER.forEach(m=>{
-      const v=data[a][m]||0;
-      html+='<td style="padding:6px 8px;text-align:center;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:'+(v?'700':'400')+';color:'+(v?'var(--gd)':'#cbd5e1')+'">'+(v||'—')+'</td>';
-    });
-    html+='<td style="padding:6px 10px;text-align:center;font-family:Barlow Condensed,sans-serif;font-size:15px;font-weight:800;color:var(--gm);background:#f0f9f5">'+totAreas[a]+'</td>';
-    html+='</tr>';
-  });
-  // Total row
-  html+='<tr style="background:var(--gd)">';
-  html+='<td style="padding:7px 10px;font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:800;color:#11CD78;position:sticky;left:0;background:var(--gd);z-index:1;border-right:2px solid rgba(255,255,255,.2)">TOTAL</td>';
-  MESES_ORDER.forEach(m=>html+='<td style="padding:7px 8px;text-align:center;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:800;color:'+(totMeses[m]?'#11CD78':'rgba(255,255,255,.3)'+'">'+(totMeses[m]||'—')+'</td>'));
-  html+='<td style="padding:7px 10px;text-align:center;font-family:Barlow Condensed,sans-serif;font-size:16px;font-weight:900;color:#11CD78">'+gran+'</td>';
-  html+='</tr></tbody></table>';
-  document.getElementById('matrizContainer').innerHTML=html;
-}
-
 function exportarMatriz(){
-  const ano = document.getElementById('matAno')?.value||'TODOS';
-  const dir = document.getElementById('matDir')?.value||'TODAS';
+  const ano = document.getElementById('matrizAno')?.value||'TODOS';
+  const dir = document.getElementById('matrizDir')?.value||'TODAS';
   let items = VALES.filter(v=>v.status==='ENTREGADO');
   if(ano!=='TODOS') items=items.filter(v=>v.fecha&&v.fecha.startsWith(ano));
   if(dir!=='TODAS'){const u=new Set(CATALOGO.filter(c=>c.direccion===dir).map(c=>c.area));items=items.filter(v=>u.has(v.area));}
