@@ -2312,6 +2312,7 @@ function renderCatalogo(){
     <td style="font-size:11px">${u.area}</td>
     <td style="font-size:11px"><a href="mailto:${u.correo}" style="color:var(--gm)">${u.correo}</a></td>
     <td><span class="badge badge-blue">${u.direccion||'DAS'}</span></td>
+    <td style="font-size:12px;font-weight:600;color:var(--gm);white-space:nowrap">${u.ciudad||'<span style="color:var(--gray)">—</span>'}</td>
     <td>
       <div class="btn-group">
         <button class="btn btn-outline btn-xs" onclick="editUsuario(${CATALOGO.indexOf(u)})">✏️</button>
@@ -2487,73 +2488,88 @@ function showMatriz(){
 }
 
 function renderMatriz(){
-  const ano = document.getElementById('matrizAno').value;
-  const dir = document.getElementById('matrizDir').value;
-  const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const anoEl = document.getElementById('matAno');
+  const dirEl = document.getElementById('matDir');
+  const ano = anoEl ? anoEl.value : '';
+  const dir = dirEl ? dirEl.value : '';
 
-  // Filter vales
-  let vales = VALES.filter(v=>v.status==='ENTREGADO');
-  if(ano) vales = vales.filter(v=>v.fecha && v.fecha.startsWith(ano));
-  if(dir) vales = vales.filter(v=>{
-    const u = CATALOGO.find(u=>u.ficha===v.ficha && u.area===v.area);
-    return u && u.direccion===dir;
-  });
+  // Filtrar vales entregados
+  let items = VALES.filter(v => v.status === 'ENTREGADO');
 
-  // Get unique areas
-  const areas = [...new Set(vales.map(v=>v.area))].sort();
-  if(!areas.length){
-    document.getElementById('matrizContainer').innerHTML='<div class="empty-state"><div class="icon">📊</div><p>Sin datos para los filtros seleccionados</p></div>';
+  // Filtro de año — usando el campo fecha
+  if(ano){
+    items = items.filter(v => v.fecha && v.fecha.slice(0,4) === ano);
+  }
+
+  // Filtro de dirección — buscar usuarios con esa dirección y filtrar por su área
+  if(dir){
+    const areasDir = new Set(CATALOGO.filter(u => u.direccion === dir).map(u => u.area));
+    items = items.filter(v => areasDir.has(v.area));
+  }
+
+  const container = document.getElementById('matrizContainer');
+  if(!items.length){
+    container.innerHTML = '<div class="empty-state"><div class="icon">🗂️</div><p>Sin datos para los filtros seleccionados</p></div>';
     return;
   }
 
-  // Filter meses that have data
-  const mesesConDatos = MESES.filter(m=>vales.some(v=>v.mes===m));
+  // Obtener meses presentes en los datos
+  const mesesPresentes = MESES_ORDER.filter(m => items.some(v => v.mes === m));
 
-  // Build matrix data
+  // Construir matriz área × mes
+  const areas = [...new Set(items.map(v => v.area))].sort();
   const matrix = {};
-  areas.forEach(a=>{ matrix[a]={}; mesesConDatos.forEach(m=>{ matrix[a][m]=0; }); });
-  vales.forEach(v=>{ if(matrix[v.area] && mesesConDatos.includes(v.mes)) matrix[v.area][v.mes]+=v.cant; });
-
-  // Totals
-  const colTotals = {};
-  mesesConDatos.forEach(m=>{ colTotals[m]=areas.reduce((s,a)=>s+(matrix[a][m]||0),0); });
-
-  // Build HTML table
-  let html = '<table style="border-collapse:collapse;font-size:11px;white-space:nowrap;width:100%">';
-  // Header
-  html += '<thead><tr>';
-  html += '<th style="background:var(--gd);color:#fff;padding:7px 10px;text-align:left;position:sticky;left:0;z-index:2;min-width:200px;font-family:Barlow Condensed,sans-serif;font-size:11px;letter-spacing:.05em">ÁREA USUARIA</th>';
-  mesesConDatos.forEach(m=>{
-    html += '<th style="background:var(--gd);color:#fff;padding:7px 8px;text-align:center;font-family:Barlow Condensed,sans-serif;font-size:10px;letter-spacing:.04em">'+m.substring(0,3)+'</th>';
+  areas.forEach(a => {
+    matrix[a] = {};
+    mesesPresentes.forEach(m => matrix[a][m] = 0);
   });
-  html += '<th style="background:#1a3d37;color:#11CD78;padding:7px 10px;text-align:center;font-family:Barlow Condensed,sans-serif;font-size:11px;font-weight:800">TOTAL</th>';
+  items.forEach(v => {
+    if(matrix[v.area] !== undefined && v.mes){
+      matrix[v.area][v.mes] = (matrix[v.area][v.mes] || 0) + v.cant;
+    }
+  });
+
+  // Totales correctos — sumar directamente desde items
+  const totCol = {};
+  mesesPresentes.forEach(m => {
+    totCol[m] = items.filter(v => v.mes === m).reduce((s,v) => s + v.cant, 0);
+  });
+  const totRow = {};
+  areas.forEach(a => totRow[a] = mesesPresentes.reduce((s,m) => s + (matrix[a][m]||0), 0));
+  const gran = Object.values(totCol).reduce((s,v) => s + v, 0);
+
+  // Construir HTML
+  let html = '<table style="border-collapse:collapse;font-size:11px;white-space:nowrap;width:100%">';
+  html += '<thead><tr>';
+  html += '<th style="background:var(--gd);color:#fff;padding:7px 10px;text-align:left;position:sticky;left:0;z-index:2;min-width:200px;letter-spacing:.05em">ÁREA USUARIA</th>';
+  mesesPresentes.forEach(m => {
+    html += '<th style="background:var(--gd);color:#fff;padding:7px 8px;text-align:center;letter-spacing:.04em">'+m.substring(0,3)+'</th>';
+  });
+  html += '<th style="background:#1a3d37;color:#11CD78;padding:7px 10px;text-align:center;font-weight:800">TOTAL</th>';
   html += '</tr></thead><tbody>';
 
-  // Rows
-  areas.forEach((area,idx)=>{
-    const rowTotal = mesesConDatos.reduce((s,m)=>s+(matrix[area][m]||0),0);
-    const bg = idx%2===0?'#fff':'#f7faf9';
-    html += '<tr>';
-    html += '<td style="background:'+bg+';padding:6px 10px;border-bottom:1px solid var(--border);font-family:Inter,sans-serif;font-size:11px;position:sticky;left:0;z-index:1">'+area+'</td>';
-    mesesConDatos.forEach(m=>{
-      const val = matrix[area][m]||0;
-      html += '<td style="background:'+bg+';padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;font-family:Barlow Condensed,sans-serif;font-size:'+(val>0?'14':'11')+'px;font-weight:'+(val>0?'700':'400')+';color:'+(val>0?'var(--gm)':'var(--border)')+'">'+( val>0 ? val : '—' )+'</td>';
+  areas.forEach((area, idx) => {
+    const bg = idx%2===0 ? '#f7faf9' : '#fff';
+    html += '<tr style="background:'+bg+'">';
+    html += '<td style="padding:6px 10px;font-weight:600;color:var(--gd);position:sticky;left:0;background:'+bg+';z-index:1;border-right:2px solid var(--border);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="'+area+'">'+area+'</td>';
+    mesesPresentes.forEach(m => {
+      const v = matrix[area][m] || 0;
+      html += '<td style="padding:6px 8px;text-align:center;font-size:14px;font-weight:'+(v?'700':'400')+';color:'+(v?'var(--gd)':'#cbd5e1')+'">'+(v||'—')+'</td>';
     });
-    html += '<td style="background:'+(idx%2===0?'#e8f5f0':'#d8ecdf')+';padding:6px 10px;border-bottom:1px solid var(--border);text-align:center;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:800;color:var(--gd)">'+rowTotal+'</td>';
+    html += '<td style="padding:6px 10px;text-align:center;font-size:15px;font-weight:800;color:var(--gm);background:#f0f9f5">'+totRow[area]+'</td>';
     html += '</tr>';
   });
 
-  // Total row
-  const grandTotal = Object.values(colTotals).reduce((s,v)=>s+v,0);
+  // Fila de totales
   html += '<tr style="background:var(--gd)">';
-  html += '<td style="padding:7px 10px;font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:700;color:#fff;position:sticky;left:0;background:var(--gd)">TOTAL</td>';
-  mesesConDatos.forEach(m=>{
-    html += '<td style="padding:7px 8px;text-align:center;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:800;color:#11CD78">'+colTotals[m]+'</td>';
+  html += '<td style="padding:7px 10px;font-weight:800;color:#11CD78;position:sticky;left:0;background:var(--gd);z-index:1;border-right:2px solid rgba(255,255,255,.2)">TOTAL</td>';
+  mesesPresentes.forEach(m => {
+    html += '<td style="padding:7px 8px;text-align:center;font-size:14px;font-weight:800;color:'+(totCol[m]?'#11CD78':'rgba(255,255,255,.3)')+'">'+(totCol[m]||'—')+'</td>';
   });
-  html += '<td style="padding:7px 10px;text-align:center;font-family:Barlow Condensed,sans-serif;font-size:16px;font-weight:900;color:#11CD78">'+grandTotal+'</td>';
+  html += '<td style="padding:7px 10px;text-align:center;font-size:16px;font-weight:900;color:#11CD78">'+gran+'</td>';
   html += '</tr></tbody></table>';
 
-  document.getElementById('matrizContainer').innerHTML = html;
+  container.innerHTML = html;
 }
 
 function exportarMatriz(){
