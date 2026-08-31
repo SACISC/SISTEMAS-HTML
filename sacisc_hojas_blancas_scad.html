@@ -717,10 +717,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
         </div>
       </div>
       <!-- Entregante — solo para áreas no hospitalarias -->
-      <div id="entreganteSection" style="display:none;background:#e3f2fd;border:1.5px solid #90caf9;border-radius:10px;padding:14px 18px;margin-bottom:14px">
+      <div id="entreganteSection" style="display:block;background:#e3f2fd;border:1.5px solid #90caf9;border-radius:10px;padding:14px 18px;margin-bottom:14px">
         <div style="font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:700;color:#0d47a1;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
           🧑‍💼 Datos del Entregante
-          <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:400;color:#1565c0;text-transform:none;letter-spacing:0;margin-left:8px">(Requerido para áreas no hospitalarias)</span>
+          <span style="font-family:'Inter',sans-serif;font-size:10px;font-weight:400;color:#1565c0;text-transform:none;letter-spacing:0;margin-left:8px">(Requerido)</span>
         </div>
         <div class="form-grid">
           <div class="form-group">
@@ -1113,7 +1113,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <div id="evEntreganteSection" style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:10px;padding:14px 18px;margin-bottom:6px">
         <div style="font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:700;color:#0d47a1;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">
           🧑‍💼 Entrega
-          <span style="font-family:Inter,sans-serif;font-size:10px;font-weight:400;color:#1565c0;text-transform:none;letter-spacing:0;margin-left:8px">(Solo para áreas no hospitalarias)</span>
+          <span style="font-family:Inter,sans-serif;font-size:10px;font-weight:400;color:#1565c0;text-transform:none;letter-spacing:0;margin-left:8px">(Requerido)</span>
         </div>
         <div class="form-grid">
           <div class="form-group">
@@ -2006,16 +2006,8 @@ function selectUsuario(idx){
   document.getElementById('deptEntrega').value = usuarioSel.area;
   document.getElementById('usuarioSelCard').style.display='block';
 
-  // Mostrar/ocultar sección entregante según tipo de área
-  const esHosp = esAreaHospitalaria(usuarioSel.area);
-  const secEnt = document.getElementById('entreganteSection');
-  secEnt.style.display = esHosp ? 'none' : 'block';
-  if(esHosp){
-    // Limpiar campos si se cambia a hospital
-    document.getElementById('entreganteNombre').value='';
-    document.getElementById('entreganteFicha').value='';
-    document.getElementById('entreganteCargo').value='';
-  }
+  // Entregante siempre requerido — formato único de vale
+  document.getElementById('entreganteSection').style.display = 'block';
 }
 
 // Autocomplete de entregante con histórico guardado en localStorage
@@ -2078,18 +2070,14 @@ async function generarVale(){
   const docSop = document.getElementById('docSoporte').value.trim();
   const dept = document.getElementById('deptEntrega').value.trim();
 
-  // Entregante (solo para áreas no hospitalarias)
-  const esHosp = esAreaHospitalaria(usuarioSel.area);
+  // Entregante — requerido para todos los vales
   const entNombre = document.getElementById('entreganteNombre').value.trim();
   const entFicha  = document.getElementById('entreganteFicha').value.trim();
   const entCargo  = document.getElementById('entreganteCargo').value.trim();
-  if(!esHosp && !entNombre){ toast('Ingresa el nombre del entregante','warn'); return; }
-  if(!esHosp && !entFicha){  toast('Ingresa la ficha del entregante','warn'); return; }
+  if(!entNombre){ toast('Ingresa el nombre del entregante','warn'); return; }
+  if(!entFicha){  toast('Ingresa la ficha del entregante','warn'); return; }
 
-  // Guardar entregante en histórico
-  if(!esHosp && entNombre){
-    saveEntreganteHist({nombre:entNombre, ficha:entFicha, cargo:entCargo});
-  }
+  saveEntreganteHist({nombre:entNombre, ficha:entFicha, cargo:entCargo});
 
   const valeData = {
     folio, mes, fecha, cant,
@@ -2101,7 +2089,7 @@ async function generarVale(){
     direccion: usuarioSel.direccion,
     nota, obs, docSop, dept,
     autorizante: {nombre:autNombre, ficha:autFicha, cargo:autCargo},
-    entregante: esHosp ? null : {nombre:entNombre, ficha:entFicha, cargo:entCargo},
+    entregante: {nombre:entNombre, ficha:entFicha, cargo:entCargo},
     status: 'ENTREGADO',
     recibido: true
   };
@@ -2141,8 +2129,8 @@ function esHospitalVal(area){
 }
 
 function mostrarVale(v){
-  const esHosp = esHospitalVal(v.area);
-  const html = esHosp ? buildValeB(v) : buildValeA(v);
+  // Formato único para todas las áreas (sin distinción hospitalaria)
+  const html = buildValeA(v);
   document.getElementById('valePreview').innerHTML = html;
   document.getElementById('valeNum').textContent = v.folio;
   document.getElementById('correoInfo').innerHTML =
@@ -2246,78 +2234,6 @@ function buildValeA(v){
     '</div>'
   ].join('');
 }
-
-function buildValeB(v){
-  const au = v.autorizante||{};
-  const fecha = v.fecha ? new Date(v.fecha+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}) : '—';
-  const autNombre = au.nombre || 'JONATAN ERIC REYES GÓMEZ';
-  const autFicha  = au.ficha  || '374205';
-  const autCargo  = au.cargo  || 'Jefe de Servicios Corporativos A.D.';
-
-  return [
-    '<div style="font-family:Arial,sans-serif;font-size:11px;color:#000;background:#fff;width:100%">',
-    '<table style="width:100%;border-collapse:collapse;border:1.5px solid #000">',
-    '<tr>',
-    '<td rowspan="2" style="width:130px;border-right:1.5px solid #000;padding:6px;text-align:center;vertical-align:middle">'+logoSSAB()+'</td>',
-    '<td style="border-right:1.5px solid #000;border-bottom:1px solid #000;text-align:center;padding:5px 8px;vertical-align:middle">',
-    '<div style="font-weight:700;font-size:13px">PETRÓLEOS MEXICANOS</div>',
-    '<div style="font-weight:700;font-size:12px">VALE-PASE, SALIDA DE MATERIALES DE ALMACENES</div>',
-    '</td>',
-    '<td style="border-left:1.5px solid #000;padding:0;width:160px">',
-    '<table style="width:100%;border-collapse:collapse">',
-    '<tr><td style="border-bottom:1px solid #000;border-right:1px solid #000;padding:3px 5px;font-size:9.5px;font-weight:700;background:#f0f0f0">CENTRO LOGÍSTICO</td><td style="border-bottom:1px solid #000;padding:3px 5px;font-size:11px;font-weight:700;text-align:center">JSCAD</td></tr>',
-    '<tr><td style="border-bottom:1px solid #000;border-right:1px solid #000;padding:3px 5px;font-size:9.5px;font-weight:700;border-bottom:1px solid #000;background:#f0f0f0">CLAVE DEPTO:</td><td style="border-bottom:1px solid #000;padding:3px 5px;font-size:11px;font-weight:700;text-align:center">25052</td></tr>',
-    '<tr><td style="border-top:1px solid #000;border-bottom:1px solid #000;border-right:1px solid #000;padding:3px 5px;font-size:9.5px;font-weight:700;background:#f0f0f0">No. VALE</td><td style="border-top:1px solid #000;border-bottom:1px solid #000;padding:3px 5px;font-size:20px;font-weight:900;text-align:center">'+v.folio+'</td></tr>',
-    '</table></td></tr>',
-    '<tr><td style="border-right:1.5px solid #000;padding:0">',
-    '<table style="width:100%;border-collapse:collapse">',
-    '<tr><td style="border-bottom:1px solid #000;padding:4px 8px;font-size:10px;font-weight:700;background:#f0f0f0;width:130px">PEDIDO AL ALMACEN:</td><td style="border-bottom:1px solid #000;padding:4px 8px;font-size:12px;font-weight:700;text-align:center">'+v.area.toUpperCase()+'</td></tr>',
-    '<tr><td style="padding:4px 8px;font-size:10px;font-weight:700;background:#f0f0f0">LUGAR Y FECHA:</td><td style="padding:4px 8px;font-size:11.5px;font-style:italic">'+fecha+', Agua Dulce, Ver.</td></tr>',
-    '</table></td></tr></table>',
-    '<div style="padding:6px 0;font-size:10px">Por los siguientes artículos cuyo importe deberá cargarse al área: &nbsp;&nbsp;&nbsp; <strong>Ubicación:</strong> '+getCiudadUsuario(v)+'</div>',
-    '<div style="padding:2px 0 6px 0;font-size:11px;font-weight:600;border-bottom:1px solid #000;margin-bottom:6px">'+v.area+'</div>',
-    '<table style="width:100%;border-collapse:collapse;border:1.5px solid #000">',
-    '<tr style="background:#d0d0d0">',
-    '<td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:5px 4px;font-size:9.5px;font-weight:700;text-align:center;width:70px">No. PARTIDA</td>',
-    '<td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:5px 6px;font-size:9.5px;font-weight:700;text-align:center">DESCRIPCIÓN</td>',
-    '<td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:5px 4px;font-size:9.5px;font-weight:700;text-align:center;width:80px">CANTIDAD SOLICITADA</td>',
-    '<td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:5px 4px;font-size:9.5px;font-weight:700;text-align:center;width:80px">CANTIDAD ENTREGADA</td>',
-    '<td style="border-bottom:1px solid #000;padding:5px 4px;font-size:9.5px;font-weight:700;text-align:center;width:65px">UNIDAD</td></tr>',
-    '<tr>',
-    '<td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:7px 4px;text-align:center"></td>',
-    '<td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:7px 8px;font-size:11px;font-style:italic">PAPEL PARA FOTOCOPIADORA E IMPRESIONES TAMAÑO CARTA</td>',
-    '<td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:7px 4px;text-align:center"></td>',
-    '<td style="border-right:1px solid #000;border-bottom:1px solid #000;padding:7px 4px;text-align:center;font-size:16px;font-weight:700">'+v.cant+'</td>',
-    '<td style="border-bottom:1px solid #000;padding:7px 4px;text-align:center;font-size:11px;font-style:italic">Paquetes</td></tr>',
-    '<tr><td colspan="5" style="border-bottom:1.5px solid #000;padding:4px 6px;min-height:18px"></td></tr>',
-    '</table>',
-    '<table style="width:100%;border-collapse:collapse;border:1px solid #000;border-top:none">',
-    '<tr><td style="border-bottom:1px solid #000;padding:4px 8px;font-size:10px;font-weight:700;background:#f0f0f0;width:90px">DOCUMENTO:</td>',
-    '<td style="border-bottom:1px solid #000;padding:4px 8px;font-size:10.5px">'+(v.docSop||'')+'</td></tr>',
-    '<tr><td style="padding:4px 8px;font-size:10px;font-weight:700;background:#f0f0f0;width:180px;vertical-align:top">NOTA: (Justificación de lo requerido)</td>',
-    '<td style="padding:4px 8px;font-size:10.5px;font-style:italic">IMPRESIÓN DE RECETAS, ÓRDENES DE PAGO, DOCUMENTOS OFICIALES, ENVÍOS, ETC...</td></tr>',
-    '</table>',
-    '<table style="width:100%;border-collapse:collapse;border:1px solid #000;border-top:none">',
-    '<tr>',
-    '<td style="border-right:1px solid #000;padding:6px 8px;width:33%;vertical-align:top">',
-    '<div style="font-size:10px;font-weight:700;font-style:italic;margin-bottom:24px">AUTORIZADO POR:</div>',
-    '<div style="margin-bottom:3px"><strong>NOMBRE:</strong> '+autNombre+'</div>',
-    '<div style="margin-bottom:3px"><strong>FICHA:</strong> '+autFicha+'</div>',
-    '<div><strong>CARGO:</strong> <u>'+autCargo+'</u></div>',
-    '</td>',
-    '<td style="border-right:1px solid #000;padding:6px 8px;width:33%;vertical-align:top">',
-    '<div style="font-size:10px;font-weight:700;font-style:italic;margin-bottom:24px">RECIBE LOS EFECTOS:</div>',
-    '<div style="margin-bottom:3px"><strong>NOMBRE:</strong> '+v.nombre+'</div>',
-    '<div style="margin-bottom:3px"><strong>FICHA:</strong> '+v.ficha+'</div>',
-    '</td>',
-    '<td style="padding:6px 8px;width:33%;vertical-align:top">',
-    '<div style="font-size:10px;font-weight:700;font-style:italic;margin-bottom:24px">VIGILANCIA:</div>',
-    '</td>',
-    '</tr></table>',
-    '</div>'
-  ].join('');
-}
-
 
 function imprimirVale(){
   const pc = document.getElementById('print-container');
@@ -2519,10 +2435,9 @@ function openEditVale(idx){
   document.getElementById('evAutNombre').value = au.nombre||'JONATAN ERIC REYES GÓMEZ';
   document.getElementById('evAutFicha').value  = au.ficha||'374205';
   document.getElementById('evAutCargo').value  = au.cargo||'Jefe de Servicios Corporativos A.D.';
-  // Entregante — mostrar solo si NO es área hospitalaria
+  // Entregante — siempre visible (formato único de vale)
   const ent = v.entregante||{};
-  const esHosp = esHospitalVal(v.area);
-  document.getElementById('evEntreganteSection').style.display = esHosp ? 'none' : 'block';
+  document.getElementById('evEntreganteSection').style.display = 'block';
   document.getElementById('evEntNombre').value = ent.nombre||'';
   document.getElementById('evEntFicha').value  = ent.ficha||'';
   document.getElementById('evEntCargo').value  = ent.cargo||'';
