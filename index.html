@@ -10,6 +10,26 @@
 
 </script>
 <script>
+// ── normEst: normalización de ID de estación (definida aquí para Script 1) ──
+const _EST_NOMBRE_A_ID_S1 = {
+  'los cocos':'7394','loscocos':'7394',
+  'gavilán':'9602','gavilan':'9602',
+  'el graham':'9851','elgraham':'9851','graham':'9851',
+  'las choapas':'10885','laschoapas':'10885','choapas':'10885',
+};
+const _EST_IDS_S1 = ['7394','9602','9851','10885'];
+function normEst(raw) {
+  const s = String(raw||'').trim().replace(/\.0$/,'').replace(/^E0*/i,'');
+  if (_EST_IDS_S1.includes(s)) return s;
+  const norm = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'');
+  for (const k of Object.keys(_EST_NOMBRE_A_ID_S1)) {
+    if (s.toLowerCase().includes(k)||norm.includes(k.replace(/\s/g,'')))
+      return _EST_NOMBRE_A_ID_S1[k];
+  }
+  const digits = s.replace(/\D/g,'');
+  return _EST_IDS_S1.includes(digits) ? digits : s;
+}
+
 // ═══════════════════════════════════════════════════════════
 //  MODAL SALDO SOBRANTE VS EXISTENCIA INICIAL
 // ═══════════════════════════════════════════════════════════
@@ -2308,32 +2328,27 @@ function renderRendDiario(rows, mes) {
   const rendData = dias.map(d => byDia[d].count > 0
     ? parseFloat((byDia[d].rendSum / byDia[d].count).toFixed(2)) : 0);
 
-  // ── Detección de outliers — regla del 60% sobre el benchmark ─────────
-  // Solo es anómalo si supera el 60% MÁS del límite superior
-  // o está 60% POR DEBAJO del límite inferior
-  // Ej: bench max=7.27 → anómalo si >7.27*1.6=11.63 km/L
-  //     bench min=5.5  → anómalo si <5.5*0.4=2.2 km/L
-  const limAltoIQR = bench ? bench.max * 1.6 : (avgRend > 0 ? avgRend * 2.0 : 999);
-  const limBajoIQR = bench ? bench.min * 0.4 : 0;
-
-  const esOutlier = v => v > 0 && (v > limAltoIQR || v < limBajoIQR);
-
-  // Promedio real (todos los días)
+  // ── Promedio real — debe definirse ANTES de esOutlier ────────────────
   const avgRend = rendData.filter(v=>v>0).reduce((s,v)=>s+v,0) /
                   Math.max(1, rendData.filter(v=>v>0).length);
+
+  // ── Benchmark — debe definirse ANTES de esOutlier ────────────────────
+  const bench = getBenchmark(
+    String(r0?.marca||''), String(r0?.subMarca||''),
+    String(r0?.modelo||''), String(r0?.tipoVehiculo||''),
+    String(r0?.clasificacionTipo||r0?.clasificacion||'')
+  );
+
+  // ── Detección de outliers — regla del 60% sobre el benchmark ─────────
+  const limAltoIQR = bench ? bench.max * 1.6 : (avgRend > 0 ? avgRend * 2.0 : 999);
+  const limBajoIQR = bench ? bench.min * 0.4 : 0;
+  const esOutlier  = v => v > 0 && (v > limAltoIQR || v < limBajoIQR);
 
   // Promedio limpio (sin outliers)
   const valLimpios   = rendData.filter(v => v>0 && !esOutlier(v));
   const avgRendLimpio = valLimpios.length
     ? valLimpios.reduce((s,v)=>s+v,0)/valLimpios.length : avgRend;
   const nOutliers    = rendData.filter(v => esOutlier(v)).length;
-
-  // Benchmark
-  const bench = getBenchmark(
-    String(r0.marca||''), String(r0.subMarca||''),
-    String(r0.modelo||''), String(r0.tipoVehiculo||''),
-    String(r0.clasificacionTipo||r0.clasificacion||'')
-  );
 
   // Colores por día — outliers en rojo intenso, resto según benchmark
   const pointColors = rendData.map(v => {
@@ -7407,7 +7422,6 @@ function buscar() {
   if (!mes || !usuario || !secundario) { alert('Por favor complete todos los filtros.'); return; }
 
   let rows = RAW.filter(r => {
-    // Comparación robusta: convertir todo a string normalizado
     if (Number(r.mes) !== mes) return false;
     if (String(r.usuario).trim().toUpperCase() !== usuario) return false;
     if (tipoBusqueda === 'tarjeta') {
@@ -7415,7 +7429,6 @@ function buscar() {
     } else {
       if (String(r.placa).trim().toUpperCase() !== String(secundario).trim().toUpperCase()) return false;
     }
-    // Filtro estricto de área
     const aVal = (r.areaUsuaria||'').trim().toUpperCase();
     if (areaValidada && areaValidada !== 'Todas' && aVal !== areaValidada.toUpperCase()) return false;
     return true;
