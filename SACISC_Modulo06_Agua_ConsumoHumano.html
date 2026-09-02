@@ -903,32 +903,151 @@ function toast(msg, tipo='ok'){
   setTimeout(()=>d.remove(), 3500);
 }
 
-function cargarConsumos(){
+async function cargarConsumos(){
+  if(SUPABASE_CLIENT){
+    try{
+      const { data, error } = await SUPABASE_CLIENT
+        .from('agua_consumos')
+        .select('anio, mes, cantidad, estimado, agua_gerencias(nombre)');
+      if(error) throw error;
+      const arr = data
+        .filter(r => r.agua_gerencias)
+        .map(r => ({
+          anio: Number(r.anio), mes_num: Number(r.mes), mes: MESES[Number(r.mes)-1],
+          gerencia: r.agua_gerencias.nombre,
+          cantidad: Number(r.cantidad), estimado: !!r.estimado
+        }));
+      guardarConsumosCache(arr);
+      return arr;
+    } catch(e){
+      toast('No se pudo leer la captura de Supabase, se muestran los últimos datos guardados en este navegador.', 'warn');
+    }
+  }
   const raw = localStorage.getItem(LS_CONSUMOS);
   if(raw) return JSON.parse(raw);
   localStorage.setItem(LS_CONSUMOS, JSON.stringify(DATA_MIGRACION.consumos));
   return DATA_MIGRACION.consumos.slice();
 }
-function guardarConsumos(arr){ localStorage.setItem(LS_CONSUMOS, JSON.stringify(arr)); }
+function guardarConsumosCache(arr){ localStorage.setItem(LS_CONSUMOS, JSON.stringify(arr)); }
 
-function cargarComodatos(){
+// Guarda un periodo completo (todas las gerencias de un año/mes) en Supabase:
+// borra lo que había para ese periodo y vuelve a insertar solo lo que trae cantidad>0.
+async function guardarPeriodoConsumosSupabase(anio, mes_num, filas){
+  if(!SUPABASE_CLIENT) return { ok:false, motivo:'sin-conexion' };
+  try{
+    const { error: errDel } = await SUPABASE_CLIENT.from('agua_consumos').delete().eq('anio', anio).eq('mes', mes_num);
+    if(errDel) throw errDel;
+    const filasValidas = filas.filter(f => GERENCIA_ID_POR_NOMBRE[f.gerencia] !== undefined);
+    if(filasValidas.length > 0){
+      const payload = filasValidas.map(f => ({
+        anio, mes: mes_num, gerencia_id: GERENCIA_ID_POR_NOMBRE[f.gerencia],
+        cantidad: f.cantidad, estimado: !!f.estimado
+      }));
+      const { error: errIns } = await SUPABASE_CLIENT.from('agua_consumos').insert(payload);
+      if(errIns) throw errIns;
+    }
+    return { ok:true };
+  } catch(e){
+    return { ok:false, motivo: e.message || 'error desconocido' };
+  }
+}
+
+// Reemplaza TODO agua_consumos por los 610 registros migrados originales.
+async function restaurarConsumosSupabase(){
+  if(!SUPABASE_CLIENT) return { ok:false, motivo:'sin-conexion' };
+  try{
+    const { error: errDel } = await SUPABASE_CLIENT.from('agua_consumos').delete().neq('id', 0);
+    if(errDel) throw errDel;
+    const payload = DATA_MIGRACION.consumos
+      .filter(c => GERENCIA_ID_POR_NOMBRE[c.gerencia] !== undefined)
+      .map(c => ({ anio: c.anio, mes: c.mes_num, gerencia_id: GERENCIA_ID_POR_NOMBRE[c.gerencia], cantidad: c.cantidad, estimado: false }));
+    const { error: errIns } = await SUPABASE_CLIENT.from('agua_consumos').insert(payload);
+    if(errIns) throw errIns;
+    return { ok:true };
+  } catch(e){
+    return { ok:false, motivo: e.message || 'error desconocido' };
+  }
+}
+
+async function cargarComodatos(){
+  if(SUPABASE_CLIENT){
+    try{
+      const { data, error } = await SUPABASE_CLIENT.from('agua_comodatos').select('*');
+      if(error) throw error;
+      const arr = data.map(r => ({
+        clave: r.clave, area: r.area,
+        dispensadores: Number(r.dispensadores)||0, garrafones_estante: Number(r.garrafones_estante)||0,
+        estante: Number(r.estante)||0, serie: r.no_serie, ubicacion: r.ubicacion, estatus: r.estatus
+      }));
+      localStorage.setItem(LS_COMODATOS, JSON.stringify(arr));
+      return arr;
+    } catch(e){
+      toast('No se pudo leer Comodatos de Supabase, se muestran los últimos datos guardados en este navegador.', 'warn');
+    }
+  }
   const raw = localStorage.getItem(LS_COMODATOS);
   if(raw) return JSON.parse(raw);
   localStorage.setItem(LS_COMODATOS, JSON.stringify(DATA_MIGRACION.comodatos));
   return DATA_MIGRACION.comodatos.slice();
 }
 
-function cargarReportes(){
+async function cargarReportes(){
+  if(SUPABASE_CLIENT){
+    try{
+      const { data, error } = await SUPABASE_CLIENT.from('agua_reportes_emitidos').select('*');
+      if(error) throw error;
+      const arr = data.map(r => ({
+        folio: r.folio, anio: Number(r.anio), mes_num: Number(r.mes), mes: MESES[Number(r.mes)-1],
+        fechaEmision: r.fecha_emision ? new Date(r.fecha_emision).toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}) : '',
+        emitidoPor: r.emitido_por, validadorNombre: r.validador_nombre, validadorCargo: r.validador_cargo,
+        totalGarrafones: Number(r.total_garrafones), montoTotal: Number(r.monto_total), snapshot: r.snapshot
+      }));
+      guardarReportesCache(arr);
+      return arr;
+    } catch(e){
+      toast('No se pudo leer la bitácora de reportes de Supabase, se muestra la de este navegador.', 'warn');
+    }
+  }
   const raw = localStorage.getItem(LS_REPORTES);
   return raw ? JSON.parse(raw) : [];
 }
-function guardarReportes(arr){ localStorage.setItem(LS_REPORTES, JSON.stringify(arr)); }
+function guardarReportesCache(arr){ localStorage.setItem(LS_REPORTES, JSON.stringify(arr)); }
 
-function cargarEntregas(){
+async function cargarEntregas(){
+  if(SUPABASE_CLIENT){
+    try{
+      const { data, error } = await SUPABASE_CLIENT.from('agua_entregas_diarias').select('anio, mes, dia, area, cantidad');
+      if(error) throw error;
+      const arr = data.map(r => ({
+        anio: Number(r.anio), mes_num: Number(r.mes), dia: Number(r.dia), area: r.area, cantidad: Number(r.cantidad)
+      }));
+      guardarEntregasCache(arr);
+      return arr;
+    } catch(e){
+      toast('No se pudo leer la matriz de suministro de Supabase, se muestra la de este navegador.', 'warn');
+    }
+  }
   const raw = localStorage.getItem(LS_ENTREGAS);
   return raw ? JSON.parse(raw) : [];
 }
-function guardarEntregasLS(arr){ localStorage.setItem(LS_ENTREGAS, JSON.stringify(arr)); }
+function guardarEntregasCache(arr){ localStorage.setItem(LS_ENTREGAS, JSON.stringify(arr)); }
+
+// Guarda un periodo completo de la matriz diaria en Supabase (borra e inserta).
+async function guardarPeriodoEntregasSupabase(anio, mes_num, filas){
+  if(!SUPABASE_CLIENT) return { ok:false, motivo:'sin-conexion' };
+  try{
+    const { error: errDel } = await SUPABASE_CLIENT.from('agua_entregas_diarias').delete().eq('anio', anio).eq('mes', mes_num);
+    if(errDel) throw errDel;
+    if(filas.length > 0){
+      const payload = filas.map(f => ({ anio, mes: mes_num, dia: f.dia, area: f.area, cantidad: f.cantidad }));
+      const { error: errIns } = await SUPABASE_CLIENT.from('agua_entregas_diarias').insert(payload);
+      if(errIns) throw errIns;
+    }
+    return { ok:true };
+  } catch(e){
+    return { ok:false, motivo: e.message || 'error desconocido' };
+  }
+}
 
 let ESTADO = { consumos: [], comodatos: [], reportes: [], entregas: [], usuario: "" };
 
@@ -941,10 +1060,10 @@ function seleccionarSistema(sistema){
   sessionStorage.setItem('sacisc_agua_sistema', 'agua');
   entrarApp();
 }
-function entrarApp(){
+async function entrarApp(){
   document.getElementById('pantallaSeleccion').style.display = "none";
   document.getElementById('app').style.display = "flex";
-  inicializarDatos();
+  await inicializarDatos();
   irAPanel('pan-dash');
 }
 function volverASeleccion(){
@@ -972,11 +1091,17 @@ function irAPanel(nombre){
 }
 
 /* ===================== INICIALIZACIÓN ===================== */
-function inicializarDatos(){
-  ESTADO.consumos = cargarConsumos();
-  ESTADO.comodatos = cargarComodatos();
-  ESTADO.reportes = cargarReportes();
-  ESTADO.entregas = cargarEntregas();
+async function inicializarDatos(){
+  if(SUPABASE_CLIENT && Object.keys(GERENCIA_ID_POR_NOMBRE).length === 0){
+    await cargarMapaGerencias();
+  }
+  const [consumos, comodatos, reportes, entregas] = await Promise.all([
+    cargarConsumos(), cargarComodatos(), cargarReportes(), cargarEntregas()
+  ]);
+  ESTADO.consumos = consumos;
+  ESTADO.comodatos = comodatos;
+  ESTADO.reportes = reportes;
+  ESTADO.entregas = entregas;
 }
 
 function utilFormatoNum(n){ return Math.round(n).toLocaleString('es-MX'); }
@@ -1134,21 +1259,31 @@ function renderBannerMigracion(){
     (ultimaRecarga ? ' · Última recarga histórica: ' + ultimaRecarga : ' · Sin recargas manuales todavía') + '.</span>';
 }
 
-function restaurarDatosHistoricos(){
+async function restaurarDatosHistoricos(){
   const ok = confirm(
     'Esto reemplazará TODOS los consumos capturados en el sistema por los ' + DATA_MIGRACION.consumos.length +
     ' registros originales migrados del Excel (BD Registro), descartando cualquier captura manual hecha desde entonces.\n\n' +
     '¿Deseas continuar?'
   );
   if(!ok) return;
+
+  if(SUPABASE_CLIENT){
+    toast('Restaurando en Supabase, un momento…', 'info');
+    const resultado = await restaurarConsumosSupabase();
+    if(!resultado.ok){
+      toast('No se pudo restaurar en Supabase (' + resultado.motivo + '). No se hicieron cambios.', 'err');
+      return;
+    }
+  }
+
   ESTADO.consumos = DATA_MIGRACION.consumos.map(c => ({...c, estimado:false}));
-  guardarConsumos(ESTADO.consumos);
+  guardarConsumosCache(ESTADO.consumos);
   const fecha = new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   localStorage.setItem(LS_ULTIMA_RECARGA, fecha);
   renderBannerMigracion();
   renderDistribucionHistorica();
   cargarCaptura();
-  toast('Se recargaron los ' + DATA_MIGRACION.consumos.length + ' registros históricos del Excel.', 'ok');
+  toast('Se recargaron los ' + DATA_MIGRACION.consumos.length + ' registros históricos del Excel' + (SUPABASE_CLIENT ? ' (en Supabase y en este navegador).' : '.'), 'ok');
 }
 
 /* ---------- Distribución % histórica (análisis estadístico) ---------- */
@@ -1280,24 +1415,34 @@ function cargarCaptura(){
   cambiarModoCaptura('detallado');
 }
 
-function guardarCaptura(){
+async function guardarCaptura(){
   const anio = parseInt(document.getElementById('selAnioCaptura').value);
   const mes_num = parseInt(document.getElementById('selMesCaptura').value);
   const mesTexto = MESES[mes_num-1];
   const inputs = document.querySelectorAll('#tablaCaptura input.celda-cantidad');
   const esEstimado = ULTIMA_CAPTURA_ES_ESTIMADA;
 
-  ESTADO.consumos = ESTADO.consumos.filter(c => !(c.anio===anio && c.mes_num===mes_num));
+  const filasNuevas = [];
   inputs.forEach(inp=>{
     const cantidad = parseFloat(inp.value);
     if(!isNaN(cantidad) && cantidad > 0){
-      ESTADO.consumos.push({ anio, mes_num, mes: mesTexto, gerencia: inp.getAttribute('data-gerencia'), cantidad, estimado: esEstimado });
+      filasNuevas.push({ gerencia: inp.getAttribute('data-gerencia'), cantidad, estimado: esEstimado });
     }
   });
-  guardarConsumos(ESTADO.consumos);
+
+  if(SUPABASE_CLIENT){
+    const resultado = await guardarPeriodoConsumosSupabase(anio, mes_num, filasNuevas);
+    if(!resultado.ok){
+      toast('No se guardó en Supabase (' + resultado.motivo + '). Se guardó solo en este navegador.', 'err');
+    }
+  }
+
+  ESTADO.consumos = ESTADO.consumos.filter(c => !(c.anio===anio && c.mes_num===mes_num));
+  filasNuevas.forEach(f => ESTADO.consumos.push({ anio, mes_num, mes: mesTexto, gerencia: f.gerencia, cantidad: f.cantidad, estimado: f.estimado }));
+  guardarConsumosCache(ESTADO.consumos);
   renderBannerMigracion();
   renderDistribucionHistorica();
-  toast('Captura de ' + mesTexto + ' ' + anio + (esEstimado ? ' (distribución automática) ' : ' ') + 'guardada correctamente.', 'ok');
+  toast('Captura de ' + mesTexto + ' ' + anio + (esEstimado ? ' (distribución automática) ' : ' ') + 'guardada correctamente' + (SUPABASE_CLIENT ? ' en Supabase.' : '.'), 'ok');
 }
 
 /* ===================== REPORTE MENSUAL (formato oficial) ===================== */
@@ -1602,19 +1747,29 @@ function siguienteFolio(anio, mes_num){
 }
 
 function normalizarFolios(){
-  let cambios = false;
+  const correcciones = [];
   ESTADO.reportes.forEach(r=>{
     const correcto = siguienteFolio(r.anio, r.mes_num);
-    if(r.folio !== correcto){ r.folio = correcto; cambios = true; }
+    if(r.folio !== correcto){ correcciones.push({ anio: r.anio, mes_num: r.mes_num, folioViejo: r.folio, folioNuevo: correcto }); r.folio = correcto; }
   });
-  if(cambios){
-    guardarReportes(ESTADO.reportes);
-    toast('Folios reorganizados por periodo: el mes más antiguo ahora tiene el número más bajo.', 'ok');
+  if(correcciones.length === 0) return false;
+
+  guardarReportesCache(ESTADO.reportes);
+  toast('Folios reorganizados por periodo: el mes más antiguo ahora tiene el número más bajo.', 'ok');
+
+  if(SUPABASE_CLIENT){
+    (async () => {
+      for(const c of correcciones){
+        const { error } = await SUPABASE_CLIENT.from('agua_reportes_emitidos')
+          .update({ folio: c.folioNuevo }).eq('anio', c.anio).eq('mes', c.mes_num);
+        if(error) console.error('No se pudo actualizar el folio de ' + c.anio + '-' + c.mes_num + ' en Supabase:', error);
+      }
+    })();
   }
-  return cambios;
+  return true;
 }
 
-function emitirReporte(){
+async function emitirReporte(){
   if(!REPORTE_ACTUAL) return;
   const { anio, mes_num } = REPORTE_ACTUAL;
   const yaExiste = ESTADO.reportes.find(r => r.anio===anio && r.mes_num===mes_num);
@@ -1623,7 +1778,7 @@ function emitirReporte(){
     return;
   }
   const folio = siguienteFolio(anio, mes_num);
-  ESTADO.reportes.push({
+  const nuevoReporte = {
     folio, anio, mes_num, mes: REPORTE_ACTUAL.mesTexto,
     fechaEmision: new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'long',year:'numeric'}),
     emitidoPor: ESTADO.usuario,
@@ -1632,11 +1787,27 @@ function emitirReporte(){
     totalGarrafones: REPORTE_ACTUAL.totalGeneral,
     montoTotal: REPORTE_ACTUAL.montoGeneral,
     snapshot: REPORTE_ACTUAL
-  });
-  guardarReportes(ESTADO.reportes);
+  };
+
+  if(SUPABASE_CLIENT){
+    try{
+      const { error } = await SUPABASE_CLIENT.from('agua_reportes_emitidos').insert({
+        folio, anio, mes: mes_num, fecha_emision: new Date().toISOString(),
+        emitido_por: nuevoReporte.emitidoPor, validador_nombre: nuevoReporte.validadorNombre, validador_cargo: nuevoReporte.validadorCargo,
+        total_garrafones: nuevoReporte.totalGarrafones, monto_total: nuevoReporte.montoTotal, snapshot: nuevoReporte.snapshot
+      });
+      if(error) throw error;
+    } catch(e){
+      toast('No se pudo emitir en Supabase (' + (e.message||'error desconocido') + '). No se guardó el reporte.', 'err');
+      return;
+    }
+  }
+
+  ESTADO.reportes.push(nuevoReporte);
+  guardarReportesCache(ESTADO.reportes);
   renderBitacora();
   previsualizarReporte();
-  toast('Reporte emitido con folio ' + folio, 'ok');
+  toast('Reporte emitido con folio ' + folio + (SUPABASE_CLIENT ? ' (guardado en Supabase).' : '.'), 'ok');
 }
 
 function renderBitacora(){
@@ -1920,22 +2091,27 @@ function actualizarTotalesMatriz(){
     '</span>';
 }
 
-function guardarMatrizEntregas(){
+async function guardarMatrizEntregas(){
   const { anio, mes_num } = MATRIZ_ACTUAL;
-  ESTADO.entregas = ESTADO.entregas.filter(e => !(e.anio===anio && e.mes_num===mes_num));
+  const filasNuevas = [];
   document.querySelectorAll('.matriz-dia-input').forEach(inp=>{
     const cantidad = parseFloat(inp.value);
     if(!isNaN(cantidad) && cantidad > 0){
-      ESTADO.entregas.push({
-        anio, mes_num,
-        dia: parseInt(inp.getAttribute('data-dia')),
-        area: inp.getAttribute('data-area'),
-        cantidad
-      });
+      filasNuevas.push({ dia: parseInt(inp.getAttribute('data-dia')), area: inp.getAttribute('data-area'), cantidad });
     }
   });
-  guardarEntregasLS(ESTADO.entregas);
-  toast('Matriz de suministro diario guardada.', 'ok');
+
+  if(SUPABASE_CLIENT){
+    const resultado = await guardarPeriodoEntregasSupabase(anio, mes_num, filasNuevas);
+    if(!resultado.ok){
+      toast('No se guardó en Supabase (' + resultado.motivo + '). Se guardó solo en este navegador.', 'err');
+    }
+  }
+
+  ESTADO.entregas = ESTADO.entregas.filter(e => !(e.anio===anio && e.mes_num===mes_num));
+  filasNuevas.forEach(f => ESTADO.entregas.push({ anio, mes_num, dia: f.dia, area: f.area, cantidad: f.cantidad }));
+  guardarEntregasCache(ESTADO.entregas);
+  toast('Matriz de suministro diario guardada' + (SUPABASE_CLIENT ? ' en Supabase.' : '.'), 'ok');
 }
 
 /* ── PDF réplica de la Orden de Surtimiento (por área) ── */
@@ -2089,6 +2265,19 @@ function cerrarPDFPreview(){
 /* ===================== CONEXIÓN A SUPABASE (arquitectura) ===================== */
 const LS_SUPABASE_CONFIG = "sacisc_agua_supabase_config";
 let SUPABASE_CLIENT = null;
+let GERENCIA_ID_POR_NOMBRE = {};
+
+async function cargarMapaGerencias(){
+  if(!SUPABASE_CLIENT) return;
+  try{
+    const { data, error } = await SUPABASE_CLIENT.from('agua_gerencias').select('id, nombre');
+    if(error) throw error;
+    GERENCIA_ID_POR_NOMBRE = {};
+    data.forEach(g => { GERENCIA_ID_POR_NOMBRE[g.nombre] = g.id; });
+  } catch(e){
+    console.error('No se pudo cargar el catálogo de gerencias de Supabase:', e);
+  }
+}
 
 function inicializarSupabase(){
   const raw = localStorage.getItem(LS_SUPABASE_CONFIG);
@@ -2101,6 +2290,7 @@ function inicializarSupabase(){
   try{
     SUPABASE_CLIENT = window.supabase.createClient(url, key);
     actualizarBadgeConexion(true);
+    cargarMapaGerencias();
   } catch(e){
     SUPABASE_CLIENT = null;
     actualizarBadgeConexion(false);
@@ -2150,8 +2340,14 @@ async function guardarConfigSupabase(){
     localStorage.setItem(LS_SUPABASE_CONFIG, JSON.stringify({ url, key }));
     SUPABASE_CLIENT = cliente;
     actualizarBadgeConexion(true);
+    await cargarMapaGerencias();
     resultado.innerHTML = '<span style="color:var(--green-mid);font-weight:600;">✓ Conexión exitosa. El sistema ya está usando esta base de datos.</span>';
     toast('Conectado a Supabase correctamente.', 'ok');
+    if(document.getElementById('app').style.display === 'flex'){
+      await inicializarDatos();
+      irAPanel('pan-dash');
+      toast('Datos recargados desde Supabase.', 'ok');
+    }
   } catch(e){
     SUPABASE_CLIENT = null;
     actualizarBadgeConexion(false);
@@ -2162,11 +2358,15 @@ async function guardarConfigSupabase(){
 function desconectarSupabase(){
   localStorage.removeItem(LS_SUPABASE_CONFIG);
   SUPABASE_CLIENT = null;
+  GERENCIA_ID_POR_NOMBRE = {};
   document.getElementById('inputSupabaseUrl').value = '';
   document.getElementById('inputSupabaseKey').value = '';
   actualizarBadgeConexion(false);
   document.getElementById('resultadoPruebaSupabase').innerHTML = 'Desconectado. El sistema volvió a trabajar solo con este navegador.';
   toast('Supabase desconectado. Trabajando en modo local.', 'warn');
+  if(document.getElementById('app').style.display === 'flex'){
+    inicializarDatos().then(() => irAPanel('pan-dash'));
+  }
 }
 </script>
 </body>
