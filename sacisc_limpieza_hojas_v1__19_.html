@@ -3129,37 +3129,51 @@ function cambiarArea() {
 }
 
 function entrarADashboard() {
-  // Garantiza que ningún modal de acceso (submódulo/zona/área) quede
-  // encimado sobre el dashboard, sin importar desde qué paso se entró.
-  document.getElementById('modalSubmodulo').classList.remove('active');
-  document.getElementById('modalZona').classList.remove('active');
-  document.getElementById('modalArea').classList.remove('active');
-  const label = ESTADO.submodulo === 'limpieza' ? 'Artículos de Limpieza' : 'Hojas Blancas';
-  document.getElementById('dashTitle').textContent = label;
-  document.getElementById('dashSub').textContent = `Zona Coatzacoalcos · Área: ${ESTADO.claveArea}`;
-  document.getElementById('headerAreaBadge').textContent = ESTADO.claveArea;
-  document.getElementById('headerAreaBadge').classList.remove('hidden');
-  document.getElementById('btnCambiarArea').classList.remove('hidden');
-  document.getElementById('footerSubarea').textContent =
-    `Módulo de Artículos y Productos de Limpieza — ${label}`;
-
+  // Blindaje total: TODO el cuerpo va en try/finally para garantizar que
+  // dashboard.classList.add('active') SIEMPRE se ejecute al final, pase lo
+  // que pase adentro (incluida cualquier excepción en cualquier línea),
+  // y que ningún modal de acceso pueda quedar visible por encima del
+  // dashboard tras un login exitoso.
   try {
-    renderArbolAreas();
-    renderPartidas();
-    resetearFiltrosHistoriales();
-    inicializarPaseDeSalida();
-    inicializarInventarioInicial();
-    inicializarExistencias();
-    inicializarTrazabilidad();
-    inicializarRecepcion();
-    inicializarRecuentos();
-    inicializarEjercicioDispersion();
-    inicializarReportes();
-    actualizarVisibilidadOpcionesReserva();
+    document.getElementById('modalSubmodulo').classList.remove('active');
+    document.getElementById('modalZona').classList.remove('active');
+    document.getElementById('modalArea').classList.remove('active');
+    const label = ESTADO.submodulo === 'limpieza' ? 'Artículos de Limpieza' : 'Hojas Blancas';
+    document.getElementById('dashTitle').textContent = label;
+    document.getElementById('dashSub').textContent = `Zona Coatzacoalcos · Área: ${ESTADO.claveArea}`;
+    document.getElementById('headerAreaBadge').textContent = ESTADO.claveArea;
+    document.getElementById('headerAreaBadge').classList.remove('hidden');
+    document.getElementById('btnCambiarArea').classList.remove('hidden');
+    document.getElementById('footerSubarea').textContent =
+      `Módulo de Artículos y Productos de Limpieza — ${label}`;
+
+    try {
+      renderArbolAreas();
+      renderPartidas();
+      resetearFiltrosHistoriales();
+      inicializarPaseDeSalida();
+      inicializarInventarioInicial();
+      inicializarExistencias();
+      inicializarTrazabilidad();
+      inicializarRecepcion();
+      inicializarRecuentos();
+      inicializarEjercicioDispersion();
+      inicializarReportes();
+      actualizarVisibilidadOpcionesReserva();
+    } catch (e) {
+      console.error('Error al inicializar paneles del dashboard (el panel sigue mostrándose):', e);
+    }
   } catch (e) {
-    console.error('Error al inicializar el dashboard:', e);
+    console.error('Error inesperado entrando al dashboard (se muestra igual para no dejar la pantalla en blanco):', e);
+    try { alert('Ocurrió un problema al preparar el panel (' + (e && e.message ? e.message : e) + '). El panel se mostrará de todas formas; si algo se ve incompleto, recarga la página.'); } catch(_) {}
+  } finally {
+    document.getElementById('dashboard').classList.add('active');
+    // Refuerzo final: pase lo que pase arriba, ningún modal de acceso
+    // puede quedar tapando el dashboard.
+    document.getElementById('modalSubmodulo').classList.remove('active');
+    document.getElementById('modalZona').classList.remove('active');
+    document.getElementById('modalArea').classList.remove('active');
   }
-  document.getElementById('dashboard').classList.add('active');
 }
 
 // Evita que filtros (Sección, Área, fechas, folio) queden "pegados" de una sesión
