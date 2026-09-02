@@ -2461,22 +2461,72 @@
 // ═══════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://epqyabsdgsthbtuluarq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_RcSictggIciEBwzLcxqt_w_DX3HUon0';
-// Blindaje: si el CDN de Supabase no cargó (bloqueo de red/firewall/antivirus),
-// 'supabase' queda indefinido y ANTES rompía TODO el script de aquí en adelante
-// (ESTADO, AREAS_COATZACOALCOS, y todas las funciones de login quedaban sin
-// definir), causando que tras un login exitoso la app "regresara" a la
-// pantalla de inicio porque en realidad ninguna función del flujo existía.
-// Con este blindaje, si Supabase no carga, el módulo sigue funcionando
-// completo con el catálogo de respaldo local (cargarAreasRespaldo()).
+// Blindaje + reemplazo de bajo nivel: se detectó en campo que el SDK
+// @supabase/supabase-js (cargado desde CDN) devolvía data:[] en llamadas
+// .select() aunque la API REST real de Supabase sí tenía los datos
+// (confirmado comparando sbClient.from().select() contra fetch() nativo
+// a la misma URL: el fetch nativo SÍ trajo las filas, el SDK no). Para
+// eliminar esa dependencia poco confiable, sbClient se implementa aquí
+// directamente sobre fetch() a la API REST de PostgREST, replicando
+// solo el subconjunto de la interfaz que usa este módulo
+// (.from().select()/.insert()/.update()/.delete(), encadenado con .eq()).
+function crearClienteRest(url, key) {
+  const base = url.replace(/\/$/, '') + '/rest/v1/';
+  const headersBase = {
+    'apikey': key,
+    'Authorization': 'Bearer ' + key,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+  async function ejecutar(tabla, metodo, filtros, qsExtra, body, single) {
+    try {
+      const partes = filtros.slice();
+      if (qsExtra) partes.push(qsExtra);
+      const qs = partes.length ? '?' + partes.join('&') : '';
+      const headers = Object.assign({}, headersBase);
+      if (single) headers['Accept'] = 'application/vnd.pgrst.object+json';
+      const resp = await fetch(base + tabla + qs, {
+        method: metodo, headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined
+      });
+      const texto = await resp.text();
+      let data = null;
+      try { data = texto ? JSON.parse(texto) : null; } catch (e) { /* respuesta no-JSON */ }
+      if (!resp.ok) {
+        return { data: null, error: { message: (data && data.message) || texto || ('HTTP ' + resp.status), status: resp.status } };
+      }
+      return { data, error: null };
+    } catch (e) {
+      return { data: null, error: { message: e.message || String(e) } };
+    }
+  }
+  // Builder encadenable: acumula filtros .eq() y decide el método real
+  // (GET/POST/PATCH/DELETE) según cuál de select/insert/update/delete
+  // se haya invocado; .then()/.single() disparan la petición.
+  function crearBuilder(tabla) {
+    const filtros = [];
+    let metodo = null, qsExtra = '', body = undefined, esSingle = false;
+    const builder = {
+      select(cols) { metodo = metodo || 'GET'; qsExtra = 'select=' + (cols || '*'); return builder; },
+      insert(payload) { metodo = 'POST'; body = payload; return ejecutar(tabla, metodo, filtros, qsExtra, body, false); },
+      update(payload) { metodo = 'PATCH'; body = payload; return builder; },
+      delete() { metodo = 'DELETE'; return builder; },
+      eq(campo, valor) { filtros.push(campo + '=eq.' + encodeURIComponent(valor)); return builder; },
+      single() { esSingle = true; return ejecutar(tabla, metodo || 'GET', filtros, qsExtra, body, true); },
+      then(onFulfilled, onRejected) {
+        return ejecutar(tabla, metodo || 'GET', filtros, qsExtra || 'select=*', body, esSingle).then(onFulfilled, onRejected);
+      },
+      catch(onRejected) { return builder.then(undefined, onRejected); }
+    };
+    return builder;
+  }
+  return { from: (nombre) => crearBuilder(nombre) };
+}
 let sbClient = null;
 try {
-  if (typeof supabase !== 'undefined') {
-    sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else {
-    console.warn('Supabase no cargó (CDN bloqueado o sin conexión); el módulo operará con el catálogo de respaldo local.');
-  }
+  sbClient = crearClienteRest(SUPABASE_URL, SUPABASE_ANON_KEY);
 } catch (e) {
-  console.warn('No se pudo inicializar Supabase; el módulo operará con el catálogo de respaldo local.', e);
+  console.warn('No se pudo inicializar el cliente REST de Supabase; el módulo operará con el catálogo de respaldo local.', e);
 }
 
 // ═══════════════════════════════════════════════════════════
