@@ -762,6 +762,18 @@ td.clickable-mes:hover{background:#e8f5f0;color:var(--gd);font-weight:700}
         <button class="btn btn-outline" onclick="desconectarSupabase()">Desconectar / volver a local</button>
       </div>
       <div id="resultadoPruebaSupabase" style="margin-top:12px;font-size:12.5px;"></div>
+
+      <div class="card" style="margin-top:18px;">
+        <div class="card-hdr"><h3>⬆ Subir mis datos de este navegador a Supabase</h3></div>
+        <div class="card-body">
+          <div class="warn-banner">
+            Conectar a Supabase <strong>no mueve por sí solo</strong> lo que ya tenías capturado en este navegador antes de conectar — Supabase empieza vacío (o con lo que ya tenga otra persona) hasta que subas tus datos locales con este botón. Úsalo una sola vez por navegador, justo después de conectar, si en esa computadora ya habías capturado algo.
+          </div>
+          <button class="btn btn-primary" onclick="migrarDatosLocalesASupabase()">⬆ Subir captura mensual y matriz de suministro de este navegador</button>
+          <div id="resultadoMigracion" style="margin-top:10px;font-size:12.5px;"></div>
+        </div>
+      </div>
+
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--gray);line-height:1.6;">
         La URL y la llave se guardan solo en este navegador (localStorage), nunca se envían a ningún otro lado. Ejecuta primero <strong>01_schema_agua.sql</strong> y <strong>02_seed_agua.sql</strong> en el Editor SQL de tu proyecto de Supabase antes de conectar.
       </div>
@@ -917,7 +929,6 @@ async function cargarConsumos(){
           gerencia: r.agua_gerencias.nombre,
           cantidad: Number(r.cantidad), estimado: !!r.estimado
         }));
-      guardarConsumosCache(arr);
       return arr;
     } catch(e){
       toast('No se pudo leer la captura de Supabase, se muestran los últimos datos guardados en este navegador.', 'warn');
@@ -932,6 +943,25 @@ function guardarConsumosCache(arr){ localStorage.setItem(LS_CONSUMOS, JSON.strin
 
 // Guarda un periodo completo (todas las gerencias de un año/mes) en Supabase:
 // borra lo que había para ese periodo y vuelve a insertar solo lo que trae cantidad>0.
+// Consulta el estado actual de un periodo directo en Supabase (sin pasar por
+// ESTADO, que puede tener lo que se cargó hace rato). Devuelve el mismo
+// formato que la instantánea de cargarCaptura() para poder compararlos, o
+// null si no se pudo consultar (en ese caso no se bloquea el guardado).
+async function obtenerCapturaActualSupabase(anio, mes_num){
+  try{
+    const { data, error } = await SUPABASE_CLIENT
+      .from('agua_consumos')
+      .select('cantidad, agua_gerencias(nombre)')
+      .eq('anio', anio).eq('mes', mes_num);
+    if(error) throw error;
+    const existentes = {};
+    data.filter(r => r.agua_gerencias).forEach(r => { existentes[r.agua_gerencias.nombre] = Number(r.cantidad); });
+    return JSON.stringify(existentes);
+  } catch(e){
+    return null;
+  }
+}
+
 async function guardarPeriodoConsumosSupabase(anio, mes_num, filas){
   if(!SUPABASE_CLIENT) return { ok:false, motivo:'sin-conexion' };
   try{
@@ -1002,7 +1032,6 @@ async function cargarReportes(){
         emitidoPor: r.emitido_por, validadorNombre: r.validador_nombre, validadorCargo: r.validador_cargo,
         totalGarrafones: Number(r.total_garrafones), montoTotal: Number(r.monto_total), snapshot: r.snapshot
       }));
-      guardarReportesCache(arr);
       return arr;
     } catch(e){
       toast('No se pudo leer la bitácora de reportes de Supabase, se muestra la de este navegador.', 'warn');
@@ -1021,7 +1050,6 @@ async function cargarEntregas(){
       const arr = data.map(r => ({
         anio: Number(r.anio), mes_num: Number(r.mes), dia: Number(r.dia), area: r.area, cantidad: Number(r.cantidad)
       }));
-      guardarEntregasCache(arr);
       return arr;
     } catch(e){
       toast('No se pudo leer la matriz de suministro de Supabase, se muestra la de este navegador.', 'warn');
@@ -1335,6 +1363,7 @@ function toggleDistribucion(){
 
 /* ---------- Modo de captura: detallado vs. por total (automático) ---------- */
 let MODO_CAPTURA = 'detallado';
+let SNAPSHOT_CAPTURA = null; // instantánea de lo que había al abrir el periodo, para detectar si alguien más lo cambió antes de guardar
 let ULTIMA_CAPTURA_ES_ESTIMADA = false;
 
 function cambiarModoCaptura(modo){
@@ -1408,6 +1437,7 @@ function cargarCaptura(){
       '</tr>';
   });
   tbody.innerHTML = filas;
+  SNAPSHOT_CAPTURA = JSON.stringify(existentes);
 
   ULTIMA_CAPTURA_ES_ESTIMADA = yaEsEstimado;
   document.getElementById('avisoModoTotal').style.display = yaEsEstimado ? 'block' : 'none';
@@ -1421,6 +1451,22 @@ async function guardarCaptura(){
   const mesTexto = MESES[mes_num-1];
   const inputs = document.querySelectorAll('#tablaCaptura input.celda-cantidad');
   const esEstimado = ULTIMA_CAPTURA_ES_ESTIMADA;
+
+  if(SUPABASE_CLIENT){
+    const actual = await obtenerCapturaActualSupabase(anio, mes_num);
+    if(actual !== null && actual !== SNAPSHOT_CAPTURA){
+      const continuar = confirm(
+        '⚠️ Alguien más guardó cambios en ' + mesTexto + ' ' + anio + ' después de que abriste este periodo.\n\n' +
+        'Si guardas ahora, tu versión reemplaza por completo lo que esa persona acaba de capturar.\n\n' +
+        'Aceptar = guardar de todas formas (sobrescribir).\nCancelar = no guardar; te recargo lo más reciente para que lo revises.'
+      );
+      if(!continuar){
+        cargarCaptura();
+        toast('No se guardó. Se recargó la versión más reciente de ' + mesTexto + ' ' + anio + '.', 'warn');
+        return;
+      }
+    }
+  }
 
   const filasNuevas = [];
   inputs.forEach(inp=>{
@@ -1440,6 +1486,7 @@ async function guardarCaptura(){
   ESTADO.consumos = ESTADO.consumos.filter(c => !(c.anio===anio && c.mes_num===mes_num));
   filasNuevas.forEach(f => ESTADO.consumos.push({ anio, mes_num, mes: mesTexto, gerencia: f.gerencia, cantidad: f.cantidad, estimado: f.estimado }));
   guardarConsumosCache(ESTADO.consumos);
+  SNAPSHOT_CAPTURA = JSON.stringify(Object.fromEntries(filasNuevas.map(f=>[f.gerencia, f.cantidad])));
   renderBannerMigracion();
   renderDistribucionHistorica();
   toast('Captura de ' + mesTexto + ' ' + anio + (esEstimado ? ' (distribución automática) ' : ' ') + 'guardada correctamente' + (SUPABASE_CLIENT ? ' en Supabase.' : '.'), 'ok');
@@ -1993,6 +2040,7 @@ function exportarAnalisisExcel(){
 }
 /* ===================== MATRIZ DE SUMINISTRO DIARIO (3 áreas · Agua Dulce) ===================== */
 let MATRIZ_ACTUAL = { anio: null, mes_num: null };
+let SNAPSHOT_MATRIZ = null; // instantánea de la matriz al abrirla, para detectar cambios de otra persona antes de guardar
 
 function diasEnMes(anio, mes_num){
   return new Date(anio, mes_num, 0).getDate();
@@ -2023,6 +2071,7 @@ function renderMatrizEntregas(){
   ESTADO.entregas.filter(e=>e.anio===anio && e.mes_num===mes_num).forEach(e=>{
     existentes[e.area + '|' + e.dia] = e.cantidad;
   });
+  SNAPSHOT_MATRIZ = JSON.stringify(existentes);
 
   const thead = document.querySelector('#tablaMatrizEntregas thead');
   const tbody = document.querySelector('#tablaMatrizEntregas tbody');
@@ -2091,8 +2140,40 @@ function actualizarTotalesMatriz(){
     '</span>';
 }
 
+async function obtenerMatrizActualSupabase(anio, mes_num){
+  try{
+    const { data, error } = await SUPABASE_CLIENT
+      .from('agua_entregas_diarias')
+      .select('area, dia, cantidad')
+      .eq('anio', anio).eq('mes', mes_num);
+    if(error) throw error;
+    const existentes = {};
+    data.forEach(r => { existentes[r.area + '|' + r.dia] = Number(r.cantidad); });
+    return JSON.stringify(existentes);
+  } catch(e){
+    return null;
+  }
+}
+
 async function guardarMatrizEntregas(){
   const { anio, mes_num } = MATRIZ_ACTUAL;
+
+  if(SUPABASE_CLIENT){
+    const actual = await obtenerMatrizActualSupabase(anio, mes_num);
+    if(actual !== null && actual !== SNAPSHOT_MATRIZ){
+      const continuar = confirm(
+        '⚠️ Alguien más guardó cambios en la matriz de ' + MESES[mes_num-1] + ' ' + anio + ' después de que la abriste.\n\n' +
+        'Si guardas ahora, tu versión reemplaza por completo lo que esa persona acaba de capturar.\n\n' +
+        'Aceptar = guardar de todas formas (sobrescribir).\nCancelar = no guardar; te recargo lo más reciente para que lo revises.'
+      );
+      if(!continuar){
+        renderMatrizEntregas();
+        toast('No se guardó. Se recargó la versión más reciente de la matriz.', 'warn');
+        return;
+      }
+    }
+  }
+
   const filasNuevas = [];
   document.querySelectorAll('.matriz-dia-input').forEach(inp=>{
     const cantidad = parseFloat(inp.value);
@@ -2111,6 +2192,7 @@ async function guardarMatrizEntregas(){
   ESTADO.entregas = ESTADO.entregas.filter(e => !(e.anio===anio && e.mes_num===mes_num));
   filasNuevas.forEach(f => ESTADO.entregas.push({ anio, mes_num, dia: f.dia, area: f.area, cantidad: f.cantidad }));
   guardarEntregasCache(ESTADO.entregas);
+  SNAPSHOT_MATRIZ = JSON.stringify(Object.fromEntries(filasNuevas.map(f=>[f.area+'|'+f.dia, f.cantidad])));
   toast('Matriz de suministro diario guardada' + (SUPABASE_CLIENT ? ' en Supabase.' : '.'), 'ok');
 }
 
@@ -2366,6 +2448,56 @@ function desconectarSupabase(){
   toast('Supabase desconectado. Trabajando en modo local.', 'warn');
   if(document.getElementById('app').style.display === 'flex'){
     inicializarDatos().then(() => irAPanel('pan-dash'));
+  }
+}
+async function migrarDatosLocalesASupabase(){
+  const resultado = document.getElementById('resultadoMigracion');
+  if(!SUPABASE_CLIENT){
+    resultado.innerHTML = '<span style="color:var(--red);">Conecta primero a Supabase (arriba) antes de migrar.</span>';
+    return;
+  }
+  resultado.innerHTML = 'Subiendo, un momento…';
+
+  // Lee directo de localStorage (no de cargarConsumos/cargarEntregas, que ya
+  // priorizan Supabase una vez conectado) para tomar lo que de verdad tiene
+  // capturado ESTE navegador.
+  const consumosLocales = JSON.parse(localStorage.getItem(LS_CONSUMOS) || '[]');
+  const entregasLocales = JSON.parse(localStorage.getItem(LS_ENTREGAS) || '[]');
+
+  function agruparPorPeriodo(arr){
+    const mapa = {};
+    arr.forEach(r=>{
+      const key = r.anio + '-' + r.mes_num;
+      if(!mapa[key]) mapa[key] = { anio: r.anio, mes_num: r.mes_num, filas: [] };
+      mapa[key].filas.push(r);
+    });
+    return Object.values(mapa);
+  }
+
+  let okConsumos = 0, errConsumos = 0;
+  for(const p of agruparPorPeriodo(consumosLocales)){
+    const filas = p.filas.map(f => ({ gerencia: f.gerencia, cantidad: f.cantidad, estimado: f.estimado }));
+    const r = await guardarPeriodoConsumosSupabase(p.anio, p.mes_num, filas);
+    if(r.ok) okConsumos++; else errConsumos++;
+  }
+
+  let okEntregas = 0, errEntregas = 0;
+  for(const p of agruparPorPeriodo(entregasLocales)){
+    const filas = p.filas.map(f => ({ dia: f.dia, area: f.area, cantidad: f.cantidad }));
+    const r = await guardarPeriodoEntregasSupabase(p.anio, p.mes_num, filas);
+    if(r.ok) okEntregas++; else errEntregas++;
+  }
+
+  const huboErrores = (errConsumos + errEntregas) > 0;
+  resultado.innerHTML = (huboErrores ? '<span style="color:var(--amber);">' : '<span style="color:var(--green-mid);font-weight:600;">') +
+    '✓ Subido: ' + okConsumos + ' periodo(s) de captura mensual, ' + okEntregas + ' periodo(s) de matriz de suministro.' +
+    (huboErrores ? ' (' + (errConsumos+errEntregas) + ' periodo(s) no se pudieron subir — revisa la consola del navegador)' : '') +
+    '</span>';
+  toast('Datos locales subidos a Supabase.', 'ok');
+
+  if(document.getElementById('app').style.display === 'flex'){
+    await inicializarDatos();
+    irAPanel('pan-dash');
   }
 }
 </script>
