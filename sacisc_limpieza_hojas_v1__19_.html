@@ -443,6 +443,10 @@
             <stop offset="0%" stop-color="#1e5b4f"/>
             <stop offset="100%" stop-color="#2d9e7e"/>
           </linearGradient>
+          <linearGradient id="sac_g2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2d9e7e"/>
+            <stop offset="100%" stop-color="#4ecba0"/>
+          </linearGradient>
           <filter id="sac_shadow" x="-10%" y="-10%" width="120%" height="120%">
             <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#1e5b4f" flood-opacity="0.35"/>
           </filter>
@@ -455,13 +459,15 @@
         <!-- Letra S estilizada (stroke más grueso) -->
         <path d="M23 19 C23 19 41 19 41 26 C41 33 23 29 23 36 C23 43 41 43 41 43"
           fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Línea accent debajo del hexágono -->
+        <rect x="10" y="53" width="44" height="2.5" rx="1.25" fill="url(#sac_g2)" opacity="0.8"/>
 
-        <!-- Texto SACISC (ampliado, centrado verticalmente, sin subtítulo) -->
+        <!-- Texto SACISC (ampliado, centrado verticalmente) -->
         <text x="64" y="34" font-family="'Barlow Condensed','Arial Narrow',sans-serif" font-size="32" font-weight="700" letter-spacing="4" fill="#1e5b4f">SACISC</text>
       </svg>
     </div>
     <div class="header-title" style="border-left:none;padding-left:0;">
-      <div class="main">ARTÍCULOS Y PRODUCTOS DE LIMPIEZA</div>
+      <div class="main">SACISC ARTÍCULOS Y PRODUCTOS DE LIMPIEZA</div>
       <div class="sub">Sistema Administrativo de Control Integral de Servicios Corporativos</div>
     </div>
   </div>
