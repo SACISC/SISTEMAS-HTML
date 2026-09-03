@@ -644,22 +644,30 @@ td.clickable-mes:hover{background:#e8f5f0;color:var(--gd);font-weight:700}
 
     <div class="filter-bar">
       <select class="filter-sel" id="selAnioAnalisis" onchange="renderAnalisis()"></select>
+      <div class="btn-group">
+        <button class="btn btn-primary btn-sm" id="btnModoAnalisisDireccion" onclick="cambiarModoAnalisis('direccion')">Por Dirección</button>
+        <button class="btn btn-outline btn-sm" id="btnModoAnalisisArea" onclick="cambiarModoAnalisis('area')" style="background:#fff;">Por Área (Agua Dulce / El Plan / Cuichapa)</button>
+      </div>
       <button class="btn btn-outline btn-sm" onclick="exportarAnalisisExcel()">📊 Exportar Excel</button>
+    </div>
+
+    <div class="info-banner" id="avisoModoAreaAnalisis" style="display:none;">
+      Esta vista viene de la Matriz de suministro diario, no del total por gerencia — si un mes no se ha capturado ahí, aparecerá en 0 aunque en "Por Dirección" sí tenga dato.
     </div>
 
     <div class="kpi-grid" id="kpiAnalisis"></div>
 
     <div class="card">
-      <div class="card-hdr"><h3>📅 Consumo mensual por Dirección</h3><span class="card-hdr-sub" id="analisisAnioTitulo"></span></div>
+      <div class="card-hdr"><h3 id="tituloConsumoMensual">📅 Consumo mensual por Dirección</h3><span class="card-hdr-sub" id="analisisAnioTitulo"></span></div>
       <div class="card-body">
         <div class="tbl-wrap"><table class="tbl" id="tablaAnalisisMeses"><thead></thead><tbody></tbody></table></div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-hdr"><h3>⚖️ Comparativo contra el año anterior</h3></div>
+      <div class="card-hdr"><h3 id="tituloComparativo">⚖️ Comparativo contra el año anterior</h3></div>
       <div class="card-body">
-        <div class="tbl-wrap"><table class="tbl" id="tablaAnalisisComparativo"><thead><tr><th>Dirección</th><th class="num">Año seleccionado</th><th class="num">Año anterior</th><th class="num">Variación</th></tr></thead><tbody></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl" id="tablaAnalisisComparativo"><thead></thead><tbody></tbody></table></div>
       </div>
     </div>
   </section>
@@ -1949,6 +1957,25 @@ function inicializarAnalisis(){
   renderAnalisis();
 }
 
+let MODO_ANALISIS = 'direccion';
+
+function cambiarModoAnalisis(modo){
+  MODO_ANALISIS = modo;
+  const btnDir = document.getElementById('btnModoAnalisisDireccion');
+  const btnArea = document.getElementById('btnModoAnalisisArea');
+  const aviso = document.getElementById('avisoModoAreaAnalisis');
+  if(modo === 'area'){
+    btnDir.className = 'btn btn-outline btn-sm'; btnDir.style.background = '#fff';
+    btnArea.className = 'btn btn-primary btn-sm'; btnArea.style.background = '';
+    aviso.style.display = 'flex';
+  } else {
+    btnArea.className = 'btn btn-outline btn-sm'; btnArea.style.background = '#fff';
+    btnDir.className = 'btn btn-primary btn-sm'; btnDir.style.background = '';
+    aviso.style.display = 'none';
+  }
+  renderAnalisis();
+}
+
 function totalesPorDireccionYMes(anio){
   const direcciones = [...new Set(DATA_MIGRACION.catalogo.map(c=>c.direccion))];
   const mapaGerenciaDir = {};
@@ -1964,16 +1991,35 @@ function totalesPorDireccionYMes(anio){
   return { direcciones, tabla };
 }
 
+function totalesPorAreaYMes(anio){
+  const tabla = {};
+  AREAS_ENTREGA.forEach(area => { tabla[area] = new Array(12).fill(0); });
+  ESTADO.entregas.filter(e => e.anio === anio).forEach(e => {
+    if(e.mes_num >= 1 && e.mes_num <= 12){ tabla[e.area][e.mes_num-1] += e.cantidad; }
+  });
+  return { areas: AREAS_ENTREGA, tabla };
+}
+
 function renderAnalisis(){
   const anio = parseInt(document.getElementById('selAnioAnalisis').value);
   if(!anio) return;
   document.getElementById('analisisAnioTitulo').textContent = 'Año ' + anio;
+  const porDireccion = MODO_ANALISIS === 'direccion';
 
-  const { direcciones, tabla } = totalesPorDireccionYMes(anio);
-  const { tabla: tablaAnt } = totalesPorDireccionYMes(anio - 1);
+  let items, tabla, tablaAnt;
+  if(porDireccion){
+    const r1 = totalesPorDireccionYMes(anio); items = r1.direcciones; tabla = r1.tabla;
+    tablaAnt = totalesPorDireccionYMes(anio-1).tabla;
+  } else {
+    const r1 = totalesPorAreaYMes(anio); items = r1.areas; tabla = r1.tabla;
+    tablaAnt = totalesPorAreaYMes(anio-1).tabla;
+  }
+  const etiquetaFila = porDireccion ? 'Dirección' : 'Área';
+  document.getElementById('tituloConsumoMensual').textContent = porDireccion ? '📅 Consumo mensual por Dirección' : '📅 Consumo mensual por Área';
+  document.getElementById('tituloComparativo').textContent = '⚖️ Comparativo contra el año anterior' + (porDireccion ? '' : ' (por área)');
 
-  const totalAnual = direcciones.reduce((s,d)=> s + tabla[d].reduce((a,b)=>a+b,0), 0);
-  const totalAnualAnt = direcciones.reduce((s,d)=> s + tablaAnt[d].reduce((a,b)=>a+b,0), 0);
+  const totalAnual = items.reduce((s,d)=> s + tabla[d].reduce((a,b)=>a+b,0), 0);
+  const totalAnualAnt = items.reduce((s,d)=> s + tablaAnt[d].reduce((a,b)=>a+b,0), 0);
   const promedioMensual = totalAnual / 12;
   let deltaTxt = 'Sin dato del año anterior', deltaClase = '';
   if(totalAnualAnt > 0){
@@ -1990,52 +2036,59 @@ function renderAnalisis(){
 
   const thead = document.querySelector('#tablaAnalisisMeses thead');
   const tbody = document.querySelector('#tablaAnalisisMeses tbody');
-  thead.innerHTML = '<tr><th>Dirección</th>' + MESES.map(m=>'<th class="num">'+m.slice(0,3)+'</th>').join('') + '<th class="num">Total</th><th class="num">Promedio</th></tr>';
+  thead.innerHTML = '<tr><th>' + etiquetaFila + '</th>' + MESES.map(m=>'<th class="num">'+m.slice(0,3)+'</th>').join('') + '<th class="num">Total</th><th class="num">Promedio</th></tr>';
 
   let filas = '';
   let totalesMes = new Array(12).fill(0);
-  direcciones.forEach(dir=>{
-    const vals = tabla[dir];
+  items.forEach(item=>{
+    const vals = tabla[item];
     const total = vals.reduce((a,b)=>a+b,0);
     vals.forEach((v,i)=> totalesMes[i]+=v);
-    filas += '<tr><td>' + dir + '</td>' + vals.map(v=>'<td class="num">'+(v?utilFormatoNum(v):'—')+'</td>').join('') +
+    filas += '<tr><td>' + item + '</td>' + vals.map(v=>'<td class="num">'+(v?utilFormatoNum(v):'—')+'</td>').join('') +
       '<td class="num tbl-num">' + utilFormatoNum(total) + '</td><td class="num">' + utilFormatoNum(total/12) + '</td></tr>';
   });
   const totalGeneral = totalesMes.reduce((a,b)=>a+b,0);
-  filas += '<tr class="fila-total"><td>TOTAL GENERAL</td>' + totalesMes.map((v,i)=>
-    '<td class="num' + (v>0 ? ' clickable-mes' : '') + '"' + (v>0 ? ' onclick="abrirMatrizEntregas('+anio+','+(i+1)+')" title="Ver matriz de suministro diario"' : '') + '>'+utilFormatoNum(v)+'</td>'
-  ).join('') +
+  filas += '<tr class="fila-total"><td>TOTAL GENERAL</td>' + totalesMes.map((v,i)=>{
+    const clicable = porDireccion && v>0;
+    return '<td class="num' + (clicable ? ' clickable-mes' : '') + '"' + (clicable ? ' onclick="abrirMatrizEntregas('+anio+','+(i+1)+')" title="Ver matriz de suministro diario"' : '') + '>'+(v?utilFormatoNum(v):'—')+'</td>';
+  }).join('') +
     '<td class="num">' + utilFormatoNum(totalGeneral) + '</td><td class="num">' + utilFormatoNum(totalGeneral/12) + '</td></tr>';
   tbody.innerHTML = filas;
 
+  const theadComp = document.querySelector('#tablaAnalisisComparativo thead');
+  theadComp.innerHTML = '<tr><th>' + etiquetaFila + '</th><th class="num">Año seleccionado</th><th class="num">Año anterior</th><th class="num">Variación</th></tr>';
   const tbodyComp = document.querySelector('#tablaAnalisisComparativo tbody');
-  tbodyComp.innerHTML = direcciones.map(dir=>{
-    const tActual = tabla[dir].reduce((a,b)=>a+b,0);
-    const tAnterior = tablaAnt[dir].reduce((a,b)=>a+b,0);
+  tbodyComp.innerHTML = items.map(item=>{
+    const tActual = tabla[item].reduce((a,b)=>a+b,0);
+    const tAnterior = tablaAnt[item].reduce((a,b)=>a+b,0);
     let variacion = '<span class="badge badge-gray">Sin dato previo</span>';
     if(tAnterior > 0){
       const d = ((tActual - tAnterior) / tAnterior) * 100;
       const cls = d > 0.5 ? 'badge-amber' : (d < -0.5 ? 'badge-green' : 'badge-gray');
       variacion = '<span class="badge ' + cls + '">' + (d>=0?'+':'') + d.toFixed(1) + '%</span>';
     }
-    return '<tr><td>' + dir + '</td><td class="num tbl-num">' + utilFormatoNum(tActual) + '</td><td class="num">' + utilFormatoNum(tAnterior) + '</td><td class="num">' + variacion + '</td></tr>';
+    return '<tr><td>' + item + '</td><td class="num tbl-num">' + utilFormatoNum(tActual) + '</td><td class="num">' + utilFormatoNum(tAnterior) + '</td><td class="num">' + variacion + '</td></tr>';
   }).join('');
 }
 
 function exportarAnalisisExcel(){
   if(!window.XLSX){ toast('La librería de Excel no cargó (sin conexión a internet).', 'err'); return; }
   const anio = parseInt(document.getElementById('selAnioAnalisis').value);
-  const { direcciones, tabla } = totalesPorDireccionYMes(anio);
-  const filas = direcciones.map(dir=>{
-    const fila = { 'Dirección': dir };
-    MESES.forEach((m,i)=> fila[m] = tabla[dir][i]);
-    fila['Total'] = tabla[dir].reduce((a,b)=>a+b,0);
+  const porDireccion = MODO_ANALISIS === 'direccion';
+  let items, tabla;
+  if(porDireccion){ const r = totalesPorDireccionYMes(anio); items = r.direcciones; tabla = r.tabla; }
+  else { const r = totalesPorAreaYMes(anio); items = r.areas; tabla = r.tabla; }
+  const etiqueta = porDireccion ? 'Dirección' : 'Área';
+  const filas = items.map(item=>{
+    const fila = {}; fila[etiqueta] = item;
+    MESES.forEach((m,i)=> fila[m] = tabla[item][i]);
+    fila['Total'] = tabla[item].reduce((a,b)=>a+b,0);
     return fila;
   });
   const ws = XLSX.utils.json_to_sheet(filas);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Análisis ' + anio);
-  XLSX.writeFile(wb, 'Analisis_Consumo_Agua_' + anio + '.xlsx');
+  XLSX.writeFile(wb, 'Analisis_Consumo_Agua_' + anio + (porDireccion ? '' : '_PorArea') + '.xlsx');
   toast('Análisis de ' + anio + ' exportado a Excel.', 'ok');
 }
 /* ===================== MATRIZ DE SUMINISTRO DIARIO (3 áreas · Agua Dulce) ===================== */
