@@ -161,10 +161,6 @@ tbody td{padding:9px 13px;color:#333;}
 .wbox{background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:11px 15px;font-size:.82rem;color:#92400e;margin-bottom:12px;}
 .empty{text-align:center;padding:48px 20px;color:var(--gray);}
 .empty p{font-size:.92rem;}
-footer{background:var(--gd);color:rgba(255,255,255,.7);padding:24px 36px;margin-top:auto;}
-.fi{max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px;}
-.fi p{font-size:.78rem;line-height:1.9;}.fi p.ft{color:#fff;font-weight:600;font-size:.83rem;}
-hr.fd{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0;}
 #toast{position:fixed;bottom:22px;right:22px;z-index:99999;background:var(--gm);color:#fff;border-radius:9px;padding:11px 18px;font-family:'Barlow Condensed',sans-serif;font-size:.86rem;font-weight:700;box-shadow:0 8px 22px rgba(30,91,79,.38);display:none;align-items:center;gap:7px;max-width:380px;}
 #toast.show{display:flex;}
 #rptPrint{display:none;}
@@ -202,31 +198,7 @@ hr.fd{border:none;border-top:1px solid rgba(255,255,255,.1);margin:16px 0;}
 @media(max-width:768px){.g4,.g3,.g2,.g5{grid-template-columns:1fr;}.s2,.s3,.s4,.s5{grid-column:span 1;}.card-grid{grid-template-columns:1fr;}.nav-label,.nav-sub{display:none;}.nav-tab{min-width:auto;padding:10px 12px;}}
 
 
-.sac-footer-inner{max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;}
-.sac-footer-left p{font-size:.78rem;line-height:2;color:rgba(255,255,255,.7);}
-.sac-footer-left p.ft{color:#fff;font-weight:700;font-size:.85rem;}
-.sac-footer-right{text-align:right;}
-.sac-footer-right p{font-size:.76rem;line-height:2;color:rgba(255,255,255,.7);}
-.sac-footer-right .ft-name{color:#fff;font-weight:700;}
-.sac-footer-right a{color:rgba(255,255,255,.7);text-decoration:none;}
-.sac-footer-right a:hover{color:#fff;}
-.sac-footer-hr{border:none;border-top:1px solid rgba(255,255,255,.1);margin:14px 0;}
-.sac-footer-bottom{max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;font-size:.68rem;color:rgba(255,255,255,.4);flex-wrap:wrap;gap:8px;}
-
-  /* ── Header & Footer (homologado con Módulo 01 Combustible) ── */
-  header {
-    background: var(--wh);
-    border-bottom: 3px solid #1e5b4f;
-    padding: 0 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 80px;
-    box-shadow: 0 2px 12px rgba(0,47,42,0.12);
-    position: sticky;
-    top: 0;
-    z-index: 300;
-  }
+  /* ── Header logo/title/right (complementa la regla header{} de arriba) ── */
   .header-logo { display: flex; align-items: center; gap: 16px; }
   .header-logo img { height: 52px; }
   .header-title {
