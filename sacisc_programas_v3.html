@@ -91,9 +91,9 @@ tbody td{padding:9px 13px;color:#333;}
 .pb-track{flex:1;height:7px;background:#e8f0ed;border-radius:3px;overflow:hidden;min-width:60px;}
 .pb-fill{height:7px;border-radius:3px;transition:width .45s;}
 .pb-pct{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:700;min-width:32px;}
-.gt-wrap{overflow-x:auto;}
-.gt-grid{display:grid;background:var(--wh);border:1.5px solid var(--bd);border-radius:9px;overflow:hidden;font-size:.79rem;min-width:600px;}
-.gt-hcell{background:var(--gd);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:9px 11px;border-right:1px solid rgba(255,255,255,.09);}
+.gt-wrap{overflow-x:auto;overflow-y:visible;}
+.gt-grid{display:grid;background:var(--wh);border:1.5px solid var(--bd);border-radius:9px;font-size:.79rem;min-width:600px;}
+.gt-hcell{background:var(--gd);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:9px 11px;border-right:1px solid rgba(255,255,255,.09);position:sticky;top:var(--gantt-sticky-top,150px);z-index:150;}
 .gt-cell{padding:8px 11px;border-bottom:1px solid var(--bd);border-right:1px solid rgba(0,0,0,.04);display:flex;align-items:center;}
 .gt-cell:hover{background:#eaf3f0;}
 .gt-bcell{padding:5px 7px;border-bottom:1px solid var(--bd);border-right:1px solid rgba(0,0,0,.04);display:flex;align-items:center;min-height:38px;}
@@ -441,12 +441,6 @@ tbody td{padding:9px 13px;color:#333;}
     </div>
   </div>
   <div class="panel">
-    <div class="panel-head">
-      <div>
-        <div class="page-eyebrow">Vista Semanal</div>
-        <h2 class="page-title">Gantt Semanal — Programado vs Real</h2>
-      </div>
-    </div>
     <div class="pb">
       <div id="ganttCont"><div class="gt-wrap"><div class="gt-grid" style="grid-template-columns:150px 90px 110px 80px 1fr;"><div class="gt-hcell">Programa</div><div class="gt-hcell">Servicio</div><div class="gt-hcell">Subárea</div><div class="gt-hcell">Avance</div><div class="gt-hcell" style="text-align:center;">Sem. 24<br><span style="font-size:.62rem;opacity:.75;font-weight:400;">08/06/2026</span></div><div class="gt-cell"><strong style="font-size:.82rem;">SCAD</strong></div><div class="gt-cell"><span class="chip cv" style="font-size:.65rem;">AV</span></div><div class="gt-cell"><span style="font-family:Barlow Condensed,sans-serif;font-size:.92rem;font-weight:700;color:#ef4444;">0%</span></div><div class="gt-bcell"><div style="width:100%;position:relative;padding-top:4px;"><div class="gb-prog"><div class="gb-real gbr" style="width:0%;"></div></div><span style="position:absolute;right:0;top:-11px;font-family:Barlow Condensed,sans-serif;font-size:.66rem;font-weight:700;color:#555;">0%</span></div></div><div class="gt-cell"><strong style="font-size:.82rem;">SCAD</strong></div><div class="gt-cell"><span class="chip cb" style="font-size:.65rem;">DOM</span></div><div class="gt-cell"><span style="font-family:Barlow Condensed,sans-serif;font-size:.92rem;font-weight:700;color:#10b981;">100%</span></div><div class="gt-bcell"><div style="width:100%;position:relative;padding-top:4px;"><div class="gb-prog"><div class="gb-real gbv" style="width:100%;"></div></div><span style="position:absolute;right:0;top:-11px;font-family:Barlow Condensed,sans-serif;font-size:.66rem;font-weight:700;color:#555;">100%</span></div></div><div class="gt-cell"><strong style="font-size:.82rem;">SCAD</strong></div><div class="gt-cell"><span class="chip cb" style="font-size:.65rem;">RB</span></div><div class="gt-cell"><span style="font-family:Barlow Condensed,sans-serif;font-size:.92rem;font-weight:700;color:#10b981;">100%</span></div><div class="gt-bcell"><div style="width:100%;position:relative;padding-top:4px;"><div class="gb-prog"><div class="gb-real gbv" style="width:100%;"></div></div><span style="position:absolute;right:0;top:-11px;font-family:Barlow Condensed,sans-serif;font-size:.66rem;font-weight:700;color:#555;">100%</span></div></div></div></div></div>
       <div id="emptyGantt" class="empty" style="display:none;padding:24px 0;"><p style="font-size:.85rem;">Sin datos.</p></div>
@@ -1620,7 +1614,7 @@ window.addEventListener('DOMContentLoaded',async ()=>{
   mostrarSyncBanner('Conectando a la base de datos...',true);
   await cargarDesdeSB();
   initDefaults();
-  const _pasosInit=[aplicarFiltros,renderProgramasTab,renderCatalogos,renderOrgTree,renderPersonas,renderTendencia,cargarProgramasEjec,refrescarDatalistDom];
+  const _pasosInit=[aplicarFiltros,renderProgramasTab,ajustarStickyGantt,renderCatalogos,renderOrgTree,renderPersonas,renderTendencia,cargarProgramasEjec,refrescarDatalistDom];
   _pasosInit.forEach(function(fn){
     try{fn();}catch(e){console.error('Error inicializando '+(fn.name||'función'),e);}
   });
@@ -1747,12 +1741,24 @@ function poblarSemanasG(a){
 // ══════════════════════════════════════════════════════════════
 // TABS
 // ══════════════════════════════════════════════════════════════
+// ── Ajusta en tiempo real el offset "sticky" de la fila de encabezados del Gantt,
+//    midiendo el alto real del header + la cinta de menú (evita valores fijos que
+//    se desajustan si alguno de los dos cambia de tamaño en el futuro). ──
+function ajustarStickyGantt(){
+  const header=document.querySelector('header');
+  const nav=document.querySelector('.main-nav');
+  const offset=(header?header.offsetHeight:0)+(nav?nav.offsetHeight:0);
+  document.documentElement.style.setProperty('--gantt-sticky-top',offset+'px');
+}
+window.addEventListener('load',ajustarStickyGantt);
+window.addEventListener('resize',ajustarStickyGantt);
+
 function switchTab(tab){
   document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('pane-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
-  if(tab==='programas')renderProgramasTab();
+  if(tab==='programas'){renderProgramasTab();ajustarStickyGantt();}
   if(tab==='catalogo'){renderCatalogos();renderOrgTree();renderPersonas();}
   if(tab==='apertura'){cargarListaApertura();}
   if(tab==='frecuencias'){frqInicializar();}
