@@ -205,7 +205,7 @@
   /* ══ DASHBOARD ══ */
   #dashboard{display:none;}
   #dashboard.active{display:block;}
-  .tabs{display:flex;gap:2px;margin:-28px 0 26px;flex-wrap:wrap;background:var(--green-dark);padding:0 40px;box-shadow:0 2px 8px rgba(0,47,42,0.25);position:sticky;top:88px;z-index:190;width:100vw;margin-left:calc(-50vw + 50%);}
+  .tabs{display:flex;gap:2px;flex-wrap:wrap;background:var(--green-dark);padding:0 40px;box-shadow:0 2px 8px rgba(0,47,42,0.25);position:sticky;top:88px;z-index:190;}
   .tab-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;border-bottom:3px solid transparent;border-top:3px solid transparent;padding:10px 16px;min-width:90px;font-family:'Barlow',sans-serif;color:rgba(255,255,255,0.5);cursor:pointer;white-space:nowrap;transition:all 0.18s ease;}
   .tab-btn:hover{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.05);}
   .tab-btn:hover .nav-icon{background:rgba(255,255,255,0.12);}
@@ -466,9 +466,9 @@
           <rect x="12" y="51" width="40" height="2.5" rx="1.25" fill="url(#sac_g2)" opacity="0.8"/>
         </g>
       </svg>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:700;letter-spacing:4px;color:var(--green-dark);margin-left:9px;">SACISC</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;letter-spacing:4px;color:var(--green-dark);margin-left:9px;">SACISC</span>
     </div>
-    <div class="header-title" style="border-left:none;padding-left:0;">
+    <div class="header-title">
       <div class="main">SACISC <span style="font-weight:400;opacity:0.7;font-size:0.82em;">· ARTÍCULOS Y PRODUCTOS DE LIMPIEZA</span></div>
       <div class="sub">Sistema Administrativo de Control Integral de Servicios Corporativos</div>
     </div>
@@ -489,12 +489,7 @@
   </div>
 </header>
 
-<main>
-
-  <!-- ══════ DASHBOARD (visible tras acceso) ══════ -->
-  <div id="dashboard">
-
-    <div class="tabs">
+<nav class="tabs" id="navTabs" style="display:none;">
       <button class="tab-btn active" onclick="cambiarTab('catalogos')" data-tooltip="Consulta y administra la estructura de áreas, subáreas e instalaciones de la zona">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="nav-label">Catálogo</span><span class="nav-sub">Áreas</span>
       </button>
@@ -522,7 +517,14 @@
       <button class="tab-btn" onclick="cambiarTab('reportes')" data-tooltip="Genera reportes imprimibles del módulo">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span><span class="nav-label">Reportes</span><span class="nav-sub">Impresión</span>
       </button>
-    </div>
+    </nav>
+
+<main>
+
+  <!-- ══════ DASHBOARD (visible tras acceso) ══════ -->
+  <div id="dashboard">
+
+
 
     <div class="tab-panel active" id="tab-catalogos">
       <div class="panel-intro">
@@ -3101,6 +3103,7 @@ function validarAcceso() {
 
 function cambiarArea() {
   document.getElementById('dashboard').classList.remove('active');
+  document.getElementById('navTabs').style.display = 'none';
   document.getElementById('inputClaveArea').value = '';
   document.getElementById('inputPassArea').value = '';
   document.getElementById('modalArea').classList.add('active');
@@ -3144,6 +3147,7 @@ function entrarADashboard() {
     try { alert('Ocurrió un problema al preparar el panel (' + (e && e.message ? e.message : e) + '). El panel se mostrará de todas formas; si algo se ve incompleto, recarga la página.'); } catch(_) {}
   } finally {
     document.getElementById('dashboard').classList.add('active');
+    document.getElementById('navTabs').style.display = 'flex';
     // Refuerzo final: pase lo que pase arriba, ningún modal de acceso
     // puede quedar tapando el dashboard.
     document.getElementById('modalSubmodulo').classList.remove('active');
