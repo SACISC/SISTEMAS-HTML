@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
 /* ── VARIABLES — sistema SACISC ── */
 :root {
@@ -662,11 +663,27 @@ td.clickable-mes:hover{background:#e8f5f0;color:var(--gd);font-weight:700}
 
     <div class="kpi-grid" id="kpiAnalisis"></div>
 
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:18px;">
+      <div class="card" style="flex:2;min-width:340px;margin-bottom:0;">
+        <div class="card-hdr"><h3 id="tituloGraficaTendencia">📈 Tendencia mensual por Dirección</h3></div>
+        <div class="card-body"><canvas id="graficaTendenciaAnalisis" height="220"></canvas></div>
+      </div>
+      <div class="card" style="flex:1;min-width:240px;margin-bottom:0;">
+        <div class="card-hdr"><h3 id="tituloGraficaDona">🍩 Distribución anual</h3></div>
+        <div class="card-body"><canvas id="graficaDonaAnalisis" height="220"></canvas></div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-hdr"><h3 id="tituloConsumoMensual">📅 Consumo mensual por Dirección</h3><span class="card-hdr-sub" id="analisisAnioTitulo"></span></div>
       <div class="card-body">
         <div class="tbl-wrap"><table class="tbl" id="tablaAnalisisMeses"><thead></thead><tbody></tbody></table></div>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3 id="tituloGraficaComparativo">⚖️ Comparativo visual contra el año anterior</h3></div>
+      <div class="card-body"><canvas id="graficaComparativoAnalisis" height="180"></canvas></div>
     </div>
 
     <div class="card">
@@ -2074,6 +2091,125 @@ function renderAnalisis(){
     }
     return '<tr><td>' + item + '</td><td class="num tbl-num">' + utilFormatoNum(tActual) + '</td><td class="num">' + utilFormatoNum(tAnterior) + '</td><td class="num">' + variacion + '</td></tr>';
   }).join('');
+
+  renderGraficasAnalisis(anio, items, tabla, tablaAnt, etiquetaFila);
+}
+
+/* ── Gráficas del Análisis de consumo (Chart.js) ── */
+const COLORES_ANALISIS = {
+  'DIRECCIÓN DE EXPLORACIÓN Y EXTRACCIÓN': '#1e5b4f',
+  'DIRECCIÓN DE ADMINISTRACIÓN Y SERVICIOS': '#2d9e7e',
+  'PEMEX LOGÍSTICA': '#c9a227',
+  'SERVICIOS CORPORATIVOS AGUA DULCE': '#1e5b4f',
+  'SERVICIOS CORPORATIVOS EL PLAN': '#2d9e7e',
+  'SERVICIOS CORPORATIVOS CUICHAPA': '#3a7ca5'
+};
+const PALETA_RESPALDO = ['#1e5b4f','#2d9e7e','#3a7ca5','#c9a227','#8a3ffc'];
+function colorAnalisis(item, idx){ return COLORES_ANALISIS[item] || PALETA_RESPALDO[idx % PALETA_RESPALDO.length]; }
+function nombreCortoAnalisis(item){ return item.replace('SERVICIOS CORPORATIVOS ', '').replace('DIRECCIÓN DE ', ''); }
+
+let CHART_TENDENCIA = null, CHART_DONA = null, CHART_COMPARATIVO = null;
+const FUENTE_GRAFICAS = "'Inter', sans-serif";
+
+function renderGraficasAnalisis(anio, items, tabla, tablaAnt, etiquetaFila){
+  if(!window.Chart){ return; }
+  Chart.defaults.font.family = FUENTE_GRAFICAS;
+  Chart.defaults.color = '#5b6b66';
+
+  document.getElementById('tituloGraficaTendencia').textContent = '📈 Tendencia mensual por ' + etiquetaFila;
+
+  // ── Línea: tendencia mensual ──
+  const mesesCortos = MESES.map(m=>m.slice(0,3).charAt(0)+m.slice(1,3).toLowerCase());
+  const datasetsTendencia = items.map((item,i)=>{
+    const color = colorAnalisis(item, i);
+    return {
+      label: nombreCortoAnalisis(item),
+      data: tabla[item],
+      borderColor: color,
+      backgroundColor: color + '22',
+      pointBackgroundColor: color,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      borderWidth: 2.5,
+      tension: 0.35,
+      fill: i===0
+    };
+  });
+  if(CHART_TENDENCIA) CHART_TENDENCIA.destroy();
+  CHART_TENDENCIA = new Chart(document.getElementById('graficaTendenciaAnalisis'), {
+    type: 'line',
+    data: { labels: mesesCortos, datasets: datasetsTendencia },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8, padding: 14, font: { size: 11 } } },
+        tooltip: { backgroundColor: '#002f2a', padding: 10, cornerRadius: 8, titleFont:{size:12}, bodyFont:{size:12} }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: '#eef2f0' }, ticks: { font: { size: 11 } }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ── Dona: distribución anual ──
+  const itemsConDato = items.filter(item => tabla[item].reduce((a,b)=>a+b,0) > 0);
+  const totalesDona = itemsConDato.map(item => tabla[item].reduce((a,b)=>a+b,0));
+  if(CHART_DONA) CHART_DONA.destroy();
+  if(itemsConDato.length === 0){
+    document.getElementById('graficaDonaAnalisis').getContext('2d').clearRect(0,0,9999,9999);
+  } else {
+    CHART_DONA = new Chart(document.getElementById('graficaDonaAnalisis'), {
+      type: 'doughnut',
+      data: {
+        labels: itemsConDato.map(nombreCortoAnalisis),
+        datasets: [{
+          data: totalesDona,
+          backgroundColor: itemsConDato.map((item,i)=>colorAnalisis(item, items.indexOf(item))),
+          borderColor: '#fff', borderWidth: 3, hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '68%',
+        plugins: {
+          legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 12, font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: '#002f2a', padding: 10, cornerRadius: 8,
+            callbacks: { label: (ctx) => {
+              const total = totalesDona.reduce((a,b)=>a+b,0);
+              const pct = total>0 ? (ctx.parsed/total*100).toFixed(1) : 0;
+              return ' ' + ctx.label + ': ' + utilFormatoNum(ctx.parsed) + ' (' + pct + '%)';
+            }}
+          }
+        }
+      }
+    });
+  }
+
+  // ── Barras: comparativo interanual ──
+  if(CHART_COMPARATIVO) CHART_COMPARATIVO.destroy();
+  CHART_COMPARATIVO = new Chart(document.getElementById('graficaComparativoAnalisis'), {
+    type: 'bar',
+    data: {
+      labels: items.map(nombreCortoAnalisis),
+      datasets: [
+        { label: String(anio), data: items.map(item=>tabla[item].reduce((a,b)=>a+b,0)), backgroundColor: '#1e5b4f', borderRadius: 6, maxBarThickness: 46 },
+        { label: String(anio-1), data: items.map(item=>tablaAnt[item].reduce((a,b)=>a+b,0)), backgroundColor: '#c3ddd7', borderRadius: 6, maxBarThickness: 46 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, boxWidth: 8, padding: 14, font: { size: 11 } } },
+        tooltip: { backgroundColor: '#002f2a', padding: 10, cornerRadius: 8 }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: '#eef2f0' }, ticks: { font: { size: 11 } }, beginAtZero: true }
+      }
+    }
+  });
 }
 
 function exportarAnalisisExcel(){
