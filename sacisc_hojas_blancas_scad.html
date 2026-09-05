@@ -32,6 +32,33 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none}
 input,select,textarea{font-family:inherit;outline:none}
 table{border-collapse:collapse}
 
+/* ── ENCABEZADO DE PANEL SACISC ── */
+.page-eyebrow{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--gl);
+  font-weight:700;
+  margin-bottom:2px;
+}
+.page-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:26px;
+  font-weight:700;
+  color:var(--gd);
+  margin:0;
+  text-transform:uppercase;
+  letter-spacing:.02em;
+}
+.page-desc{
+  font-size:12.5px;
+  color:var(--gray);
+  margin-top:4px;
+  max-width:640px;
+  margin-bottom:18px;
+}
+
 /* ── HEADER SACISC (versión validada) ── */
 header{
   background:var(--white,#fff);
@@ -543,6 +570,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
 <!-- ═══ PANEL: DASHBOARD ═══ -->
 <div id="pan-dash" class="panel active">
+  <div class="page-eyebrow">Panorama general</div>
+  <h2 class="page-title">Tablero de control</h2>
+  <p class="page-desc">Resumen del inventario de papel bond, vales emitidos y consumo del mes en curso para el Sector Agua Dulce.</p>
+
   <div class="kpi-grid" id="kpiDash"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card">
@@ -568,6 +599,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
 <!-- ═══ PANEL: ENTRADA ═══ -->
 <div id="pan-entrada" class="panel">
+  <div class="page-eyebrow">Recepción de embarque</div>
+  <h2 class="page-title">Registro de entrada</h2>
+  <p class="page-desc">Captura los paquetes de papel bond recibidos desde Coatzacoalcos con su referencia de remisión. Equivale a la hoja ENTRADA HISTÓRICA del control anterior.</p>
+
   <div class="card">
     <div class="card-hdr">
       <h3>📦 Registro de Entrada — Papel Bond</h3>
@@ -670,6 +705,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
 <!-- ═══ PANEL: NUEVO VALE ═══ -->
 <div id="pan-vale" class="panel">
+  <div class="page-eyebrow">Formato oficial FO-URSC-PB-01</div>
+  <h2 class="page-title">Nuevo vale-pase</h2>
+  <p class="page-desc">Genera el vale-pase de salida de papel bond para un usuario del catálogo y lo envía por correo institucional.</p>
+
   <div class="card">
     <div class="card-hdr">
       <h3>📄 Nuevo Vale-Pase de Salida</h3>
@@ -819,6 +858,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
 <!-- ═══ PANEL: HISTORIAL ═══ -->
 <div id="pan-hist" class="panel">
+  <div class="page-eyebrow">Trazabilidad de salidas</div>
+  <h2 class="page-title">Historial de vales</h2>
+  <p class="page-desc">Consulta, edita, reenvía o cancela los vales emitidos desde enero 2024. Proviene de la hoja SALIDA HISTÓRICA del Excel original.</p>
+
   <div class="card">
     <div class="card-hdr">
       <h3>📋 Historial de Vales — Papel Bond</h3>
@@ -877,6 +920,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
 <!-- ═══ PANEL: CATÁLOGO USUARIOS ═══ -->
 <div id="pan-catalogo" class="panel">
+  <div class="page-eyebrow">Padrón de usuarios</div>
+  <h2 class="page-title">Catálogo de áreas usuarias</h2>
+  <p class="page-desc">Administra las fichas, áreas, correos y ciudades de quienes reciben dotación de papel bond. Base tomada de la hoja CATÁLOGO USUARIOS.</p>
+
   <div class="card">
     <div class="card-hdr">
       <h3>👥 Catálogo de Usuarios</h3>
@@ -908,6 +955,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
 <!-- ═══ PANEL: INVENTARIO ═══ -->
 <div id="pan-inventario" class="panel">
+  <div class="page-eyebrow">Movimientos de almacén</div>
+  <h2 class="page-title">Kardex de existencias</h2>
+  <p class="page-desc">Muestra el movimiento cronológico de entradas y salidas con el saldo acumulado de paquetes en bodega.</p>
+
   <div class="kpi-grid" id="kpiInv"></div>
   <div class="card">
     <div class="card-hdr">
@@ -934,6 +985,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
 <!-- ═══ PANEL: ANÁLISIS ═══ -->
 <div id="pan-analisis" class="panel">
+  <div class="page-eyebrow">Indicadores de consumo</div>
+  <h2 class="page-title">Análisis y reportes</h2>
+  <p class="page-desc">Compara el consumo mensual por área usuaria y dirección, con matriz cruzada y exportación a Excel.</p>
+
   <div class="kpi-grid" id="kpiAnalisis"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
     <div class="card">
