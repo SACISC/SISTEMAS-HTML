@@ -20,6 +20,12 @@
     --shadow: rgba(0,47,42,0.12);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  #app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  html { height: 100%; }
   body {
     font-family: 'Barlow', sans-serif;
     background: var(--off-white);
@@ -1719,7 +1725,7 @@ function seleccionarSistema(sistema) {
 
 function entrarApp() {
   document.getElementById('pantallaSeleccion').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  document.getElementById('app').style.display = 'flex';
 }
 
 function volverASeleccion() {
