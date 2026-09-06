@@ -862,7 +862,7 @@ td.clickable-mes:hover{background:#e8f5f0;color:var(--gd);font-weight:700}
     <div class="footer-org">
       <p>Unidad Regional de Servicios Corporativos Sur</p>
       <p>Superintendencia de Servicios Corporativos Sur Zona Coatzacoalcos</p>
-      <p>Agua para Consumo Humano · Zona Agua Dulce, Ver.</p>
+      <p>SERVICIOS CORPORATIVOS AGUA DULCE</p>
     </div>
     <div class="footer-credits" style="position:relative;">
       <div id="perfilCard" style="
@@ -2112,13 +2112,18 @@ function renderAnalisis(){
     const vals = tabla[item];
     const total = vals.reduce((a,b)=>a+b,0);
     vals.forEach((v,i)=> totalesMes[i]+=v);
-    filas += '<tr><td>' + item + '</td>' + vals.map(v=>'<td class="num">'+(v?utilFormatoNum(v):'—')+'</td>').join('') +
+    const itemEscapado = item.replace(/'/g, "\\'");
+    const celdas = vals.map((v,i)=>{
+      const clicable = porDireccion && v>0;
+      return '<td class="num' + (clicable ? ' clickable-mes' : '') + '"' + (clicable ? ' onclick="abrirDesgloseGerencias('+anio+','+(i+1)+',\''+itemEscapado+'\')" title="Ver desglose por gerencia"' : '') + '>'+(v?utilFormatoNum(v):'—')+'</td>';
+    }).join('');
+    filas += '<tr><td>' + item + '</td>' + celdas +
       '<td class="num tbl-num">' + utilFormatoNum(total) + '</td><td class="num">' + utilFormatoNum(total/12) + '</td></tr>';
   });
   const totalGeneral = totalesMes.reduce((a,b)=>a+b,0);
   filas += '<tr class="fila-total"><td>TOTAL GENERAL</td>' + totalesMes.map((v,i)=>{
     const clicable = porDireccion && v>0;
-    return '<td class="num' + (clicable ? ' clickable-mes' : '') + '"' + (clicable ? ' onclick="abrirDesgloseGerencias('+anio+','+(i+1)+')" title="Ver desglose por gerencia"' : '') + '>'+(v?utilFormatoNum(v):'—')+'</td>';
+    return '<td class="num' + (clicable ? ' clickable-mes' : '') + '"' + (clicable ? ' onclick="abrirMatrizEntregas('+anio+','+(i+1)+')" title="Ver matriz de suministro diario"' : '') + '>'+(v?utilFormatoNum(v):'—')+'</td>';
   }).join('') +
     '<td class="num">' + utilFormatoNum(totalGeneral) + '</td><td class="num">' + utilFormatoNum(totalGeneral/12) + '</td></tr>';
   tbody.innerHTML = filas;
@@ -2752,12 +2757,17 @@ async function migrarDatosLocalesASupabase(){
    Solo se abre desde el modo "Por Dirección" del Análisis, al dar
    clic en el total de un mes: muestra qué gerencias justifican ese
    valor, ordenadas de mayor a menor. ── */
-function abrirDesgloseGerencias(anio, mes_num){
-  const registros = ESTADO.consumos
-    .filter(c => c.anio===anio && c.mes_num===mes_num && c.cantidad>0)
-    .sort((a,b)=> b.cantidad - a.cantidad);
+function abrirDesgloseGerencias(anio, mes_num, direccion){
+  let registros = ESTADO.consumos.filter(c => c.anio===anio && c.mes_num===mes_num && c.cantidad>0);
 
-  document.getElementById('tituloDesgloseGerencias').textContent = '📊 TOP GERENCIAS — ' + MESES[mes_num-1] + ' ' + anio;
+  if(direccion){
+    const gerenciasDeEstaDireccion = new Set(DATA_MIGRACION.catalogo.filter(g=>g.direccion===direccion).map(g=>g.gerencia));
+    registros = registros.filter(r => gerenciasDeEstaDireccion.has(r.gerencia));
+  }
+  registros = registros.sort((a,b)=> b.cantidad - a.cantidad);
+
+  const sufijo = direccion ? (' — ' + nombreCortoAnalisis(direccion)) : '';
+  document.getElementById('tituloDesgloseGerencias').textContent = '📊 TOP GERENCIAS — ' + MESES[mes_num-1] + ' ' + anio + sufijo;
 
   const max = registros.length ? registros[0].cantidad : 1;
   document.getElementById('cuerpoDesgloseGerencias').innerHTML = registros.map(r=>{
