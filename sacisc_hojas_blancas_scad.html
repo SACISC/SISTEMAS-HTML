@@ -989,6 +989,25 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
   <h2 class="page-title">Análisis y reportes</h2>
   <p class="page-desc">Compara el consumo mensual por área usuaria y dirección, con matriz cruzada y exportación a Excel.</p>
 
+  <!-- FILTROS GLOBALES DEL PANEL -->
+  <div style="background:#fff;border:1px solid rgba(30,91,79,.1);border-radius:12px;padding:14px 18px;margin-bottom:16px;box-shadow:0 1px 6px var(--sh);display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <div class="form-group" style="margin:0">
+      <label>Año</label>
+      <select class="filter-sel" id="anaAno" onchange="renderAnalisis()"><option value="">Todos</option><option>2024</option><option>2025</option><option>2026</option></select>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>Mes</label>
+      <select class="filter-sel" id="anaMes" onchange="renderAnalisis()"><option value="">Todos</option><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option><option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option></select>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary btn-sm" onclick="showMatriz()" style="gap:6px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Matriz
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="exportarAnalisis()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#1D6F42"/><text x="3" y="15" font-family="Arial" font-size="6" font-weight="900" fill="#fff">XLS</text></svg> Excel</button>
+    </div>
+  </div>
+
   <div class="kpi-grid" id="kpiAnalisis"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
     <div class="card">
@@ -996,22 +1015,19 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <div class="card-body"><div id="chartMensual"></div></div>
     </div>
     <div class="card">
-      <div class="card-hdr"><h3>🏢 Top Áreas por Consumo</h3></div>
+      <div class="card-hdr">
+        <h3 id="topChartTitle">🏢 Top Áreas por Consumo</h3>
+        <select class="filter-sel" id="anaTopCat" onchange="renderAnalisis()" style="min-width:190px">
+          <option value="area">Top Área por consumo</option>
+          <option value="direccion">Top Dirección por consumo</option>
+          <option value="ciudad">Top Ciudad por consumo</option>
+        </select>
+      </div>
       <div class="card-body"><div id="chartAreas"></div></div>
     </div>
   </div>
   <div class="card">
-    <div class="card-hdr"><h3>📋 Reporte por Período</h3>
-      <div class="btn-group">
-        <select class="filter-sel" id="anaAno" onchange="renderAnalisis()"><option value="">Todos</option><option>2024</option><option>2025</option><option>2026</option></select>
-        <select class="filter-sel" id="anaMes" onchange="renderAnalisis()"><option value="">Todos</option><option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option><option>MAYO</option><option>JUNIO</option><option>JULIO</option><option>AGOSTO</option><option>SEPTIEMBRE</option><option>OCTUBRE</option><option>NOVIEMBRE</option><option>DICIEMBRE</option></select>
-        <button class="btn btn-primary btn-sm" onclick="showMatriz()" style="gap:6px">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          Matriz
-        </button>
-        <button class="btn btn-outline btn-sm" onclick="exportarAnalisis()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#1D6F42"/><text x="3" y="15" font-family="Arial" font-size="6" font-weight="900" fill="#fff">XLS</text></svg> Excel</button>
-      </div>
-    </div>
+    <div class="card-hdr"><h3>📋 Reporte por Período</h3></div>
     <div class="card-body" style="padding:0">
       <table class="tbl"><thead><tr><th>Mes</th><th>Área</th><th>Nombre</th><th>Vale</th><th>Cant.</th><th>Estado</th></tr></thead>
       <tbody id="tbodyAnalisis"></tbody></table>
@@ -2786,6 +2802,34 @@ function renderInventario(){
 }
 
 // ═══ ANÁLISIS ════════════════════════════════════════════════════════
+// Etiquetas legibles para las categorías del Top
+const LABEL_DIRECCION = {
+  'DAS': 'Dirección de Administración y Servicios',
+  'DEE': 'Dirección de Exploración y Extracción',
+  'DL':  'Dirección de Logística'
+};
+const LABEL_CIUDAD = {
+  'Las Choapas, Ver.': 'El Plan',
+  'Cuichapa, Ver.':    'Cuichapa',
+  'Agua Dulce, Ver.':  'Agua Dulce'
+};
+
+// Devuelve la clave de agrupación de un vale según la categoría elegida
+function claveTop(v, cat){
+  if(cat === 'area') return v.area || '—';
+  const u = CATALOGO.find(x => x.ficha === v.ficha && x.area === v.area)
+         || CATALOGO.find(x => x.ficha === v.ficha);
+  if(cat === 'direccion'){
+    const d = u ? (u.direccion || '') : '';
+    return LABEL_DIRECCION[d] || (d || 'Sin dirección');
+  }
+  if(cat === 'ciudad'){
+    const ciu = u ? (u.ciudad || '') : '';
+    return LABEL_CIUDAD[ciu] || (ciu || 'Sin ciudad');
+  }
+  return '—';
+}
+
 function renderAnalisis(){
   const ano = document.getElementById('anaAno').value;
   const mes = document.getElementById('anaMes').value;
@@ -2826,23 +2870,41 @@ function renderAnalisis(){
       }).join('')}
     </div>`;
 
-  // Top áreas
-  document.getElementById('chartAreas').innerHTML=`
+  // ── Top por categoría (área / dirección / ciudad) ──
+  const catEl = document.getElementById('anaTopCat');
+  const cat = catEl ? catEl.value : 'area';
+  const TITULOS = {
+    area:      '🏢 Top Áreas por Consumo',
+    direccion: '🏛️ Top Direcciones por Consumo',
+    ciudad:    '📍 Top Ciudades por Consumo'
+  };
+  const tEl = document.getElementById('topChartTitle');
+  if(tEl) tEl.textContent = TITULOS[cat] || TITULOS.area;
+
+  const grupos = {};
+  items.forEach(v => {
+    const k = claveTop(v, cat);
+    grupos[k] = (grupos[k] || 0) + v.cant;
+  });
+  const topLista = Object.entries(grupos).sort((a,b) => b[1] - a[1]);
+  const limite = cat === 'area' ? 8 : 12;
+
+  document.getElementById('chartAreas').innerHTML = topLista.length ? `
     <div style="display:flex;flex-direction:column;gap:11px;padding:8px 0;min-height:260px;justify-content:flex-start">
-      ${topArea.slice(0,8).map(([area,qty])=>{
-        const maxA = topArea[0][1];
+      ${topLista.slice(0,limite).map(([nombre,qty])=>{
+        const maxA = topLista[0][1] || 1;
         const pct = Math.round((qty/maxA)*100);
         return `<div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-            <span style="font-size:10px;color:#1e293b;font-family:Inter,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%">${area}</span>
-            <span style="font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;color:var(--gd)">${qty} PAQ.</span>
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px;gap:10px">
+            <span style="font-size:10.5px;color:#1e293b;font-family:Inter,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1" title="${nombre}">${nombre}</span>
+            <span style="font-family:Barlow Condensed,sans-serif;font-size:13px;font-weight:700;color:var(--gd);white-space:nowrap">${qty} PAQ.</span>
           </div>
           <div style="height:6px;background:var(--border);border-radius:3px">
-            <div style="height:100%;width:${pct}%;background:var(--gm);border-radius:3px;transition:.3s"></div>
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gm),var(--gl));border-radius:3px;transition:.35s"></div>
           </div>
         </div>`;
       }).join('')}
-    </div>`;
+    </div>` : '<div class="empty-state" style="min-height:260px"><div class="icon">📊</div><p>Sin datos para los filtros seleccionados</p></div>';
 
   // Tabla
   document.getElementById('tbodyAnalisis').innerHTML = items.map(v=>`<tr>
@@ -2956,30 +3018,6 @@ function renderMatriz(){
   container.innerHTML = html;
 }
 
-function exportarMatriz(){
-  const ano = document.getElementById('matrizAno').value;
-  const dir = document.getElementById('matrizDir').value;
-  const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-  let vales = VALES.filter(v=>v.status==='ENTREGADO');
-  if(ano) vales = vales.filter(v=>v.fecha&&v.fecha.startsWith(ano));
-  if(dir) vales = vales.filter(v=>{ const u=CATALOGO.find(u=>u.ficha===v.ficha&&u.area===v.area); return u&&u.direccion===dir; });
-  const areas = [...new Set(vales.map(v=>v.area))].sort();
-  const meses = MESES.filter(m=>vales.some(v=>v.mes===m));
-  const rows = areas.map(area=>{
-    const row = {'Área Usuaria': area};
-    let total = 0;
-    meses.forEach(m=>{ const v=vales.filter(v=>v.area===area&&v.mes===m).reduce((s,v)=>s+v.cant,0); row[m]=v||0; total+=v||0; });
-    row['TOTAL']=total;
-    return row;
-  });
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Matriz');
-  XLSX.writeFile(wb, 'Matriz_Consumo_HojasBlancas'+(ano?'_'+ano:'')+(dir?'_'+dir:'')+'.xlsx');
-  toast('Matriz Excel descargada','ok');
-}
-
-// Autocomplete de Área Usuaria desde catálogo existente
 function acArea(inp){
   const q = inp.value.toLowerCase();
   const list = document.getElementById('acAreaList');
