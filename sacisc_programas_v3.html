@@ -208,8 +208,8 @@ tbody td{padding:9px 13px;color:#333;}
     padding-left: 16px;
     line-height: 1.2;
   }
-  .header-title .main { font-family: 'Barlow Condensed', sans-serif; font-size: 19px; font-weight: 700; color: #002f2a; letter-spacing: 0.04em; text-transform: uppercase; }
-  .header-title .sub { font-size: 11.48px; font-weight: 400; color: #98989a; letter-spacing: 0.02em; }
+  .header-title .main { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; color: #002f2a; letter-spacing: 0.04em; text-transform: uppercase; }
+  .header-title .sub { font-size: 10.48px; font-weight: 400; color: #98989a; letter-spacing: 0.02em; }
   .header-right { display: flex; align-items: center; gap: 12px; }
   .header-badge { background: #1e5b4f; color: white; font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; }
   .btn-upload-header {
@@ -377,7 +377,7 @@ tbody td{padding:9px 13px;color:#333;}
     <rect x="12" y="51" width="40" height="2.5" rx="1.25" fill="url(#sac_g2)" opacity="0.8"></rect>
   </g>
 </svg>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;letter-spacing:4px;color:var(--gd);margin-left:9px;">SACISC</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:29px;font-weight:700;letter-spacing:4px;color:var(--gd);margin-left:9px;">SACISC</span>
     </div>
     <div class="header-title" style="border-left:2px solid rgba(45,158,126,0.4);padding-left:14px;">
       <div class="main">SACISC <span style="font-weight:400;opacity:0.7;font-size:0.82em;">· Programas de Trabajo</span></div>
@@ -596,14 +596,14 @@ tbody td{padding:9px 13px;color:#333;}
         <p class="page-desc">Seleccione Área, Servicio y Localización para analizar su historial de atención.</p>
       </div>
       <div class="panel-head-actions">
-        <select id="frqArea" onchange="frqCambioArea()" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;background:#e8f3ef;color:#002f2a;border:1.5px solid #a0cfc3;">
+        <select id="frqArea" onchange="frqCambioArea()" class="filter-select">
           <option value="">— Área —</option><option value="SCAD">SCAD</option><option value="SCEP">SCEP</option><option value="SCUI">SCUI</option><option value="SCCO">SCCO</option>
         </select>
-        <select id="frqServ" onchange="frqCambioServ()" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;background:#e8f3ef;color:#002f2a;border:1.5px solid #a0cfc3;">
+        <select id="frqServ" onchange="frqCambioServ()" class="filter-select">
           <option value="">— Servicio —</option>
           <option value="AV">🌿 Áreas Verdes</option><option value="DOM">🏢 Domésticos</option><option value="RB">🗑️ Recolección de Basura</option>
         </select>
-        <select id="frqLoc" onchange="renderFrecuencias()" style="border-radius:6px;padding:4px 9px;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;appearance:none;min-width:180px;background:#e8f3ef;color:#002f2a;border:1.5px solid #a0cfc3;">
+        <select id="frqLoc" onchange="renderFrecuencias()" class="filter-select" style="min-width:190px;">
           <option value="">— Localización —</option>
         </select>
       </div>
@@ -2037,7 +2037,7 @@ function renderProgramasTab(){
     const _snGantt=p.subareaNom||(p.subareaId?(SA.find(s=>s.id===p.subareaId)||{}).nombre||'':'');
     const _rowAttrs=`class="gt-cell gt-row-click" data-row-idx="${_rowIdx}" data-sem="${p.semana}" data-serv="${p.serv}" data-anio="${p.anio}" data-area="${p.area}" data-sub="${p.subareaId||''}"`;
     h+=`<div ${_rowAttrs}><strong style="font-size:.82rem;">${p.area}</strong></div>`;
-    h+=`<div ${_rowAttrs}><span class="chip ${p.serv==='AV'?'cv':p.serv==='DOM'?'cb':'co'}" style="font-size:.65rem;">${p.serv}</span></div>`;
+    h+=`<div ${_rowAttrs}><span class="chip ${p.serv==='AV'?'cv':p.serv==='DOM'?'cb':'co'}" style="font-size:.65rem;white-space:nowrap;">${SVCL[p.serv]||p.serv}</span></div>`;
     h+=`<div ${_rowAttrs} style="font-size:.72rem;color:var(--gm);font-weight:600;">${_snGantt||'<span style="color:var(--gray);">—</span>'}</div>`;
     h+=`<div ${_rowAttrs}><span style="font-family:Barlow Condensed,sans-serif;font-size:.92rem;font-weight:700;color:${semColor(pct)};">${pct}%</span></div>`;
     sems.forEach(s=>{
@@ -4058,17 +4058,17 @@ function frqRenderChart(atenciones){
   const semMap={};
   atenciones.forEach(a=>{
     const k=a.anio+'_S'+String(a.semana).padStart(2,'0');
-    if(!semMap[k])semMap[k]={av:0,dom:0,rb:0,label:'Sem.'+a.semana};
-    if(a.serv==='AV')semMap[k].av++;
-    else if(a.serv==='DOM')semMap[k].dom++;
-    else semMap[k].rb++;
+    if(!semMap[k])semMap[k]={ejecutadas:0,pendientes:0,label:'Sem.'+a.semana};
+    // "Ejecutada" = tiene un resultado ya resuelto (ejecutado, desviación o no aplica);
+    // "Pendiente" = sigue programada, todavía por atenderse esa semana.
+    if(a.status==='EJECUTADO'||a.status==='DESVIACION'||a.status==='NO_APLICA')semMap[k].ejecutadas++;
+    else semMap[k].pendientes++;
   });
   const keys=Object.keys(semMap).sort();
   _frqChart=new Chart(ctx,{type:'bar',
     data:{labels:keys.map(k=>semMap[k].label),datasets:[
-      {label:'Áreas Verdes',data:keys.map(k=>semMap[k].av),backgroundColor:'rgba(16,185,129,.82)',borderColor:'#059669',borderWidth:1.5,borderRadius:3},
-      {label:'Domésticos',data:keys.map(k=>semMap[k].dom),backgroundColor:'rgba(59,130,246,.82)',borderColor:'#2563eb',borderWidth:1.5,borderRadius:3},
-      {label:'Rec. Basura',data:keys.map(k=>semMap[k].rb),backgroundColor:'rgba(245,158,11,.82)',borderColor:'#d97706',borderWidth:1.5,borderRadius:3},
+      {label:'Ejecutadas',data:keys.map(k=>semMap[k].ejecutadas),backgroundColor:'rgba(16,185,129,.88)',borderColor:'#059669',borderWidth:1.5,borderRadius:3},
+      {label:'Programadas (pendientes)',data:keys.map(k=>semMap[k].pendientes),backgroundColor:'rgba(152,152,154,.30)',borderColor:'#98989a',borderWidth:1.5,borderDash:[4,3],borderRadius:3},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:true,position:'top',labels:{color:'#333',font:{family:"Barlow Condensed,sans-serif",size:11,weight:'600'},usePointStyle:true,pointStyle:'rect',padding:14}},
