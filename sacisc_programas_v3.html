@@ -5258,7 +5258,8 @@ function abrirDrillDown(sem,serv,anio,area,subarea){
       const stCls=st==='EJECUTADO'?'ej':st==='DESVIACION'?'dev':st==='NO_EJECUTADO'?'noej':'pend';
       const stLbl=st==='EJECUTADO'?'✅ Ejecutado':st==='DESVIACION'?'⚠️ Desviación':st==='NO_EJECUTADO'?'❌ No ejecutado':st==='NO_APLICA'?'N/A':'⏳ Pendiente';
       const obsAd=reg.obs?(' · '+reg.obs):'';
-      const nota=(st==='DESVIACION'||st==='NO_APLICA')?(({'CAMBIO_LOC':'Cambio localización','AUSENCIA':'Ausencia','CANCELACION':'Cancelación','EMERGENCIA':'Emergencia'}[reg.tipo]||reg.motivo||reg.tipo||'')+obsAd):st==='NO_EJECUTADO'?('Motivo: '+(reg.obs||'Sin especificar')):obsAd||'—';
+      const tipoLbl=({'CAMBIO_LOC':'Cambio localización','AUSENCIA':'Ausencia','CANCELACION':'Cancelación','EMERGENCIA':'Emergencia'}[reg.tipo]||reg.tipo||'');
+      const nota=st==='DESVIACION'?(tipoLbl+(reg.motivo?': '+reg.motivo:'')+obsAd):st==='NO_APLICA'?((reg.motivo||'No aplica')+obsAd):st==='NO_EJECUTADO'?('Motivo: '+(reg.obs||'Sin especificar')):obsAd||'—';
       const domCol=prog.serv==='DOM'&&!((prog.subareaNom||'').toUpperCase().includes('HOSPITAL'))?`<td style="font-size:.75rem;">${reg.domEjec||loc.domestico||'—'}</td>`:'';
       const festLoc=getFestivoDeFechaStr(loc.fecha);
       const festBadge=festLoc?`<br><span style="display:inline-block;margin-top:2px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;border-radius:8px;padding:1px 6px;font-size:.6rem;font-weight:700;">🎉 ${festLoc.label}</span>`:'';
