@@ -1020,7 +1020,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
         <select class="filter-sel" id="anaTopCat" onchange="renderAnalisis()" style="min-width:190px">
           <option value="area">Top Área por consumo</option>
           <option value="direccion">Top Dirección por consumo</option>
-          <option value="ciudad">Top Ciudad por consumo</option>
+          <option value="ciudad">Top Sector por consumo</option>
         </select>
       </div>
       <div class="card-body"><div id="chartAreas"></div></div>
@@ -2804,14 +2804,14 @@ function renderInventario(){
 // ═══ ANÁLISIS ════════════════════════════════════════════════════════
 // Etiquetas legibles para las categorías del Top
 const LABEL_DIRECCION = {
-  'DAS': 'Dirección de Administración y Servicios',
-  'DEE': 'Dirección de Exploración y Extracción',
-  'DL':  'Dirección de Logística'
+  'DAS': 'DIRECCIÓN DE ADMINISTRACIÓN Y SERVICIOS',
+  'DEE': 'DIRECCIÓN DE EXPLORACIÓN Y EXTRACCIÓN',
+  'DL':  'DIRECCIÓN DE LOGÍSTICA'
 };
 const LABEL_CIUDAD = {
-  'Las Choapas, Ver.': 'El Plan',
-  'Cuichapa, Ver.':    'Cuichapa',
-  'Agua Dulce, Ver.':  'Agua Dulce'
+  'Las Choapas, Ver.': 'EL PLAN',
+  'Cuichapa, Ver.':    'CUICHAPA',
+  'Agua Dulce, Ver.':  'AGUA DULCE'
 };
 
 // Devuelve la clave de agrupación de un vale según la categoría elegida
@@ -2821,11 +2821,11 @@ function claveTop(v, cat){
          || CATALOGO.find(x => x.ficha === v.ficha);
   if(cat === 'direccion'){
     const d = u ? (u.direccion || '') : '';
-    return LABEL_DIRECCION[d] || (d || 'Sin dirección');
+    return LABEL_DIRECCION[d] || (d ? d.toUpperCase() : 'SIN DIRECCIÓN');
   }
   if(cat === 'ciudad'){
     const ciu = u ? (u.ciudad || '') : '';
-    return LABEL_CIUDAD[ciu] || (ciu || 'Sin ciudad');
+    return LABEL_CIUDAD[ciu] || (ciu ? ciu.toUpperCase() : 'SIN CIUDAD');
   }
   return '—';
 }
@@ -2876,7 +2876,7 @@ function renderAnalisis(){
   const TITULOS = {
     area:      '🏢 Top Áreas por Consumo',
     direccion: '🏛️ Top Direcciones por Consumo',
-    ciudad:    '📍 Top Ciudades por Consumo'
+    ciudad:    '📍 Top Sectores por Consumo'
   };
   const tEl = document.getElementById('topChartTitle');
   if(tEl) tEl.textContent = TITULOS[cat] || TITULOS.area;
