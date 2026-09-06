@@ -2028,7 +2028,7 @@ function renderProgramasTab(){
   if(!d.length){gc.innerHTML='';eg.style.display='block';return;}
   eg.style.display='none';
   const sems=[...new Set(d.map(p=>p.semana))].sort((a,b)=>a-b);
-  const cols=`150px 90px 110px 80px ${sems.map(()=>'minmax(95px,1fr)').join(' ')}`;
+  const cols=`150px 165px 110px 80px ${sems.map(()=>'minmax(95px,1fr)').join(' ')}`;
   let h=`<div class="gt-wrap"><div class="gt-grid" style="grid-template-columns:${cols};">`;
   h+=`<div class="gt-hcell">Programa</div><div class="gt-hcell">Servicio</div><div class="gt-hcell">Subárea</div><div class="gt-hcell">Avance</div>`;
   sems.forEach(s=>{const f=semDates(anio,s);h+=`<div class="gt-hcell" style="text-align:center;">Sem. ${s}<br><span style="font-size:.62rem;opacity:.75;font-weight:400;">${f.ini}</span></div>`;});
