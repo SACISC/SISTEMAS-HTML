@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SACISC · Módulo Combustibles — PEMEX URSS Sur</title>
+<title>SACISC - Combustibles</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjYgMCA1MiA1OCI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImcxIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzFlNWI0ZiIvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyZDllN2UiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8cG9seWdvbiBwb2ludHM9IjMyLDIuNiA1NiwxNS44IDU2LDQyLjIgMzIsNTUuNCA4LDQyLjIgOCwxNS44IiBmaWxsPSJ1cmwoI2cxKSIvPgo8cGF0aCBkPSJNMjIuNCAyMS44IEMyMi40IDIxLjggNDEuNiAyMS44IDQxLjYgMjkgQzQxLjYgMzYuMiAyMi40IDMxLjQgMjIuNCAzOC42IEMyMi40IDQ1LjggNDEuNiA0NS44IDQxLjYgNDUuOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjYgMCA1MiA1OCI+Cjxwb2x5Z29uIHBvaW50cz0iMzIsMi42IDU2LDE1LjggNTYsNDIuMiAzMiw1NS40IDgsNDIuMiA4LDE1LjgiIGZpbGw9IiMxZTViNGYiLz4KPHBhdGggZD0iTTIyLjQgMjEuOCBDMjIuNCAyMS44IDQxLjYgMjEuOCA0MS42IDI5IEM0MS42IDM2LjIgMjIuNCAzMS40IDIyLjQgMzguNiBDMjIuNCA0NS44IDQxLjYgNDUuOCA0MS42IDQ1LjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js">
 
@@ -2213,7 +2215,8 @@ function mostrarModalModo() {
 function entrarSistemaCombustible() {
   const pantalla = document.getElementById('pantallaInicioSACISC');
   if (pantalla) pantalla.style.display = 'none';
-  mostrarModalModo();
+  // Flujo: Pantalla de inicio → Carga de datos (Excel) → Selección de Modo
+  abrirModalCarga();
 }
 
 function seleccionarModo(modo) {
@@ -4040,18 +4043,29 @@ function renderRendDiario(rows, mes) {
   .exec-kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:700;color:var(--green-dark);line-height:1;}
   .exec-kpi-unit{font-size:0.74rem;color:var(--gray);margin-left:3px;}
   .exec-kpi-sub{font-size:0.65rem;color:#888;margin-top:5px;padding-top:5px;border-top:1px solid var(--border);}
-  /* Tabs */
-  .exec-tabs{display:flex;border-bottom:2px solid var(--border);padding:0 28px;background:var(--white);gap:4px;}
+  /* Tabs — cinta de navegación oficial SACISC (homologada con Programas de Trabajo, Agua y Hielo, Hojas) */
+  .exec-tabs{background:var(--green-dark);display:flex;gap:2px;overflow-x:auto;padding:0 12px;box-shadow:0 2px 8px rgba(0,47,42,.25);scrollbar-width:none;}
+  .exec-tabs::-webkit-scrollbar{display:none;}
   .exec-tab {
-    padding:12px 22px;font-family:'Barlow Condensed',sans-serif;
-    font-size:0.86rem;font-weight:700;letter-spacing:0.06em;
-    text-transform:uppercase;color:var(--gray);cursor:pointer;
-    border-bottom:3px solid transparent;margin-bottom:-2px;
-    transition:all 0.2s;display:flex;align-items:center;gap:7px;
-    background:none;border-top:none;border-left:none;border-right:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;padding:10px 18px;min-width:88px;
+    font-size:0.86rem;
+    color:rgba(255,255,255,.5);cursor:pointer;
+    border-bottom:3px solid transparent;border-top:3px solid transparent;margin-bottom:0;
+    transition:all 0.2s;
+    background:none;border-left:none;border-right:none;
   }
-  .exec-tab:hover{color:var(--green-mid);}
-  .exec-tab.active{color:var(--green-dark);border-bottom-color:var(--green-mid);}
+  .exec-tab .exec-nav-icon{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.06);transition:.2s;}
+  .exec-tab .exec-nav-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1;transition:.2s;}
+  .exec-tab:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.05);}
+  .exec-tab:hover .exec-nav-icon{background:rgba(255,255,255,.12);}
+  .exec-tab.active{color:#fff;border-bottom-color:#11CD78;background:rgba(255,255,255,.07);}
+  .exec-tab.active .exec-nav-icon{background:rgba(17,205,120,.2);box-shadow:0 0 0 1px rgba(17,205,120,.35);}
+  .exec-tab.active .exec-nav-icon svg{stroke:#11CD78;}
+  .exec-tab.active .exec-nav-label{color:#11CD78;}
+  .exec-tab-chat{margin-left:auto;background:linear-gradient(135deg,#1565c0,#1976d2)!important;border-radius:8px;padding:8px 16px!important;min-width:0!important;border-bottom:none!important;}
+  .exec-tab-chat .exec-nav-label{color:#fff!important;}
+  .exec-tab-chat:hover{background:linear-gradient(135deg,#1976d2,#1e88e5)!important;}
   /* Panels */
   .exec-panel{padding:24px 28px;background:var(--off-white);overflow:hidden;}
   /* Panel Flotilla necesita overflow-x:auto para la tabla ancha */
@@ -5260,6 +5274,33 @@ function renderRendDiario(rows, mes) {
   .selector-badge.ok{background:#e8f5f0;color:#1e5b4f}
   .selector-badge.ok::before{content:"";width:6px;height:6px;border-radius:50%;background:#11CD78;display:inline-block}
   .seleccion-foot{margin-top:42px;font-size:.66rem;color:rgba(255,255,255,.38);letter-spacing:.04em;font-family:'Inter',sans-serif;line-height:1.7}
+
+  /* ── LOGIN-BOX — patrón oficial SACISC de validación de acceso (homologado con Programas de Trabajo / Pagos Extraordinarios) ── */
+  .login-overlay-sacisc{position:fixed;inset:0;background:linear-gradient(135deg,#002f2a 0%,#1e5b4f 60%,#2d7a6a 100%);z-index:99998;display:none;align-items:center;justify-content:center;padding:20px;}
+  .login-overlay-sacisc.active{display:flex;}
+  .login-box{background:#fff;border-radius:16px;padding:40px 44px;width:100%;max-width:420px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
+  .login-logo{width:150px;height:60px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;padding:8px 14px;box-shadow:0 4px 14px rgba(0,0,0,.18);}
+  .login-logo img{max-width:100%;max-height:100%;object-fit:contain;}
+  .login-title{font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:800;color:#002f2a;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;}
+  .login-sub{font-size:.78rem;color:#888;margin-bottom:28px;}
+  .login-field{display:flex;flex-direction:column;gap:5px;text-align:left;margin-bottom:14px;}
+  .login-field label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#1e5b4f;}
+  .login-field select,.login-field input{width:100%;box-sizing:border-box;border:1.5px solid #d0e8e3;border-radius:8px;padding:10px 13px;font-family:'Barlow',sans-serif;font-size:.9rem;color:#222;background:#f7faf9;transition:border-color .18s;outline:none;}
+  .login-field select:focus,.login-field input:focus{border-color:#1e5b4f;box-shadow:0 0 0 3px rgba(30,91,79,.11);}
+  .login-field-pwd-wrap{position:relative;}
+  .login-field-pwd-wrap input{padding-right:44px;}
+  .login-field-pwd-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#888;padding:4px;}
+  .login-btn{width:100%;background:#1e5b4f;color:#fff;border:none;border-radius:8px;padding:12px;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;transition:background .18s;margin-top:6px;}
+  .login-btn:hover{background:#002f2a;}
+  .login-btn-secondary{width:100%;background:#fff;color:#6b7b78;border:1.5px solid #d0e8e3;border-radius:8px;padding:11px;font-family:'Barlow Condensed',sans-serif;font-size:.92rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .18s;}
+  .login-btn-secondary:hover{background:#f7faf9;border-color:#1e5b4f;color:#1e5b4f;}
+  .login-btn-row{display:flex;gap:10px;margin-top:6px;}
+  .login-btn-row .login-btn,.login-btn-row .login-btn-secondary{margin-top:0;}
+  .login-err{color:#c0392b;font-size:.8rem;font-weight:600;margin-top:10px;min-height:16px;background:#fdecea;border-radius:6px;padding:7px 10px;display:none;}
+  .login-err.show{display:block;}
+  .login-info{font-size:.75rem;color:#555;line-height:1.5;background:#f0f9f6;border-left:3px solid #1e5b4f;border-radius:6px;padding:10px 13px;margin-bottom:18px;text-align:left;}
+  .login-footer{font-size:.65rem;color:#aaa;margin-top:18px;letter-spacing:.03em;}
+  .login-area-badge{font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;font-weight:800;color:#1e5b4f;letter-spacing:.05em;text-transform:uppercase;background:#f0f9f6;border-radius:8px;padding:10px;margin-bottom:14px;}
 </style>
 
 </head>
@@ -5315,7 +5356,7 @@ function renderRendDiario(rows, mes) {
         </button>
       </div>
 
-      <div class="seleccion-foot">Dirección Administración y Servicios<br>Subdirección de Servicios y Administración de Bienes<br>Unidad Regional de Servicios Corporativos Sur - Superintendencia de Servicios Corporativos Coatzacoalcos</div>
+      <div class="seleccion-foot">Dirección Administración y Servicios<br>Subdirección de Servicios y Administración de Bienes - Gerencia de Servicios Generales<br>Unidad Regional de Servicios Corporativos Sur · Superintendencia de Servicios Corporativos Coatzacoalcos</div>
     </div>
   </div>
 </div>
@@ -6969,6 +7010,11 @@ function abrirModalCarga() {
   resetUploadState();
 }
 function cerrarModalCarga() {
+  // Si aún no hay datos cargados en el sistema, la carga es obligatoria: no permitir cerrar
+  if (typeof RAW !== 'undefined' && RAW.length === 0) {
+    alert('⚠ Debe cargar el archivo Excel con los datos del sistema para continuar.');
+    return;
+  }
   document.getElementById('uploadModal').classList.remove('active');
 }
 
@@ -7416,6 +7462,12 @@ function importarDatos() {
   resetUploadState();   // limpiar estado para próxima carga
   limpiar();
   alert(`✅ Se importaron ${RAW.length} registros correctamente al sistema.`);
+
+  // Flujo inicial: Pantalla de inicio → Carga de datos → Selección de Modo
+  if (!window._flujoInicialSACISCCompletado) {
+    window._flujoInicialSACISCCompletado = true;
+    setTimeout(() => mostrarModalModo(), 200);
+  }
 }
 
 function limpiarBaseDatos() {
@@ -21939,56 +21991,52 @@ function renderPronostico() {
     <!-- KPIs -->
     <div class="exec-kpis" id="execKpis"></div>
 
-    <!-- Tabs -->
+    <!-- Tabs — cinta de navegación oficial SACISC -->
     <div class="exec-tabs">
       <button class="exec-tab active" id="execTabGen" onclick="switchExecTab('general')">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Consumo General
+        <span class="exec-nav-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+        <span class="exec-nav-label">Consumo General</span>
       </button>
       <button class="exec-tab" id="execTabMen" onclick="switchExecTab('mensual')">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        Consumo Detallado
+        <span class="exec-nav-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+        <span class="exec-nav-label">Consumo Detallado</span>
       </button>
       <button class="exec-tab" id="execTabDesg" onclick="switchExecTab('desglosado')">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        Desglosado
+        <span class="exec-nav-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+        <span class="exec-nav-label">Desglosado</span>
       </button>
       <button class="exec-tab" id="execTabRank" onclick="switchExecTab('ranking')">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        Ranking
+        <span class="exec-nav-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+        <span class="exec-nav-label">Ranking</span>
       </button>
       <button class="exec-tab" id="execTabEfic" onclick="switchExecTab('eficiencia')" style="display:none;">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <span class="exec-nav-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
-        </svg>
-        Eficiencia
+        </svg></span>
+        <span class="exec-nav-label">Eficiencia</span>
       </button>
       <button class="exec-tab" id="execTabEst" onclick="pedirClaveEstaciones(event)"
         style="display:none;">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <span class="exec-nav-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-        Estaciones
+        </svg></span>
+        <span class="exec-nav-label">Estaciones</span>
       </button>
       <button class="exec-tab" id="execTabFlot" onclick="switchExecTab('flotilla')" style="display:none;">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <span class="exec-nav-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/>
           <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-        </svg>
-        Flotilla
+        </svg></span>
+        <span class="exec-nav-label">Flotilla</span>
       </button>
-      <button class="exec-tab" id="execTabChat" onclick="switchExecTab('chat')"
-        style="background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;
-          border:none;border-radius:8px;margin-left:8px;padding:6px 14px;
-          font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:800;
-          letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;
-          display:flex;align-items:center;gap:5px;">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <button class="exec-tab exec-tab-chat" id="execTabChat" onclick="switchExecTab('chat')">
+        <span class="exec-nav-icon" style="background:rgba(255,255,255,.15);">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-        Chat IA
+        </svg></span>
+        <span class="exec-nav-label">Chat IA</span>
       </button>
     </div>
 

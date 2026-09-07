@@ -1513,7 +1513,7 @@
     <div class="footer-org">
       <p>Unidad Regional de Servicios Corporativos Sur</p>
       <p>Superintendencia de Servicios Corporativos Sur Zona Coatzacoalcos</p>
-      <p id="footerSubarea">Servicios Corporativos Agua Dulce</p>
+      <p>Servicios Corporativos Agua Dulce</p>
     </div>
     <div class="footer-credits" style="position:relative;">
       <div id="perfilCard" style="
@@ -1845,8 +1845,6 @@ function accederArea(area) {
   document.getElementById('headerAreaBadge').textContent = area;
   document.getElementById('headerAreaBadge').classList.remove('hidden');
   document.getElementById('btnCambiarArea').classList.remove('hidden');
-
-  document.getElementById('footerSubarea').textContent = AREA_NOMBRES[area];
 
   if (area === 'TODOS') {
     // El administrador entra directo, sin PIN de sub-area, con visibilidad total.
