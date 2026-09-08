@@ -546,14 +546,31 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="kpi-grid" id="kpiResguardos"></div>
 
     <div class="card">
-      <div class="card-hdr"><h3>📝 Resguardos vigentes</h3></div>
+      <div class="card-hdr">
+        <h3>📝 Resguardos vigentes</h3>
+        <button class="btn btn-primary btn-sm" onclick="abrirAsignarResguardante()">➕ Asignar Resguardante</button>
+      </div>
       <div class="card-body">
         <div class="filter-bar">
           <select class="filter-sel" id="filtroOrigenResg"><option value="">Todos los orígenes</option><option value="PROPIO">Propios</option><option value="ARRENDADO">Arrendados</option></select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--gray);font-family:'Inter',sans-serif;">
+            <input type="checkbox" id="filtroSoloReemplazos" style="width:15px;height:15px;"> Solo con reemplazos en su historial
+          </label>
           <input class="search-inp" id="buscarResguardo" placeholder="Buscar por placa, económico o titular…">
         </div>
         <div class="empty-state" id="emptyResguardos"><div class="icon">📝</div><p>Cargando resguardos desde Supabase…</p></div>
         <div class="tbl-wrap" id="tablaResguardos"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3>👥 Directorio de Personal</h3></div>
+      <div class="card-body">
+        <p class="page-desc" style="margin-bottom:10px;">Personas con resguardo vigente y el departamento del vehículo que tienen asignado (Dirección › Subdirección › Gerencia/Unidad › Coordinación/Área).</p>
+        <div class="filter-bar">
+          <input class="search-inp" id="buscarDirectorio" placeholder="Buscar por nombre, ficha o departamento…" style="min-width:280px;">
+        </div>
+        <div class="tbl-wrap" id="tablaDirectorio"></div>
       </div>
     </div>
   </div>
@@ -623,6 +640,43 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="modal-body" id="modalHistorialResguardoBody"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalHistorialResguardo')">Cerrar</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL: ASIGNAR RESGUARDANTE -->
+<div class="modal-overlay" id="modalAsignarResguardante">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2>➕ Asignar Nuevo Resguardante</h2>
+      <button class="modal-close" onclick="closeModal('modalAsignarResguardante')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-group" style="margin-bottom:14px;position:relative;">
+        <label>Buscar vehículo (No. Económico o Placas) *</label>
+        <input class="fc" id="asigBuscarVehiculo" placeholder="Escribe para buscar…" autocomplete="off">
+        <div id="asigSugerencias" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;z-index:50;"></div>
+      </div>
+
+      <div id="asigVehiculoActual" style="display:none;margin-bottom:14px;padding:10px 14px;background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:8px;font-size:12.5px;"></div>
+
+      <div id="asigFormPersona" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group"><label>Nombre completo *</label><input class="fc" id="asigNombre" placeholder="Nombre del nuevo titular"></div>
+          <div class="form-group"><label>Ficha *</label><input class="fc" id="asigFicha" placeholder="Ficha PEMEX"></div>
+          <div class="form-group"><label>Cargo</label><input class="fc" id="asigCargo" placeholder="Cargo / puesto"></div>
+          <div class="form-group"><label>Nivel del Asignatario</label><input class="fc" id="asigNivel" placeholder="Nivel"></div>
+          <div class="form-group"><label>Correo Electrónico</label><input class="fc" id="asigCorreo" placeholder="correo@pemex.com"></div>
+          <div class="form-group"><label>No. de Extensión</label><input class="fc" id="asigExtension" placeholder="Extensión"></div>
+          <div class="form-group"><label>No. Celular</label><input class="fc" id="asigCelular" placeholder="Celular"></div>
+          <div class="form-group"><label>Fecha del Resguardo</label><input class="fc" type="date" id="asigFecha"></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalAsignarResguardante')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarResguardante" style="display:none;" onclick="guardarNuevoResguardante()">Guardar Resguardo</button>
     </div>
   </div>
 </div>
@@ -887,11 +941,17 @@ function resguardosVigentesConVehiculo(){
   return RESGUARDOS.filter(r=>r.vigente).map(r=>({...r, _vehiculo: vehiculoDe(r.vehiculo_id)})).filter(r=>r._vehiculo);
 }
 
+function conteoResguardosPorVehiculo(vehiculoId){
+  return RESGUARDOS.filter(r=>r.vehiculo_id===vehiculoId).length;
+}
+
 function resguardosFiltrados(){
   const origen = document.getElementById('filtroOrigenResg').value;
+  const soloReemplazos = document.getElementById('filtroSoloReemplazos').checked;
   const q = (document.getElementById('buscarResguardo').value||'').trim().toLowerCase();
   return resguardosVigentesConVehiculo().filter(r=>{
     if(origen && r._vehiculo.origen!==origen) return false;
+    if(soloReemplazos && conteoResguardosPorVehiculo(r._vehiculo.id) < 2) return false;
     if(q){
       const campos = [r._vehiculo.no_economico, r._vehiculo.placas, r.titular_responsable, r.ficha_titular].map(x=>(x||'').toString().toLowerCase());
       if(!campos.some(c=>c.includes(q))) return false;
@@ -904,13 +964,13 @@ function renderResguardos(){
   const vigentes = resguardosVigentesConVehiculo();
   const lista = resguardosFiltrados();
   const conTitular = vigentes.filter(r=>r.titular_responsable).length;
-  const reemplazos = RESGUARDOS.filter(r=>r.reemplacado).length;
+  const vehiculosConReemplazos = new Set(RESGUARDOS.filter(r=>r.reemplacado).map(r=>r.vehiculo_id)).size;
 
   document.getElementById('kpiResguardos').innerHTML =
     kpiCard('Resguardos vigentes', vigentes.length) +
     kpiCard('Con titular asignado', conTitular, '#1b6b2b') +
     kpiCard('Vehículos sin resguardo', VEHICULOS.length - vigentes.length, VEHICULOS.length-vigentes.length>0?'var(--amber)':'var(--gd)') +
-    kpiCard('Reemplazos históricos', reemplazos, 'var(--blue)');
+    kpiCard('Vehículos con reemplazos', vehiculosConReemplazos, 'var(--blue)');
 
   document.getElementById('emptyResguardos').style.display = lista.length ? 'none' : 'block';
   document.getElementById('emptyResguardos').querySelector('p').textContent =
@@ -922,10 +982,12 @@ function renderResguardos(){
     <table class="tbl">
       <thead><tr>
         <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Titular</th>
-        <th>Ficha</th><th>Cargo</th><th>Fecha Resguardo</th><th>Acciones</th>
+        <th>Ficha</th><th>Cargo</th><th>Fecha Resguardo</th><th>Historial</th><th>Acciones</th>
       </tr></thead>
       <tbody>
-        ${lista.map(r=>`
+        ${lista.map(r=>{
+          const n = conteoResguardosPorVehiculo(r._vehiculo.id);
+          return `
           <tr>
             <td class="tbl-num">${escapeHtml(r._vehiculo.no_economico)}</td>
             <td>${escapeHtml(r._vehiculo.placas)}</td>
@@ -934,15 +996,19 @@ function renderResguardos(){
             <td>${escapeHtml(r.ficha_titular)}</td>
             <td>${escapeHtml(r.cargo)}</td>
             <td>${fechaCorta(r.fecha_resguardo)}</td>
+            <td class="tbl-center">${n>1 ? `<span class="badge badge-amber">${n} resguardos</span>` : `<span class="badge badge-gray">1</span>`}</td>
             <td class="btn-group">
               <button class="btn btn-outline btn-xs" onclick="verHistorialResguardo('${r._vehiculo.id}')">Historial</button>
+              <button class="btn btn-outline btn-xs" onclick="abrirAsignarResguardante('${r._vehiculo.id}')">Reasignar</button>
               <button class="btn btn-primary btn-xs" onclick="generarResguardoPDF('${r.id}')">PDF</button>
             </td>
           </tr>
-        `).join('')}
+        `;}).join('')}
       </tbody>
     </table>
   `;
+
+  renderDirectorio();
 }
 
 function verHistorialResguardo(vehiculoId){
@@ -1099,8 +1165,170 @@ function generarResguardoPDF(resguardoId){
   toast(`📄 Resguardo de ${v.no_economico} — selecciona "Guardar como PDF" en el diálogo`, 'ok');
 }
 
+// ═══ DIRECTORIO DE PERSONAL ═════════════════════════════════════════════
+// Se construye a partir de los resguardos vigentes: cada persona con
+// resguardo activo hereda el departamento (Dirección/Subdirección/
+// Gerencia-Unidad/Coordinación-Área) del vehículo que tiene asignado.
+function directorioPersonal(){
+  return resguardosVigentesConVehiculo()
+    .filter(r=>r.titular_responsable)
+    .map(r=>({
+      nombre: r.titular_responsable, ficha: r.ficha_titular, cargo: r.cargo,
+      direccion: r._vehiculo.direccion, subdireccion: r._vehiculo.subdireccion,
+      gerencia_unidad: r._vehiculo.gerencia_unidad, coordinacion_area: r._vehiculo.coordinacion_area,
+      no_economico: r._vehiculo.no_economico, placas: r._vehiculo.placas,
+    }))
+    .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+}
+
+function renderDirectorio(){
+  const q = (document.getElementById('buscarDirectorio').value||'').trim().toLowerCase();
+  let lista = directorioPersonal();
+  if(q){
+    lista = lista.filter(p=>{
+      const campos = [p.nombre, p.ficha, p.direccion, p.subdireccion, p.gerencia_unidad, p.coordinacion_area].map(x=>(x||'').toLowerCase());
+      return campos.some(c=>c.includes(q));
+    });
+  }
+  if(!lista.length){
+    document.getElementById('tablaDirectorio').innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No se encontraron personas con ese criterio.</p></div>`;
+    return;
+  }
+  document.getElementById('tablaDirectorio').innerHTML = `
+    <table class="tbl">
+      <thead><tr>
+        <th>Nombre</th><th>Ficha</th><th>Cargo</th><th>Dirección</th><th>Subdirección</th>
+        <th>Gerencia / Unidad</th><th>Coordinación / Área</th><th>Vehículo</th>
+      </tr></thead>
+      <tbody>
+        ${lista.map(p=>`
+          <tr>
+            <td>${escapeHtml(p.nombre)}</td>
+            <td class="tbl-num">${escapeHtml(p.ficha)}</td>
+            <td>${escapeHtml(p.cargo)}</td>
+            <td>${escapeHtml(p.direccion)}</td>
+            <td>${escapeHtml(p.subdireccion)}</td>
+            <td>${escapeHtml(p.gerencia_unidad)}</td>
+            <td>${escapeHtml(p.coordinacion_area)}</td>
+            <td>${escapeHtml(p.no_economico)} · ${escapeHtml(p.placas)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+document.getElementById('buscarDirectorio').addEventListener('input', renderDirectorio);
+
+// ═══ ASIGNAR NUEVO RESGUARDANTE ═════════════════════════════════════════
+let ASIG_VEHICULO_ID = null;
+
+function abrirAsignarResguardante(vehiculoIdPreseleccionado){
+  ASIG_VEHICULO_ID = null;
+  document.getElementById('asigBuscarVehiculo').value = '';
+  document.getElementById('asigSugerencias').style.display = 'none';
+  document.getElementById('asigVehiculoActual').style.display = 'none';
+  document.getElementById('asigFormPersona').style.display = 'none';
+  document.getElementById('btnGuardarResguardante').style.display = 'none';
+  ['asigNombre','asigFicha','asigCargo','asigNivel','asigCorreo','asigExtension','asigCelular'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('asigFecha').value = new Date().toISOString().slice(0,10);
+
+  openModal('modalAsignarResguardante');
+
+  if(vehiculoIdPreseleccionado){
+    seleccionarVehiculoParaAsignar(vehiculoIdPreseleccionado);
+  }
+}
+
+document.getElementById('asigBuscarVehiculo').addEventListener('input', function(){
+  const q = this.value.trim().toLowerCase();
+  const cont = document.getElementById('asigSugerencias');
+  if(q.length < 2){ cont.style.display='none'; return; }
+  const resultados = VEHICULOS.filter(v=>
+    (v.no_economico||'').toLowerCase().includes(q) || (v.placas||'').toLowerCase().includes(q)
+  ).slice(0, 12);
+  if(!resultados.length){ cont.innerHTML = `<div style="padding:10px 14px;color:var(--gray);font-size:12.5px;">Sin resultados</div>`; cont.style.display='block'; return; }
+  cont.innerHTML = resultados.map(v=>`
+    <div style="padding:9px 14px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border);" 
+         onmouseover="this.style.background='#eaf3f0'" onmouseout="this.style.background=''"
+         onclick="seleccionarVehiculoParaAsignar('${v.id}')">
+      <strong>${escapeHtml(v.no_economico)}</strong> · ${escapeHtml(v.placas)} — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} ${badgeOrigen(v.origen)}
+    </div>
+  `).join('');
+  cont.style.display = 'block';
+});
+
+function seleccionarVehiculoParaAsignar(vehiculoId){
+  const v = vehiculoDe(vehiculoId);
+  if(!v){ toast('Vehículo no encontrado', 'warn'); return; }
+  ASIG_VEHICULO_ID = vehiculoId;
+  document.getElementById('asigBuscarVehiculo').value = `${v.no_economico} · ${v.placas}`;
+  document.getElementById('asigSugerencias').style.display = 'none';
+
+  const vigente = RESGUARDOS.find(r=>r.vehiculo_id===vehiculoId && r.vigente);
+  const infoBox = document.getElementById('asigVehiculoActual');
+  infoBox.style.display = 'block';
+  infoBox.innerHTML = `
+    <strong>${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)}</strong> — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} ${badgeOrigen(v.origen)}<br>
+    <span style="color:var(--gray);">${escapeHtml(v.direccion)} › ${escapeHtml(v.subdireccion)} › ${escapeHtml(v.gerencia_unidad)}</span><br>
+    ${vigente
+      ? `⚠️ Resguardante actual: <strong>${escapeHtml(vigente.titular_responsable)||'(sin nombre)'}</strong> (ficha ${escapeHtml(vigente.ficha_titular)}) — quedará marcado como <em>reemplazado</em> al guardar.`
+      : `✅ Este vehículo no tiene resguardante vigente.`}
+  `;
+
+  document.getElementById('asigFormPersona').style.display = 'block';
+  document.getElementById('btnGuardarResguardante').style.display = 'inline-flex';
+}
+
+async function guardarNuevoResguardante(){
+  if(!ASIG_VEHICULO_ID){ toast('Selecciona primero un vehículo', 'warn'); return; }
+  const nombre = document.getElementById('asigNombre').value.trim();
+  const ficha = document.getElementById('asigFicha').value.trim();
+  if(!nombre || !ficha){ toast('Nombre y Ficha son obligatorios', 'warn'); return; }
+
+  const btn = document.getElementById('btnGuardarResguardante');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  const nuevoResguardo = {
+    vehiculo_id: ASIG_VEHICULO_ID,
+    ficha_titular: ficha,
+    titular_responsable: nombre,
+    cargo: document.getElementById('asigCargo').value.trim() || null,
+    nivel: document.getElementById('asigNivel').value.trim() || null,
+    correo: document.getElementById('asigCorreo').value.trim() || null,
+    extension: document.getElementById('asigExtension').value.trim() || null,
+    celular: document.getElementById('asigCelular').value.trim() || null,
+    fecha_resguardo: document.getElementById('asigFecha').value || new Date().toISOString().slice(0,10),
+    reemplacado: false,
+    vigente: true,
+  };
+
+  try{
+    const vigenteAnterior = RESGUARDOS.find(r=>r.vehiculo_id===ASIG_VEHICULO_ID && r.vigente);
+    if(vigenteAnterior){
+      await sbUpdate('flotilla_resguardos', `id=eq.${vigenteAnterior.id}`, {
+        vigente: false, reemplacado: true, fecha_reemplacado: nuevoResguardo.fecha_resguardo
+      });
+      vigenteAnterior.vigente = false;
+      vigenteAnterior.reemplacado = true;
+      vigenteAnterior.fecha_reemplacado = nuevoResguardo.fecha_resguardo;
+    }
+    const insertado = await sbInsert('flotilla_resguardos', nuevoResguardo);
+    RESGUARDOS.push(insertado[0]);
+
+    toast('Resguardante asignado correctamente', 'ok');
+    closeModal('modalAsignarResguardante');
+    renderResguardos();
+  }catch(e){
+    console.error(e);
+    toast('Error al guardar: '+e.message, 'warn');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar Resguardo';
+  }
+}
+
 // ═══ LISTENERS DE FILTRO — RESGUARDOS ══════════════════════════════════
 document.getElementById('filtroOrigenResg').addEventListener('change', renderResguardos);
+document.getElementById('filtroSoloReemplazos').addEventListener('change', renderResguardos);
 document.getElementById('buscarResguardo').addEventListener('input', renderResguardos);
 </script>
 </body>
