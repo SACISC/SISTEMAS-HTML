@@ -1202,7 +1202,7 @@ function renderResguardos(){
   document.getElementById('tablaResguardos').innerHTML = `
     <table class="tbl">
       <thead><tr>
-        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Estatus de Unidad</th><th>Titular</th>
+        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Departamento</th><th>Estatus de Unidad</th><th>Titular</th>
         <th>Ficha</th><th>Cargo</th><th>Fecha Resguardo</th><th>Historial</th><th>Acciones</th>
       </tr></thead>
       <tbody>
@@ -1213,6 +1213,7 @@ function renderResguardos(){
             <td class="tbl-num">${vehHoverSpan(r._vehiculo.id, r._vehiculo.no_economico)}</td>
             <td>${vehHoverSpan(r._vehiculo.id, r._vehiculo.placas)}</td>
             <td>${badgeOrigen(r._vehiculo.origen)}</td>
+            <td>${r._vehiculo.siglas ? `<span class="badge badge-blue">${escapeHtml(r._vehiculo.siglas)}</span>` : '—'}</td>
             <td>${badgeEstatus(r._vehiculo.estatus)}</td>
             <td>${escapeHtml(r.titular_responsable)||'<span class="badge badge-gray">SIN TITULAR</span>'}</td>
             <td>${escapeHtml(r.ficha_titular)}</td>
@@ -1908,6 +1909,7 @@ function ejecutarAuditoria(filas){
 
     return {
       no_economico: v.no_economico, placas: v.placas, origen: v.origen, estatus_unidad: v.estatus,
+      siglas_vehiculo: v.siglas,
       ficha_sys: vigente ? vigente.ficha_titular : null,
       nombre_sys: vigente ? vigente.titular_responsable : null,
       vehiculo_id: v.id,
@@ -1941,6 +1943,8 @@ function renderAuditoria(){
     cont.innerHTML = noCoincide.map(a=>{
       const detectado = a.usuarios[0];
       const yaExisteEnPersonal = detectado ? personaExisteEnCatalogo(detectado.nombre) : true;
+      const deptoCombustible = a.usuarios.find(u=>u.siglas) ? a.usuarios.find(u=>u.siglas).siglas : null;
+      const deptoDiferente = a.siglas_vehiculo && deptoCombustible && a.siglas_vehiculo.toUpperCase()!==deptoCombustible.toUpperCase();
       return `
       <div style="border:2px solid #ef5350;background:#fdecea;border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
         <div>
@@ -1949,10 +1953,13 @@ function renderAuditoria(){
           </div>
           <div style="font-size:12.5px;margin-top:4px;">
             <strong>Registrado en el sistema:</strong> ${escapeHtml(a.nombre_sys)||'(sin nombre)'} ${a.ficha_sys?`(ficha ${escapeHtml(a.ficha_sys)})`:''}
+            ${a.siglas_vehiculo?` — depto <span class="badge badge-blue">${escapeHtml(a.siglas_vehiculo)}</span>`:''}
           </div>
           <div style="font-size:12.5px;color:#8a3a2e;">
             <strong>Detectado usando el vehículo en combustible:</strong> ${a.usuarios.map(u=>`${escapeHtml(u.nombre)}${u.ficha?` (ficha ${escapeHtml(u.ficha)})`:''}`).join('; ')}
+            ${deptoCombustible?` — depto <span class="badge ${deptoDiferente?'badge-red':'badge-blue'}">${escapeHtml(deptoCombustible)}</span>`:''}
           </div>
+          ${deptoDiferente ? `<div style="font-size:11.5px;margin-top:4px;color:#8a3a2e;">⚠️ <strong>El vehículo también cambió de departamento</strong> (${escapeHtml(a.siglas_vehiculo)} → ${escapeHtml(deptoCombustible)}).</div>` : ''}
           <div style="font-size:11.5px;margin-top:4px;">
             ${yaExisteEnPersonal
               ? '<span class="badge badge-green">✓ Ya está en el Directorio de Personal</span>'
@@ -2092,20 +2099,25 @@ function renderTablaAuditoria(){
     <table class="tbl">
       <thead><tr>
         <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Estatus Unidad</th>
-        <th>Resguardante en Sistema</th><th>Usuario(s) en Combustible</th><th>Resultado</th>
+        <th>Resguardante en Sistema</th><th>Depto. Resguardo</th><th>Usuario(s) en Combustible</th><th>Depto. Combustible</th><th>Resultado</th>
       </tr></thead>
       <tbody>
-        ${lista.map(a=>`
+        ${lista.map(a=>{
+          const deptoCombustible = a.usuarios.find(u=>u.siglas) ? a.usuarios.find(u=>u.siglas).siglas : null;
+          const deptoDiferente = a.siglas_vehiculo && deptoCombustible && a.siglas_vehiculo.toUpperCase()!==deptoCombustible.toUpperCase();
+          return `
           <tr>
             <td class="tbl-num">${vehHoverSpan(a.vehiculo_id, a.no_economico)}</td>
             <td>${vehHoverSpan(a.vehiculo_id, a.placas)}</td>
             <td>${badgeOrigen(a.origen)}</td>
             <td>${badgeEstatus(a.estatus_unidad)}</td>
             <td>${escapeHtml(a.nombre_sys)||'—'}</td>
+            <td>${a.siglas_vehiculo ? `<span class="badge badge-blue">${escapeHtml(a.siglas_vehiculo)}</span>` : '—'}</td>
             <td>${a.usuarios.length ? escapeHtml(a.usuarios.map(u=>u.nombre).join('; ')) : '—'}</td>
+            <td>${deptoCombustible ? `<span class="badge ${deptoDiferente?'badge-red':'badge-blue'}">${escapeHtml(deptoCombustible)}</span>${deptoDiferente?' ⚠️':''}` : '—'}</td>
             <td class="tbl-center">${badgeEstatusAud(a.estatus)}</td>
           </tr>
-        `).join('')}
+        `;}).join('')}
       </tbody>
     </table>
   `;
