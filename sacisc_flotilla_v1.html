@@ -1337,12 +1337,14 @@ function renderCatalogo(){
     const e=(v.estatus||'').toUpperCase();
     return e==='EN SERVICIO' || e==='EN OPERACIÓN';
   }).length;
+  const totalConReemplazo = VEHICULOS.filter(v=>conteoReemplazos(v.id)>0).length;
 
   document.getElementById('kpiCatalogo').innerHTML =
     kpiCard('Total vehículos', VEHICULOS.length) +
     kpiCard('Propios', totalPropios, 'var(--blue)') +
     kpiCard('Arrendados', totalArrendados, 'var(--gm)') +
-    kpiCard('En servicio / operación', totalEnServicio, '#1b6b2b');
+    kpiCard('En servicio / operación', totalEnServicio, '#1b6b2b') +
+    kpiCard('🔄 Con reemplazo de unidad', totalConReemplazo, 'var(--amber)');
 
   document.getElementById('emptyCatalogo').style.display = lista.length ? 'none' : 'block';
   document.getElementById('emptyCatalogo').querySelector('p').textContent =
@@ -1357,10 +1359,12 @@ function renderCatalogo(){
         <th>Modelo</th><th>Origen</th><th>Estatus</th><th>Responsable</th><th>Acciones</th>
       </tr></thead>
       <tbody>
-        ${lista.map(v=>`
-          <tr>
+        ${lista.map(v=>{
+          const nReem = conteoReemplazos(v.id);
+          return `
+          <tr${nReem>0?' style="background:#fff8e1;"':''}>
             <td class="tbl-num">${vehHoverSpan(v.id, v.no_economico)}</td>
-            <td>${vehHoverSpan(v.id, v.placas)}</td>
+            <td>${vehHoverSpan(v.id, v.placas)} ${nReem>0?`<span class="badge badge-amber" title="Esta unidad ha sido reemplazada ${nReem} vez/veces">🔄 ${nReem}</span>`:''}</td>
             <td>${escapeHtml(v.marca)}${v.submarca?' / '+escapeHtml(v.submarca):''}</td>
             <td>${escapeHtml(v.tipo_vehiculo)}</td>
             <td class="tbl-center">${escapeHtml(v.modelo)}</td>
@@ -1369,10 +1373,10 @@ function renderCatalogo(){
             <td>${escapeHtml(v.nombre_responsable)}</td>
             <td class="btn-group">
               <button class="btn btn-outline btn-xs" onclick="verDetalleVehiculo('${v.id}')">Ver</button>
-              <button class="btn btn-outline btn-xs" onclick="verHistorialReemplazos('${v.id}')">Reemplazos${conteoReemplazos(v.id)>0?` (${conteoReemplazos(v.id)})`:''}</button>
+              <button class="btn btn-outline btn-xs" onclick="verHistorialReemplazos('${v.id}')">Reemplazos${nReem>0?` (${nReem})`:''}</button>
             </td>
           </tr>
-        `).join('')}
+        `;}).join('')}
       </tbody>
     </table>
   `;
