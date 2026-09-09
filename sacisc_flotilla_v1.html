@@ -552,7 +552,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="card">
       <div class="card-hdr">
         <h3>📋 Vehículos registrados</h3>
-        <button class="btn btn-outline btn-sm" onclick="exportarExcel(vehiculosFiltrados(), 'catalogo_vehiculos')">📊 Exportar Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="exportarExcel(vehiculosFiltrados(), 'catalogo_vehiculos')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
       </div>
       <div class="card-body">
         <div class="filter-bar">
@@ -578,7 +578,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <div class="card-hdr">
         <h3>📝 Resguardos vigentes</h3>
         <div class="btn-group">
-          <button class="btn btn-outline btn-sm" onclick="exportarExcel(resguardosFiltrados().map(r=>({no_economico:r._vehiculo.no_economico, placas:r._vehiculo.placas, origen:r._vehiculo.origen, titular:r.titular_responsable, ficha:r.ficha_titular, cargo:r.cargo, fecha_resguardo:r.fecha_resguardo})), 'resguardos_vigentes')">📊 Exportar Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(resguardosFiltrados().map(r=>({no_economico:r._vehiculo.no_economico, placas:r._vehiculo.placas, origen:r._vehiculo.origen, titular:r.titular_responsable, ficha:r.ficha_titular, cargo:r.cargo, fecha_resguardo:r.fecha_resguardo})), 'resguardos_vigentes')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
           <button class="btn btn-primary btn-sm" onclick="abrirAsignarResguardante()">➕ Asignar Resguardante</button>
         </div>
       </div>
@@ -628,7 +628,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <div class="card">
         <div class="card-hdr">
           <h3>🚨 Vehículos que cambiaron de usuario sin avisar</h3>
-          <button class="btn btn-outline btn-sm" onclick="exportarExcel(AUDITORIA.filter(a=>a.estatus==='NO COINCIDE').map(a=>({no_economico:a.no_economico, placas:a.placas, origen:a.origen, resguardante_sistema:a.nombre_sys, usuarios_combustible:a.usuarios.map(u=>u.nombre).join('; ')})), 'auditoria_no_coincide')">📊 Exportar Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(AUDITORIA.filter(a=>a.estatus==='NO COINCIDE').map(a=>({no_economico:a.no_economico, placas:a.placas, origen:a.origen, resguardante_sistema:a.nombre_sys, usuarios_combustible:a.usuarios.map(u=>u.nombre).join('; ')})), 'auditoria_no_coincide')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
         </div>
         <div class="card-body">
           <div id="auditAlertas"></div>
@@ -666,7 +666,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <div class="card-hdr">
         <h3>👥 Personal registrado</h3>
         <div class="btn-group">
-          <button class="btn btn-outline btn-sm" onclick="exportarExcel(personalFiltrado(), 'directorio_personal')">📊 Exportar Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(personalFiltrado(), 'directorio_personal')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
           <button class="btn btn-primary btn-sm" onclick="abrirFormPersonal()">➕ Agregar Persona</button>
         </div>
       </div>
@@ -697,15 +697,15 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
   <div class="panel" id="pan-confrontas">
     <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Confrontas</h1>
-    <p class="page-desc">Verificación física periódica de unidades arrendadas y generación del formato oficial. Regla de vigencia: al menos 1 confronta cada 365 días.</p>
+    <p class="page-desc">Verificación física periódica de unidades (propias y arrendadas) y generación del formato oficial. Regla de vigencia: al menos 1 confronta cada 365 días.</p>
 
     <div class="kpi-grid" id="kpiConfrontas"></div>
 
     <div class="card">
       <div class="card-hdr">
-        <h3>🔍 Última confronta por vehículo (arrendados)</h3>
+        <h3>🔍 Última confronta por vehículo</h3>
         <div class="btn-group">
-          <button class="btn btn-outline btn-sm" onclick="exportarExcel(confrontasFiltradas().map(c=>({no_economico:c.vehiculo.no_economico, placas:c.vehiculo.placas, ultima_fecha:c.ultima?c.ultima.fecha:null, motivo:c.ultima?c.ultima.motivo:null, estatus:c.estatusVigencia, dias_transcurridos:c.dias})), 'confrontas_estatus')">📊 Exportar Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(confrontasFiltradas().map(c=>({no_economico:c.vehiculo.no_economico, placas:c.vehiculo.placas, ultima_fecha:c.ultima?c.ultima.fecha:null, motivo:c.ultima?c.ultima.motivo:null, estatus:c.estatusVigencia, dias_transcurridos:c.dias})), 'confrontas_estatus')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
           <button class="btn btn-primary btn-sm" onclick="abrirRegistrarConfronta()">➕ Registrar Confronta</button>
         </div>
       </div>
@@ -1427,7 +1427,7 @@ function renderResguardos(){
             <td class="btn-group">
               <button class="btn btn-outline btn-xs" onclick="verHistorialResguardo('${r._vehiculo.id}')">Historial</button>
               <button class="btn btn-outline btn-xs" onclick="abrirAsignarResguardante('${r._vehiculo.id}')">Reasignar</button>
-              <button class="btn btn-primary btn-xs" onclick="generarResguardoPDF('${r.id}')">PDF</button>
+              <button class="btn btn-primary btn-xs" onclick="generarResguardoPDF('${r.id}')">Formato</button>
               <button class="btn btn-outline btn-xs" onclick="abrirEditarResguardo('${r.id}')">Editar</button>
               <button class="btn btn-danger btn-xs" onclick="eliminarResguardo('${r.id}')">Eliminar</button>
             </td>
@@ -1560,7 +1560,7 @@ function verHistorialResguardo(vehiculoId){
               <td>${escapeHtml(r.cargo)}</td>
               <td>${fechaCorta(r.fecha_resguardo)}</td>
               <td>${r.vigente ? '<span class="badge badge-green">VIGENTE</span>' : '<span class="badge badge-gray">REEMPLAZADO</span>'}</td>
-              <td><button class="btn btn-outline btn-xs" onclick="generarResguardoPDF('${r.id}')">PDF</button></td>
+              <td><button class="btn btn-outline btn-xs" onclick="generarResguardoPDF('${r.id}')">Formato</button></td>
             </tr>
           `).join('')}
         </tbody>
@@ -2424,8 +2424,8 @@ function diasDesde(fechaISO){
   return Math.floor(ms / 86400000);
 }
 
-function confrontasPorVehiculoArrendado(){
-  return VEHICULOS.filter(v=>v.origen==='ARRENDADO').map(v=>{
+function confrontasPorVehiculo(){
+  return VEHICULOS.map(v=>{
     const historial = confrontasRealizadasDeVehiculo(v.id);
     const ultima = historial[0] || null;
     const dias = ultima ? diasDesde(ultima.fecha) : null;
@@ -2433,7 +2433,8 @@ function confrontasPorVehiculoArrendado(){
     if(!ultima) estatusVigencia = 'NUNCA';
     else if(dias > DIAS_VIGENCIA_CONFRONTA) estatusVigencia = 'VENCIDA';
     else estatusVigencia = 'AL DÍA';
-    return {vehiculo: v, historial, ultima, dias, estatusVigencia};
+    const vigente = RESGUARDOS.find(r=>r.vehiculo_id===v.id && r.vigente);
+    return {vehiculo: v, historial, ultima, dias, estatusVigencia, titular: vigente ? vigente.titular_responsable : null};
   });
 }
 
@@ -2454,7 +2455,7 @@ function calcularMotivoConfronta(vehiculoId, fechaISO, excluirConfrontaId){
 function confrontasFiltradas(){
   const estatusSel = document.getElementById('filtroEstatusConfronta').value;
   const q = (document.getElementById('buscarConfronta').value||'').trim().toLowerCase();
-  return confrontasPorVehiculoArrendado().filter(c=>{
+  return confrontasPorVehiculo().filter(c=>{
     if(estatusSel && c.estatusVigencia!==estatusSel) return false;
     if(q){
       const campos = [c.vehiculo.no_economico, c.vehiculo.placas].map(x=>(x||'').toLowerCase());
@@ -2473,7 +2474,7 @@ function badgeVigenciaConfronta(estatus){
 }
 
 function renderConfrontas(){
-  const todas = confrontasPorVehiculoArrendado();
+  const todas = confrontasPorVehiculo();
   const lista = confrontasFiltradas();
 
   const vencidas = todas.filter(c=>c.estatusVigencia==='VENCIDA').length;
@@ -2503,27 +2504,34 @@ function renderConfrontas(){
   document.getElementById('tablaConfrontas').innerHTML = `
     <table class="tbl">
       <thead><tr>
-        <th>No. Económico</th><th>Placas</th><th>Departamento</th><th>Última Confronta</th>
-        <th>Motivo</th><th>Días desde la última</th><th>Vigencia</th><th>Historial</th><th>Acciones</th>
+        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Departamento</th><th>Última Confronta</th>
+        <th>Motivo</th><th>Titular Resguardante</th><th>Atendió la Confronta</th><th>Días desde la última</th><th>Vigencia</th><th>Historial</th><th>Acciones</th>
       </tr></thead>
       <tbody>
-        ${lista.map(c=>`
+        ${lista.map(c=>{
+          const presente = c.ultima && c.titular && palabrasNombre(c.titular)===palabrasNombre(c.ultima.atendio_confronta);
+          return `
           <tr>
             <td class="tbl-num">${vehHoverSpan(c.vehiculo.id, c.vehiculo.no_economico)}</td>
             <td>${vehHoverSpan(c.vehiculo.id, c.vehiculo.placas)}</td>
+            <td>${badgeOrigen(c.vehiculo.origen)}</td>
             <td>${c.vehiculo.siglas ? `<span class="badge badge-blue">${escapeHtml(c.vehiculo.siglas)}</span>` : '—'}</td>
             <td>${c.ultima ? fechaCorta(c.ultima.fecha) : '—'}</td>
             <td>${c.ultima ? escapeHtml(c.ultima.motivo) : '—'}</td>
+            <td>${escapeHtml(c.titular)||'<span class="badge badge-gray">SIN TITULAR</span>'}</td>
+            <td>${c.ultima ? (escapeHtml(c.ultima.atendio_confronta)||'—') : '—'}
+              ${c.ultima ? (presente ? ' <span class="badge badge-green">✓ TITULAR PRESENTE</span>' : ' <span class="badge badge-amber">⚠ NO COINCIDE</span>') : ''}
+            </td>
             <td class="tbl-center">${c.dias!==null ? c.dias : '—'}</td>
             <td>${badgeVigenciaConfronta(c.estatusVigencia)}</td>
             <td class="tbl-center">${c.historial.length ? `<span class="badge badge-gray">${c.historial.length}</span>` : '—'}</td>
             <td class="btn-group">
               <button class="btn btn-outline btn-xs" onclick="verHistorialConfronta('${c.vehiculo.id}')">Historial</button>
               <button class="btn btn-outline btn-xs" onclick="abrirRegistrarConfronta('${c.vehiculo.id}')">Registrar</button>
-              ${c.ultima ? `<button class="btn btn-primary btn-xs" onclick="generarConfrontaPDF('${c.ultima.id}')">PDF</button>` : ''}
+              ${c.ultima ? `<button class="btn btn-primary btn-xs" onclick="generarConfrontaPDF('${c.ultima.id}')">Formato</button>` : ''}
             </td>
           </tr>
-        `).join('')}
+        `;}).join('')}
       </tbody>
     </table>
   `;
@@ -2553,7 +2561,7 @@ function verHistorialConfronta(vehiculoId){
               <td>${escapeHtml(c.pernocta)||'—'}</td>
               <td>${escapeHtml(c.estatus)||'—'}</td>
               <td class="btn-group">
-                ${!noRealizada ? `<button class="btn btn-outline btn-xs" onclick="generarConfrontaPDF('${c.id}')">PDF</button>` : ''}
+                ${!noRealizada ? `<button class="btn btn-outline btn-xs" onclick="generarConfrontaPDF('${c.id}')">Formato</button>` : ''}
                 <button class="btn btn-outline btn-xs" onclick="abrirEditarConfronta('${c.id}')">Editar</button>
                 <button class="btn btn-danger btn-xs" onclick="eliminarConfronta('${c.id}')">Eliminar</button>
               </td>
@@ -2601,15 +2609,15 @@ document.getElementById('confBuscarVehiculo').addEventListener('input', function
   const q = this.value.trim().toLowerCase();
   const cont = document.getElementById('confSugerencias');
   if(q.length < 2){ cont.style.display='none'; return; }
-  const resultados = VEHICULOS.filter(v=>v.origen==='ARRENDADO' &&
-    ((v.no_economico||'').toLowerCase().includes(q) || (v.placas||'').toLowerCase().includes(q))
+  const resultados = VEHICULOS.filter(v=>
+    (v.no_economico||'').toLowerCase().includes(q) || (v.placas||'').toLowerCase().includes(q)
   ).slice(0, 12);
-  if(!resultados.length){ cont.innerHTML = `<div style="padding:10px 14px;color:var(--gray);font-size:12.5px;">Sin resultados (solo arrendados por ahora)</div>`; cont.style.display='block'; return; }
+  if(!resultados.length){ cont.innerHTML = `<div style="padding:10px 14px;color:var(--gray);font-size:12.5px;">Sin resultados</div>`; cont.style.display='block'; return; }
   cont.innerHTML = resultados.map(v=>`
     <div style="padding:9px 14px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border);"
          onmouseover="this.style.background='#eaf3f0'" onmouseout="this.style.background=''"
          onclick="seleccionarVehiculoParaConfronta('${v.id}')">
-      <strong>${escapeHtml(v.no_economico)}</strong> · ${escapeHtml(v.placas)} — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')}
+      <strong>${escapeHtml(v.no_economico)}</strong> · ${escapeHtml(v.placas)} — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} ${badgeOrigen(v.origen)}
     </div>
   `).join('');
   cont.style.display = 'block';
