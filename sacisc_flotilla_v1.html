@@ -787,8 +787,8 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <div id="confForm" style="display:none;">
         <div class="form-grid">
           <div class="form-group"><label>Fecha de la Confronta *</label><input class="fc" type="date" id="confFecha"></div>
-          <div class="form-group"><label>Motivo</label>
-            <select class="fc" id="confMotivo"><option value="">— Selecciona —</option></select>
+          <div class="form-group"><label>Motivo (automático)</label>
+            <input class="fc" id="confMotivo" readonly style="background:#f8fafc;font-weight:700;color:var(--gd);">
           </div>
           <div class="form-group"><label>Atendió la Confronta (nombre)</label><input class="fc" id="confAtendio"></div>
           <div class="form-group"><label>Ficha (quien confronta)</label><input class="fc" id="confFicha"></div>
@@ -837,6 +837,68 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalRegistrarConfronta')">Cancelar</button>
       <button class="btn btn-primary" id="btnGuardarConfronta" style="display:none;" onclick="guardarConfronta()">Guardar Confronta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR CONFRONTA -->
+<div class="modal-overlay" id="modalEditarConfronta">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2>✏️ Editar Confronta</h2>
+      <button class="modal-close" onclick="closeModal('modalEditarConfronta')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="editConfVehiculo" style="margin-bottom:14px;padding:10px 14px;background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:8px;font-size:12.5px;"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Fecha de la Confronta</label><input class="fc" type="date" id="editConfFecha"></div>
+        <div class="form-group"><label>Motivo (automático)</label><input class="fc" id="editConfMotivo" readonly style="background:#f8fafc;font-weight:700;color:var(--gd);"></div>
+        <div class="form-group"><label>Atendió la Confronta</label><input class="fc" id="editConfAtendio"></div>
+        <div class="form-group"><label>Ficha</label><input class="fc" id="editConfFicha"></div>
+
+        <div class="form-group"><label>¿Cromática completa?</label>
+          <select class="fc" id="editConfCromaticaCompleta"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+        </div>
+        <div class="form-group"><label>Desviación cromática</label><input class="fc" id="editConfDesviacionCromatica"></div>
+        <div class="form-group"><label>¿Daños?</label>
+          <select class="fc" id="editConfDanos"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+        </div>
+        <div class="form-group"><label>Indicar daños</label><input class="fc" id="editConfIndicarDanos"></div>
+
+        <div class="form-group"><label>¿Modificaciones o golpes?</label>
+          <select class="fc" id="editConfModificacionesGolpes"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+        </div>
+        <div class="form-group"><label>Indicar modificación/golpe</label><input class="fc" id="editConfIndicarModifGolpe"></div>
+        <div class="form-group"><label>¿Reportado al seguro?</label>
+          <select class="fc" id="editConfReportadoSeguro"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+        </div>
+        <div class="form-group"><label>¿Pernocta?</label>
+          <select class="fc" id="editConfPernocta"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+        </div>
+
+        <div class="form-group"><label>Quién autoriza no pernoctar</label><input class="fc" id="editConfQuienAutoriza"></div>
+        <div class="form-group"><label>¿Investigación administrativa?</label>
+          <select class="fc" id="editConfInvestigacion"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+        </div>
+        <div class="form-group"><label>¿Sancionada?</label>
+          <select class="fc" id="editConfSancionada"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+        </div>
+        <div class="form-group"><label>Acta circunstanciada</label><input class="fc" id="editConfActaCircunstanciada"></div>
+
+        <div class="form-group"><label>Notificación a RH</label><input class="fc" id="editConfNotificacionRh"></div>
+        <div class="form-group"><label>Respuesta de RH</label><input class="fc" id="editConfRespuestaRh"></div>
+        <div class="form-group"><label>Atención de anomalía</label><input class="fc" id="editConfAtencionAnomalia"></div>
+        <div class="form-group"><label>Estatus</label><input class="fc" id="editConfEstatus"></div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Comentarios</label>
+        <textarea class="fc" id="editConfComentarios" rows="3" style="resize:vertical;"></textarea>
+      </div>
+      <p style="font-size:11px;color:var(--gray);margin-top:10px;">Si quitas la fecha, esta confronta quedará marcada como <strong>NO REALIZADA</strong> y dejará de contarse.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalEditarConfronta')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarEdicionConfronta" onclick="guardarEdicionConfronta()">Guardar Cambios</button>
     </div>
   </div>
 </div>
@@ -1781,7 +1843,7 @@ function manejarOpcionNueva(selectId){
     sel.value = '';
   }
 }
-['perCargo','perNivel','perSiglas','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea','confMotivo'].forEach(id=>{
+['perCargo','perNivel','perSiglas','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea'].forEach(id=>{
   document.getElementById(id).addEventListener('change', ()=>manejarOpcionNueva(id));
 });
 
@@ -2350,6 +2412,12 @@ function confrontasDeVehiculo(vehiculoId){
   return CONFRONTAS.filter(c=>c.vehiculo_id===vehiculoId).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
 }
 
+// Solo las que sí se realizaron (tienen fecha) — para contar y calcular vigencia.
+// Las que no tienen fecha son placeholders "NO REALIZADA" y no cuentan.
+function confrontasRealizadasDeVehiculo(vehiculoId){
+  return confrontasDeVehiculo(vehiculoId).filter(c=>c.fecha);
+}
+
 function diasDesde(fechaISO){
   if(!fechaISO) return null;
   const ms = Date.now() - new Date(fechaISO+'T00:00:00').getTime();
@@ -2358,7 +2426,7 @@ function diasDesde(fechaISO){
 
 function confrontasPorVehiculoArrendado(){
   return VEHICULOS.filter(v=>v.origen==='ARRENDADO').map(v=>{
-    const historial = confrontasDeVehiculo(v.id);
+    const historial = confrontasRealizadasDeVehiculo(v.id);
     const ultima = historial[0] || null;
     const dias = ultima ? diasDesde(ultima.fecha) : null;
     let estatusVigencia;
@@ -2367,6 +2435,20 @@ function confrontasPorVehiculoArrendado(){
     else estatusVigencia = 'AL DÍA';
     return {vehiculo: v, historial, ultima, dias, estatusVigencia};
   });
+}
+
+// ═══ Construye el motivo automáticamente: "PRIMERA/SEGUNDA/TERCERA
+// CONFRONTA {AÑO}" según cuántas confrontas REALIZADAS ya existan para
+// ese vehículo en ese mismo año (sin contar la que se está editando) ═══
+const ORDINALES = ['PRIMERA','SEGUNDA','TERCERA','CUARTA','QUINTA'];
+function calcularMotivoConfronta(vehiculoId, fechaISO, excluirConfrontaId){
+  if(!fechaISO) return null;
+  const anio = new Date(fechaISO+'T00:00:00').getFullYear();
+  const previas = confrontasRealizadasDeVehiculo(vehiculoId).filter(c=>
+    c.id!==excluirConfrontaId && c.fecha && new Date(c.fecha+'T00:00:00').getFullYear()===anio
+  );
+  const ordinal = ORDINALES[previas.length] || `${previas.length+1}ª`;
+  return `${ordinal} CONFRONTA ${anio}`;
 }
 
 function confrontasFiltradas(){
@@ -2397,12 +2479,15 @@ function renderConfrontas(){
   const vencidas = todas.filter(c=>c.estatusVigencia==='VENCIDA').length;
   const nunca = todas.filter(c=>c.estatusVigencia==='NUNCA').length;
   const alDia = todas.filter(c=>c.estatusVigencia==='AL DÍA').length;
+  const realizadas = CONFRONTAS.filter(c=>c.fecha).length;
+  const noRealizadas = CONFRONTAS.length - realizadas;
 
   document.getElementById('kpiConfrontas').innerHTML =
-    kpiCard('Total confrontas registradas', CONFRONTAS.length) +
+    kpiCard('Confrontas realizadas', realizadas) +
     kpiCard('🚨 Vencidas', vencidas, 'var(--red)') +
     kpiCard('⚠️ Nunca confrontadas', nunca, 'var(--amber)') +
-    kpiCard('✅ Al día', alDia, '#1b6b2b');
+    kpiCard('✅ Al día', alDia, '#1b6b2b') +
+    kpiCard('No realizadas (sin contar)', noRealizadas, 'var(--gray)');
 
   document.getElementById('emptyConfrontas').style.display = lista.length ? 'none' : 'block';
   document.getElementById('emptyConfrontas').querySelector('p').textContent =
@@ -2446,28 +2531,34 @@ function renderConfrontas(){
 
 function verHistorialConfronta(vehiculoId){
   const v = vehiculoDe(vehiculoId);
-  const historial = confrontasDeVehiculo(vehiculoId);
+  const historial = confrontasDeVehiculo(vehiculoId); // incluye las "NO REALIZADA" (sin fecha), para mostrarlas etiquetadas
   document.getElementById('modalHistorialConfrontaBody').innerHTML = `
     <p style="margin-bottom:12px;font-size:12.5px;color:var(--gray);">
       <strong style="color:var(--gd);">${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)}</strong> —
-      ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')}
+      ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} &nbsp; ${badgeEstatus(v.estatus)}
     </p>
     <div class="tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>Fecha</th><th>Motivo</th><th>Atendió</th><th>Daños</th><th>Modif./Golpes</th><th>Pernocta</th><th>Estatus</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Motivo</th><th>Atendió</th><th>Daños</th><th>Modif./Golpes</th><th>Pernocta</th><th>Estatus</th><th>Acciones</th></tr></thead>
         <tbody>
-          ${historial.map(c=>`
-            <tr>
-              <td>${fechaCorta(c.fecha)}</td>
-              <td>${escapeHtml(c.motivo)}</td>
-              <td>${escapeHtml(c.atendio_confronta)}</td>
+          ${historial.map(c=>{
+            const noRealizada = !c.fecha;
+            return `
+            <tr${noRealizada?' style="opacity:.65;"':''}>
+              <td>${noRealizada ? '—' : fechaCorta(c.fecha)}</td>
+              <td>${noRealizada ? '<span class="badge badge-gray">NO REALIZADA</span>' : escapeHtml(c.motivo)}</td>
+              <td>${escapeHtml(c.atendio_confronta)||'—'}</td>
               <td>${escapeHtml(c.danos)||'—'}</td>
               <td>${escapeHtml(c.modificaciones_golpes)||'—'}</td>
               <td>${escapeHtml(c.pernocta)||'—'}</td>
               <td>${escapeHtml(c.estatus)||'—'}</td>
-              <td><button class="btn btn-outline btn-xs" onclick="generarConfrontaPDF('${c.id}')">PDF</button></td>
+              <td class="btn-group">
+                ${!noRealizada ? `<button class="btn btn-outline btn-xs" onclick="generarConfrontaPDF('${c.id}')">PDF</button>` : ''}
+                <button class="btn btn-outline btn-xs" onclick="abrirEditarConfronta('${c.id}')">Editar</button>
+                <button class="btn btn-danger btn-xs" onclick="eliminarConfronta('${c.id}')">Eliminar</button>
+              </td>
             </tr>
-          `).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--gray);">Sin confrontas registradas todavía.</td></tr>'}
+          `;}).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--gray);">Sin confrontas registradas todavía.</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -2477,9 +2568,11 @@ function verHistorialConfronta(vehiculoId){
 
 // ═══ REGISTRAR NUEVA CONFRONTA ═══════════════════════════════════════
 let CONF_VEHICULO_ID = null;
+let CONF_EDITANDO_ID = null; // null = registrando nueva; id = editando una existente
 
 function abrirRegistrarConfronta(vehiculoIdPreseleccionado){
   CONF_VEHICULO_ID = null;
+  CONF_EDITANDO_ID = null;
   document.getElementById('confBuscarVehiculo').value = '';
   document.getElementById('confSugerencias').style.display = 'none';
   document.getElementById('confVehiculoActual').style.display = 'none';
@@ -2491,11 +2584,18 @@ function abrirRegistrarConfronta(vehiculoIdPreseleccionado){
   ['confCromaticaCompleta','confDanos','confModificacionesGolpes','confReportadoSeguro','confPernocta','confInvestigacion','confSancionada']
     .forEach(id=>document.getElementById(id).value='');
   document.getElementById('confFecha').value = new Date().toISOString().slice(0,10);
-  poblarSelect('confMotivo', 'motivo', '');
+  document.getElementById('confMotivo').value = '';
 
   openModal('modalRegistrarConfronta');
   if(vehiculoIdPreseleccionado) seleccionarVehiculoParaConfronta(vehiculoIdPreseleccionado);
 }
+
+function actualizarMotivoAutomatico(){
+  if(!CONF_VEHICULO_ID) return;
+  const fecha = document.getElementById('confFecha').value;
+  document.getElementById('confMotivo').value = calcularMotivoConfronta(CONF_VEHICULO_ID, fecha, CONF_EDITANDO_ID) || '';
+}
+document.getElementById('confFecha').addEventListener('change', actualizarMotivoAutomatico);
 
 document.getElementById('confBuscarVehiculo').addEventListener('input', function(){
   const q = this.value.trim().toLowerCase();
@@ -2522,7 +2622,7 @@ function seleccionarVehiculoParaConfronta(vehiculoId){
   document.getElementById('confBuscarVehiculo').value = `${v.no_economico} · ${v.placas}`;
   document.getElementById('confSugerencias').style.display = 'none';
 
-  const historial = confrontasDeVehiculo(vehiculoId);
+  const historial = confrontasRealizadasDeVehiculo(vehiculoId);
   const ultima = historial[0];
   const dias = ultima ? diasDesde(ultima.fecha) : null;
   const vigente = RESGUARDOS.find(r=>r.vehiculo_id===vehiculoId && r.vigente);
@@ -2546,6 +2646,7 @@ function seleccionarVehiculoParaConfronta(vehiculoId){
 
   document.getElementById('confForm').style.display = 'block';
   document.getElementById('btnGuardarConfronta').style.display = 'inline-flex';
+  actualizarMotivoAutomatico();
 }
 
 async function guardarConfronta(){
@@ -2596,6 +2697,120 @@ async function guardarConfronta(){
 }
 
 // ═══ GENERAR PDF DE CONFRONTA (formato oficial) ═══════════════════════
+// ═══ EDITAR CONFRONTA ══════════════════════════════════════════════════
+function abrirEditarConfronta(confrontaId){
+  const c = CONFRONTAS.find(x=>x.id===confrontaId);
+  if(!c){ toast('Confronta no encontrada', 'warn'); return; }
+  const v = vehiculoDe(c.vehiculo_id);
+
+  CONF_EDITANDO_ID = confrontaId;
+  document.getElementById('editConfVehiculo').innerHTML = v
+    ? `<strong>${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)}</strong> — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} ${badgeEstatus(v.estatus)}`
+    : '';
+
+  document.getElementById('editConfFecha').value = c.fecha || '';
+  document.getElementById('editConfMotivo').value = c.motivo || '';
+  document.getElementById('editConfAtendio').value = c.atendio_confronta || '';
+  document.getElementById('editConfFicha').value = c.ficha || '';
+  document.getElementById('editConfCromaticaCompleta').value = c.cromatica_completa || '';
+  document.getElementById('editConfDesviacionCromatica').value = c.desviacion_cromatica || '';
+  document.getElementById('editConfDanos').value = c.danos || '';
+  document.getElementById('editConfIndicarDanos').value = c.indicar_danos || '';
+  document.getElementById('editConfModificacionesGolpes').value = c.modificaciones_golpes || '';
+  document.getElementById('editConfIndicarModifGolpe').value = c.indicar_modif_golpe || '';
+  document.getElementById('editConfReportadoSeguro').value = c.reportado_seguro || '';
+  document.getElementById('editConfPernocta').value = c.pernocta || '';
+  document.getElementById('editConfQuienAutoriza').value = c.quien_autoriza_no_pernoctar || '';
+  document.getElementById('editConfInvestigacion').value = c.investigacion_administrativa || '';
+  document.getElementById('editConfSancionada').value = c.sancionada || '';
+  document.getElementById('editConfActaCircunstanciada').value = c.acta_circunstanciada || '';
+  document.getElementById('editConfNotificacionRh').value = c.notificacion_rh || '';
+  document.getElementById('editConfRespuestaRh').value = c.respuesta_rh || '';
+  document.getElementById('editConfAtencionAnomalia').value = c.atencion_anomalia || '';
+  document.getElementById('editConfEstatus').value = c.estatus || '';
+  document.getElementById('editConfComentarios').value = c.comentarios || '';
+
+  openModal('modalEditarConfronta');
+}
+
+// recalcula el motivo automático si cambia la fecha durante la edición
+document.getElementById('editConfFecha').addEventListener('change', function(){
+  const c = CONFRONTAS.find(x=>x.id===CONF_EDITANDO_ID);
+  if(!c) return;
+  const nuevaFecha = this.value;
+  document.getElementById('editConfMotivo').value = nuevaFecha
+    ? (calcularMotivoConfronta(c.vehiculo_id, nuevaFecha, CONF_EDITANDO_ID) || '')
+    : 'NO REALIZADA';
+});
+
+async function guardarEdicionConfronta(){
+  if(!CONF_EDITANDO_ID){ toast('No hay confronta seleccionada', 'warn'); return; }
+  const val = id => document.getElementById(id).value.trim() || null;
+  const fecha = val('editConfFecha');
+  const datos = {
+    fecha,
+    motivo: fecha ? val('editConfMotivo') : 'NO REALIZADA',
+    atendio_confronta: val('editConfAtendio'),
+    ficha: val('editConfFicha'),
+    cromatica_completa: val('editConfCromaticaCompleta'),
+    desviacion_cromatica: val('editConfDesviacionCromatica'),
+    danos: val('editConfDanos'),
+    indicar_danos: val('editConfIndicarDanos'),
+    modificaciones_golpes: val('editConfModificacionesGolpes'),
+    indicar_modif_golpe: val('editConfIndicarModifGolpe'),
+    reportado_seguro: val('editConfReportadoSeguro'),
+    pernocta: val('editConfPernocta'),
+    quien_autoriza_no_pernoctar: val('editConfQuienAutoriza'),
+    comentarios: val('editConfComentarios'),
+    investigacion_administrativa: val('editConfInvestigacion'),
+    sancionada: val('editConfSancionada'),
+    acta_circunstanciada: val('editConfActaCircunstanciada'),
+    notificacion_rh: val('editConfNotificacionRh'),
+    respuesta_rh: val('editConfRespuestaRh'),
+    atencion_anomalia: val('editConfAtencionAnomalia'),
+    estatus: val('editConfEstatus'),
+  };
+
+  const btn = document.getElementById('btnGuardarEdicionConfronta');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    const actualizado = await sbUpdate('flotilla_confrontas', `id=eq.${CONF_EDITANDO_ID}`, datos);
+    const idx = CONFRONTAS.findIndex(x=>x.id===CONF_EDITANDO_ID);
+    if(idx>=0) CONFRONTAS[idx] = actualizado[0];
+    toast('Confronta actualizada', 'ok');
+    closeModal('modalEditarConfronta');
+    renderConfrontas();
+    if(document.getElementById('modalHistorialConfronta').classList.contains('open')){
+      verHistorialConfronta(actualizado[0].vehiculo_id);
+    }
+  }catch(e){
+    console.error(e);
+    toast('Error al guardar: '+e.message, 'warn');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar Cambios';
+  }
+}
+
+async function eliminarConfronta(confrontaId){
+  const c = CONFRONTAS.find(x=>x.id===confrontaId);
+  if(!c) return;
+  const v = vehiculoDe(c.vehiculo_id);
+  const etiqueta = v ? `${v.no_economico} · ${v.placas}` : 'este vehículo';
+  if(!confirm(`¿Eliminar esta confronta (${c.motivo||'sin motivo'}) de ${etiqueta}? Esta acción no se puede deshacer.`)) return;
+  try{
+    await sbDelete('flotilla_confrontas', `id=eq.${confrontaId}`);
+    CONFRONTAS = CONFRONTAS.filter(x=>x.id!==confrontaId);
+    renderConfrontas();
+    if(document.getElementById('modalHistorialConfronta').classList.contains('open') && v){
+      verHistorialConfronta(v.id);
+    }
+    toast('Confronta eliminada', 'ok');
+  }catch(e){
+    console.error(e);
+    toast('Error al eliminar: '+e.message, 'warn');
+  }
+}
+
 function generarConfrontaPDF(confrontaId){
   const c = CONFRONTAS.find(x=>x.id===confrontaId);
   if(!c){ toast('Confronta no encontrada', 'warn'); return; }
