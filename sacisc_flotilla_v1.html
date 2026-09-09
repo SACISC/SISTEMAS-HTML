@@ -682,8 +682,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
         <div class="form-group"><label>Ficha</label><input class="fc" id="perFicha"></div>
         <div class="form-group"><label>Cargo</label><input class="fc" id="perCargo"></div>
         <div class="form-group"><label>Nivel</label><input class="fc" id="perNivel"></div>
-        <div class="form-group"><label>Categoría</label><input class="fc" id="perCategoria"></div>
-        <div class="form-group"><label>Clave económica (siglas)</label><input class="fc" id="perSiglas" placeholder="SERAP, SACAD, SIPA, CMEDO, GMOPI…" style="text-transform:uppercase;"></div>
+        <div class="form-group"><label>Departamento (siglas)</label><input class="fc" id="perSiglas" placeholder="SERAP, SACAD, SIPA, CMEDO, GMOPI…" style="text-transform:uppercase;"></div>
         <div class="form-group"><label>Correo electrónico</label><input class="fc" id="perCorreo"></div>
         <div class="form-group"><label>No. de Extensión</label><input class="fc" id="perExtension"></div>
         <div class="form-group"><label>No. Celular</label><input class="fc" id="perCelular"></div>
@@ -1277,8 +1276,8 @@ function renderPersonal(){
   document.getElementById('tablaPersonal').innerHTML = `
     <table class="tbl">
       <thead><tr>
-        <th>Nombre</th><th>Ficha</th><th>Cargo</th><th>Nivel</th><th>Categoría</th>
-        <th>Siglas</th><th>Dirección</th><th>Subdirección</th><th>Gerencia/Unidad</th>
+        <th>Nombre</th><th>Ficha</th><th>Cargo</th><th>Nivel</th>
+        <th>Departamento</th><th>Dirección</th><th>Subdirección</th><th>Gerencia/Unidad</th>
         <th>Correo</th><th>Ext.</th><th>Celular</th><th>Acciones</th>
       </tr></thead>
       <tbody>
@@ -1288,7 +1287,6 @@ function renderPersonal(){
             <td class="tbl-num">${escapeHtml(p.ficha)}</td>
             <td>${escapeHtml(p.cargo)}</td>
             <td>${escapeHtml(p.nivel)}</td>
-            <td>${escapeHtml(p.categoria)}</td>
             <td>${p.siglas?`<span class="badge badge-blue">${escapeHtml(p.siglas)}</span>`:''}</td>
             <td>${escapeHtml(p.direccion)}</td>
             <td>${escapeHtml(p.subdireccion)}</td>
@@ -1315,7 +1313,7 @@ function abrirFormPersonal(personaId){
   const p = personaId ? PERSONAL.find(x=>x.id===personaId) : null;
 
   document.getElementById('modalPersonalTitulo').textContent = p ? '✏️ Editar Persona' : '➕ Agregar Persona';
-  const campos = ['perNombre','perFicha','perCargo','perNivel','perCategoria','perCorreo','perExtension','perCelular','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea','perSiglas'];
+  const campos = ['perNombre','perFicha','perCargo','perNivel','perCorreo','perExtension','perCelular','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea','perSiglas'];
   campos.forEach(id=>document.getElementById(id).value = '');
 
   if(p){
@@ -1323,7 +1321,6 @@ function abrirFormPersonal(personaId){
     document.getElementById('perFicha').value = p.ficha||'';
     document.getElementById('perCargo').value = p.cargo||'';
     document.getElementById('perNivel').value = p.nivel||'';
-    document.getElementById('perCategoria').value = p.categoria||'';
     document.getElementById('perCorreo').value = p.correo||'';
     document.getElementById('perExtension').value = p.extension||'';
     document.getElementById('perCelular').value = p.celular||'';
@@ -1346,7 +1343,6 @@ async function guardarPersonal(){
     ficha: ficha || null,
     cargo: document.getElementById('perCargo').value.trim() || null,
     nivel: document.getElementById('perNivel').value.trim() || null,
-    categoria: document.getElementById('perCategoria').value.trim() || null,
     correo: document.getElementById('perCorreo').value.trim() || null,
     extension: document.getElementById('perExtension').value.trim() || null,
     celular: document.getElementById('perCelular').value.trim() || null,
