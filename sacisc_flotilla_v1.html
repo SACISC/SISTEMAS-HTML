@@ -354,6 +354,21 @@ header{
   @page{margin:6mm;size:A4 portrait}
 }
 
+/* ── TOOLTIP DE VEHÍCULO (hover sobre económico/placas) ── */
+.veh-hover{cursor:help;border-bottom:1px dashed rgba(30,91,79,.45);}
+#vehTooltip{
+  position:fixed;z-index:9999;pointer-events:none;
+  background:var(--gd);color:#fff;border-radius:10px;
+  padding:11px 14px;font-family:'Inter',sans-serif;font-size:11.5px;
+  box-shadow:0 12px 32px rgba(0,0,0,.35);max-width:280px;
+  opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;
+}
+#vehTooltip.show{opacity:1;transform:translateY(0);}
+#vehTooltip .veh-tt-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:.03em;color:#4ecba0;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.15);}
+#vehTooltip .veh-tt-row{display:flex;justify-content:space-between;gap:14px;padding:1.5px 0;}
+#vehTooltip .veh-tt-row span:first-child{color:rgba(255,255,255,.55);}
+#vehTooltip .veh-tt-row span:last-child{font-weight:600;text-align:right;}
+
 /* ── MISC ── */
 .empty-state{text-align:center;padding:36px 20px;color:var(--gray)}
 .empty-state .icon{font-size:34px;margin-bottom:8px;opacity:.5}
@@ -376,6 +391,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 </head><body>
 <div id="print-container"></div>
 <div class="toast-wrap" id="toasts"></div>
+<div id="vehTooltip"></div>
 
 <!-- ═══ PANTALLA DE SELECCIÓN ═══ -->
 <div id="pantallaSeleccion">
@@ -939,6 +955,63 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ═══ TOOLTIP DE VEHÍCULO — hover sobre No. Económico / Placas ══════════
+function vehHoverSpan(vehiculoId, texto){
+  if(!vehiculoId) return escapeHtml(texto);
+  return `<span class="veh-hover" data-vid="${vehiculoId}">${escapeHtml(texto)}</span>`;
+}
+
+(function(){
+  const tt = document.getElementById('vehTooltip');
+  let vidActual = null;
+
+  function contenidoTooltip(v){
+    const filas = [
+      ['Marca', v.marca], ['Submarca', v.submarca], ['Modelo', v.modelo],
+      ['Color', v.color], ['No. Serie', v.no_serie], ['Estatus', v.estatus],
+    ].filter(([,val])=>val!==null && val!==undefined && val!=='');
+    return `
+      <div class="veh-tt-title">${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)}</div>
+      ${filas.map(([l,val])=>`<div class="veh-tt-row"><span>${l}:</span><span>${escapeHtml(val)}</span></div>`).join('')}
+    `;
+  }
+
+  function posicionar(x, y){
+    const margen = 16;
+    let left = x + margen, top = y + margen;
+    const w = tt.offsetWidth || 240, h = tt.offsetHeight || 140;
+    if(left + w > window.innerWidth - 8) left = x - w - margen;
+    if(top + h > window.innerHeight - 8) top = y - h - margen;
+    tt.style.left = Math.max(8,left)+'px';
+    tt.style.top = Math.max(8,top)+'px';
+  }
+
+  document.addEventListener('mouseover', e=>{
+    const el = e.target.closest('.veh-hover');
+    if(!el) return;
+    const vid = el.dataset.vid;
+    const v = vehiculoDe(vid);
+    if(!v) return;
+    vidActual = vid;
+    tt.innerHTML = contenidoTooltip(v);
+    posicionar(e.clientX, e.clientY);
+    tt.classList.add('show');
+  });
+
+  document.addEventListener('mousemove', e=>{
+    if(!vidActual) return;
+    posicionar(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('mouseout', e=>{
+    const el = e.target.closest('.veh-hover');
+    if(!el) return;
+    if(e.relatedTarget && e.relatedTarget.closest('.veh-hover')===el) return;
+    vidActual = null;
+    tt.classList.remove('show');
+  });
+})();
+
 function kpiCard(label, value, color){
   return `<div class="card" style="padding:14px;margin:0;">
     <div style="font-size:11px;color:var(--gray);text-transform:uppercase;font-weight:700;letter-spacing:.05em;">${label}</div>
@@ -1022,8 +1095,8 @@ function renderCatalogo(){
       <tbody>
         ${lista.map(v=>`
           <tr>
-            <td class="tbl-num">${escapeHtml(v.no_economico)}</td>
-            <td>${escapeHtml(v.placas)}</td>
+            <td class="tbl-num">${vehHoverSpan(v.id, v.no_economico)}</td>
+            <td>${vehHoverSpan(v.id, v.placas)}</td>
             <td>${escapeHtml(v.marca)}${v.submarca?' / '+escapeHtml(v.submarca):''}</td>
             <td>${escapeHtml(v.tipo_vehiculo)}</td>
             <td class="tbl-center">${escapeHtml(v.modelo)}</td>
@@ -1137,8 +1210,8 @@ function renderResguardos(){
           const n = conteoResguardosPorVehiculo(r._vehiculo.id);
           return `
           <tr>
-            <td class="tbl-num">${escapeHtml(r._vehiculo.no_economico)}</td>
-            <td>${escapeHtml(r._vehiculo.placas)}</td>
+            <td class="tbl-num">${vehHoverSpan(r._vehiculo.id, r._vehiculo.no_economico)}</td>
+            <td>${vehHoverSpan(r._vehiculo.id, r._vehiculo.placas)}</td>
             <td>${badgeOrigen(r._vehiculo.origen)}</td>
             <td>${badgeEstatus(r._vehiculo.estatus)}</td>
             <td>${escapeHtml(r.titular_responsable)||'<span class="badge badge-gray">SIN TITULAR</span>'}</td>
@@ -1177,8 +1250,8 @@ function renderSinResguardo(){
       <tbody>
         ${sinResguardo.map(v=>`
           <tr>
-            <td class="tbl-num">${escapeHtml(v.no_economico)}</td>
-            <td>${escapeHtml(v.placas)}</td>
+            <td class="tbl-num">${vehHoverSpan(v.id, v.no_economico)}</td>
+            <td>${vehHoverSpan(v.id, v.placas)}</td>
             <td>${badgeOrigen(v.origen)}</td>
             <td>${badgeEstatus(v.estatus)}</td>
             <td>${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')}</td>
@@ -1772,8 +1845,8 @@ function procesarCartuchoAuditoria(input){
 
 function ejecutarAuditoria(filas){
   // Columnas esperadas (0-based), según el Cartucho BigData de Combustibles:
-  // 5=Ficha Trabajo, 6=Usuario, 32=Inventario, 33=Economico
-  const IDX_FICHA = 5, IDX_USUARIO = 6, IDX_INVENTARIO = 32, IDX_ECONOMICO = 33;
+  // 5=Ficha Trabajo, 6=Usuario, 32=Inventario, 33=Economico, 39=Area Usuaria (siglas de depto, col. AN)
+  const IDX_FICHA = 5, IDX_USUARIO = 6, IDX_INVENTARIO = 32, IDX_ECONOMICO = 33, IDX_AREA_USUARIA = 39;
 
   // Detectar encabezados por si el orden de columnas cambiara
   const header = filas[0] || [];
@@ -1781,8 +1854,9 @@ function ejecutarAuditoria(filas){
   const idxUsuario = header.indexOf('Usuario') >= 0 ? header.indexOf('Usuario') : IDX_USUARIO;
   const idxInventario = header.indexOf('Inventario') >= 0 ? header.indexOf('Inventario') : IDX_INVENTARIO;
   const idxEconomico = header.indexOf('Economico') >= 0 ? header.indexOf('Economico') : IDX_ECONOMICO;
+  const idxAreaUsuaria = header.indexOf('Area Usuaria') >= 0 ? header.indexOf('Area Usuaria') : IDX_AREA_USUARIA;
 
-  // usuariosPorId: { id: { nombreNorm: {nombreOriginal, fichas:Set} } }
+  // usuariosPorId: { id: { nombreNorm: {nombreOriginal, fichas:Set, siglas:Map(valor->conteo)} } }
   const usuariosPorId = {};
   for(let i=1; i<filas.length; i++){
     const row = filas[i];
@@ -1792,14 +1866,17 @@ function ejecutarAuditoria(filas){
     const nombreNorm = palabrasNombre(usuario);
     if(!nombreNorm) continue;
     const fichaOk = fichaValida(row[idxFicha]);
+    const areaUsuaria = row[idxAreaUsuaria] ? String(row[idxAreaUsuaria]).trim().toUpperCase() : null;
 
     [row[idxEconomico], row[idxInventario]].forEach(val=>{
       if(val===null || val===undefined) return;
       const key = String(val).trim();
       if(!key || key==='N/A' || key==='NA') return;
       if(!usuariosPorId[key]) usuariosPorId[key] = {};
-      if(!usuariosPorId[key][nombreNorm]) usuariosPorId[key][nombreNorm] = {nombreOriginal: String(usuario).trim(), fichas: new Set()};
-      if(fichaOk) usuariosPorId[key][nombreNorm].fichas.add(fichaOk);
+      if(!usuariosPorId[key][nombreNorm]) usuariosPorId[key][nombreNorm] = {nombreOriginal: String(usuario).trim(), fichas: new Set(), siglas: new Map()};
+      const entrada = usuariosPorId[key][nombreNorm];
+      if(fichaOk) entrada.fichas.add(fichaOk);
+      if(areaUsuaria && areaUsuaria!=='EXT.' && areaUsuaria!=='MANTTO.') entrada.siglas.set(areaUsuaria, (entrada.siglas.get(areaUsuaria)||0)+1);
     });
   }
 
@@ -1810,10 +1887,15 @@ function ejecutarAuditoria(filas){
     const fichaSysOk = vigente ? fichaValida(vigente.ficha_titular) : null;
 
     const bucket = usuariosPorId[v.no_economico] || {};
-    const usuarios = Object.values(bucket).map(u=>({
-      nombre: u.nombreOriginal,
-      ficha: u.fichas.size ? [...u.fichas].sort()[0] : null,
-    }));
+    const usuarios = Object.values(bucket).map(u=>{
+      let siglasTop = null, siglasMax = 0;
+      u.siglas.forEach((cnt,sig)=>{ if(cnt>siglasMax){ siglasMax=cnt; siglasTop=sig; } });
+      return {
+        nombre: u.nombreOriginal,
+        ficha: u.fichas.size ? [...u.fichas].sort()[0] : null,
+        siglas: siglasTop,
+      };
+    });
 
     let estatus;
     const coincideNombre = nombreSysNorm && usuarios.some(u=>palabrasNombre(u.nombre)===nombreSysNorm);
@@ -1856,11 +1938,14 @@ function renderAuditoria(){
   if(!noCoincide.length){
     cont.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Ningún vehículo cambió de usuario sin avisar. Todo en orden.</p></div>`;
   }else{
-    cont.innerHTML = noCoincide.map(a=>`
+    cont.innerHTML = noCoincide.map(a=>{
+      const detectado = a.usuarios[0];
+      const yaExisteEnPersonal = detectado ? personaExisteEnCatalogo(detectado.nombre) : true;
+      return `
       <div style="border:2px solid #ef5350;background:#fdecea;border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
         <div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#8a3a2e;">
-            🚨 ${escapeHtml(a.no_economico)} · ${escapeHtml(a.placas)} ${badgeOrigen(a.origen)}
+            🚨 ${vehHoverSpan(a.vehiculo_id, a.no_economico)} · ${vehHoverSpan(a.vehiculo_id, a.placas)} ${badgeOrigen(a.origen)}
           </div>
           <div style="font-size:12.5px;margin-top:4px;">
             <strong>Registrado en el sistema:</strong> ${escapeHtml(a.nombre_sys)||'(sin nombre)'} ${a.ficha_sys?`(ficha ${escapeHtml(a.ficha_sys)})`:''}
@@ -1868,15 +1953,96 @@ function renderAuditoria(){
           <div style="font-size:12.5px;color:#8a3a2e;">
             <strong>Detectado usando el vehículo en combustible:</strong> ${a.usuarios.map(u=>`${escapeHtml(u.nombre)}${u.ficha?` (ficha ${escapeHtml(u.ficha)})`:''}`).join('; ')}
           </div>
+          <div style="font-size:11.5px;margin-top:4px;">
+            ${yaExisteEnPersonal
+              ? '<span class="badge badge-green">✓ Ya está en el Directorio de Personal</span>'
+              : '<span class="badge badge-amber">⚠ No está en el Directorio de Personal</span>'}
+          </div>
         </div>
         <div class="btn-group">
+          ${!yaExisteEnPersonal ? `<button class="btn btn-outline btn-sm" onclick="altaPersonalDesdeAuditoria('${a.vehiculo_id}')">➕ Dar de alta en Personal</button>` : ''}
           <button class="btn btn-primary btn-sm" onclick="abrirAsignarResguardanteDesdeAuditoria('${a.vehiculo_id}')">Reasignar ahora</button>
         </div>
       </div>
-    `).join('');
+    `;}).join('');
   }
 
   renderTablaAuditoria();
+}
+
+// ═══ ¿La persona detectada ya existe en el Directorio de Personal? ════
+function personaExisteEnCatalogo(nombre){
+  const norm = palabrasNombre(nombre);
+  if(!norm) return true; // sin nombre no hay nada que dar de alta
+  return PERSONAL.some(p=>palabrasNombre(p.nombre)===norm);
+}
+
+// ═══ Mapa siglas -> Dirección/Subdirección/Gerencia (a partir de datos ya
+// existentes en Catálogo y Personal, igual que el mapeo hecho por SQL) ═══
+function mapaDepartamentoPorSiglas(){
+  const conteo = {}; // siglas -> Map("dir||sub||ger" -> conteo)
+  const registrar = (siglas, dir, sub, ger) => {
+    if(!siglas || !dir || !sub || !ger) return;
+    const key = siglas.toUpperCase();
+    const combo = `${dir}||${sub}||${ger}`;
+    if(!conteo[key]) conteo[key] = new Map();
+    conteo[key].set(combo, (conteo[key].get(combo)||0)+1);
+  };
+  VEHICULOS.forEach(v=>registrar(v.siglas, v.direccion, v.subdireccion, v.gerencia_unidad));
+  PERSONAL.forEach(p=>registrar(p.siglas, p.direccion, p.subdireccion, p.gerencia_unidad));
+
+  const mapa = {};
+  Object.entries(conteo).forEach(([siglas, combos])=>{
+    let top=null, max=0;
+    combos.forEach((cnt,combo)=>{ if(cnt>max){ max=cnt; top=combo; } });
+    if(top){
+      const [dir,sub,ger] = top.split('||');
+      mapa[siglas] = {direccion:dir, subdireccion:sub, gerencia_unidad:ger};
+    }
+  });
+  return mapa;
+}
+
+function altaPersonalDesdeAuditoria(vehiculoId){
+  const registro = AUDITORIA.find(a=>a.vehiculo_id===vehiculoId);
+  const detectado = registro && registro.usuarios[0];
+  if(!detectado){ toast('No hay usuario detectado para este vehículo', 'warn'); return; }
+
+  abrirFormPersonal(null); // abre el modal de Personal en modo "Agregar"
+  document.getElementById('perNombre').value = detectado.nombre || '';
+  if(detectado.ficha) document.getElementById('perFicha').value = detectado.ficha;
+
+  if(detectado.siglas){
+    const selSiglas = document.getElementById('perSiglas');
+    if([...selSiglas.options].some(o=>o.value===detectado.siglas)){
+      selSiglas.value = detectado.siglas;
+    }else{
+      const opt = document.createElement('option');
+      opt.value = detectado.siglas; opt.textContent = detectado.siglas;
+      selSiglas.insertBefore(opt, selSiglas.querySelector(`option[value="${OPCION_NUEVA}"]`));
+      selSiglas.value = detectado.siglas;
+    }
+    const mapa = mapaDepartamentoPorSiglas();
+    const depto = mapa[detectado.siglas];
+    if(depto){
+      ['perDireccion','perSubdireccion','perGerenciaUnidad'].forEach(id=>{
+        const campo = {perDireccion:'direccion', perSubdireccion:'subdireccion', perGerenciaUnidad:'gerencia_unidad'}[id];
+        const sel = document.getElementById(id);
+        const valor = depto[campo];
+        if(valor){
+          if(![...sel.options].some(o=>o.value===valor)){
+            const opt = document.createElement('option');
+            opt.value = valor; opt.textContent = valor;
+            sel.insertBefore(opt, sel.querySelector(`option[value="${OPCION_NUEVA}"]`));
+          }
+          sel.value = valor;
+        }
+      });
+      toast(`Departamento ${detectado.siglas} autocompletado — solo falta Cargo, Nivel, Celular y demás datos`, 'ok');
+    }else{
+      toast(`No encontré referencia previa para el departamento ${detectado.siglas} — completa Dirección/Subdirección/Gerencia manualmente`, 'warn');
+    }
+  }
 }
 
 function abrirAsignarResguardanteDesdeAuditoria(vehiculoId){
@@ -1931,8 +2097,8 @@ function renderTablaAuditoria(){
       <tbody>
         ${lista.map(a=>`
           <tr>
-            <td class="tbl-num">${escapeHtml(a.no_economico)}</td>
-            <td>${escapeHtml(a.placas)}</td>
+            <td class="tbl-num">${vehHoverSpan(a.vehiculo_id, a.no_economico)}</td>
+            <td>${vehHoverSpan(a.vehiculo_id, a.placas)}</td>
             <td>${badgeOrigen(a.origen)}</td>
             <td>${badgeEstatus(a.estatus_unidad)}</td>
             <td>${escapeHtml(a.nombre_sys)||'—'}</td>
