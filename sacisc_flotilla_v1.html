@@ -697,11 +697,30 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
   <div class="panel" id="pan-confrontas">
     <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Confrontas</h1>
-    <p class="page-desc">Verificación física periódica de unidades y generación del formato oficial.</p>
+    <p class="page-desc">Verificación física periódica de unidades arrendadas y generación del formato oficial. Regla de vigencia: al menos 1 confronta cada 365 días.</p>
+
+    <div class="kpi-grid" id="kpiConfrontas"></div>
+
     <div class="card">
-      <div class="card-hdr"><h3>🔍 Historial de confrontas</h3></div>
+      <div class="card-hdr">
+        <h3>🔍 Última confronta por vehículo (arrendados)</h3>
+        <div class="btn-group">
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(confrontasFiltradas().map(c=>({no_economico:c.vehiculo.no_economico, placas:c.vehiculo.placas, ultima_fecha:c.ultima?c.ultima.fecha:null, motivo:c.ultima?c.ultima.motivo:null, estatus:c.estatusVigencia, dias_transcurridos:c.dias})), 'confrontas_estatus')">📊 Exportar Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirRegistrarConfronta()">➕ Registrar Confronta</button>
+        </div>
+      </div>
       <div class="card-body">
-        <div class="empty-state" id="emptyConfrontas"><div class="icon">🔍</div><p>Próximamente en esta fase.</p></div>
+        <div class="filter-bar">
+          <select class="filter-sel" id="filtroEstatusConfronta">
+            <option value="">Todos los estatus</option>
+            <option value="VENCIDA">Vencida</option>
+            <option value="AL DÍA">Al día</option>
+            <option value="NUNCA">Nunca confrontada</option>
+          </select>
+          <input class="search-inp" id="buscarConfronta" placeholder="Buscar por placa o económico…">
+        </div>
+        <div class="empty-state" id="emptyConfrontas"><div class="icon">🔍</div><p>Cargando confrontas desde Supabase…</p></div>
+        <div class="tbl-wrap" id="tablaConfrontas"></div>
       </div>
     </div>
   </div>
@@ -735,6 +754,93 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
   </div>
 </div>
+<!-- MODAL: HISTORIAL DE CONFRONTAS -->
+<div class="modal-overlay" id="modalHistorialConfronta">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2>📜 Historial de Confrontas</h2>
+      <button class="modal-close" onclick="closeModal('modalHistorialConfronta')">✕</button>
+    </div>
+    <div class="modal-body" id="modalHistorialConfrontaBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalHistorialConfronta')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REGISTRAR CONFRONTA -->
+<div class="modal-overlay" id="modalRegistrarConfronta">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2>➕ Registrar Confronta</h2>
+      <button class="modal-close" onclick="closeModal('modalRegistrarConfronta')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-group" style="margin-bottom:14px;position:relative;">
+        <label>Buscar vehículo arrendado (No. Económico o Placas) *</label>
+        <input class="fc" id="confBuscarVehiculo" placeholder="Escribe para buscar…" autocomplete="off">
+        <div id="confSugerencias" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;z-index:50;"></div>
+      </div>
+      <div id="confVehiculoActual" style="display:none;margin-bottom:14px;padding:10px 14px;background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:8px;font-size:12.5px;"></div>
+
+      <div id="confForm" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group"><label>Fecha de la Confronta *</label><input class="fc" type="date" id="confFecha"></div>
+          <div class="form-group"><label>Motivo</label>
+            <select class="fc" id="confMotivo"><option value="">— Selecciona —</option></select>
+          </div>
+          <div class="form-group"><label>Atendió la Confronta (nombre)</label><input class="fc" id="confAtendio"></div>
+          <div class="form-group"><label>Ficha (quien confronta)</label><input class="fc" id="confFicha"></div>
+
+          <div class="form-group"><label>¿Cromática completa?</label>
+            <select class="fc" id="confCromaticaCompleta"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+          </div>
+          <div class="form-group"><label>Desviación cromática (si aplica)</label><input class="fc" id="confDesviacionCromatica"></div>
+          <div class="form-group"><label>¿Daños?</label>
+            <select class="fc" id="confDanos"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+          </div>
+          <div class="form-group"><label>Indicar daños (si aplica)</label><input class="fc" id="confIndicarDanos"></div>
+
+          <div class="form-group"><label>¿Modificaciones o golpes?</label>
+            <select class="fc" id="confModificacionesGolpes"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+          </div>
+          <div class="form-group"><label>Indicar modificación/golpe</label><input class="fc" id="confIndicarModifGolpe"></div>
+          <div class="form-group"><label>¿Reportado al seguro?</label>
+            <select class="fc" id="confReportadoSeguro"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+          </div>
+          <div class="form-group"><label>¿Pernocta en centro de trabajo?</label>
+            <select class="fc" id="confPernocta"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+          </div>
+
+          <div class="form-group"><label>Quién autoriza no pernoctar (si aplica)</label><input class="fc" id="confQuienAutoriza"></div>
+          <div class="form-group"><label>¿Investigación administrativa?</label>
+            <select class="fc" id="confInvestigacion"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+          </div>
+          <div class="form-group"><label>¿Sancionada?</label>
+            <select class="fc" id="confSancionada"><option value="">—</option><option value="SI">SI</option><option value="NO">NO</option></select>
+          </div>
+          <div class="form-group"><label>Acta circunstanciada</label><input class="fc" id="confActaCircunstanciada"></div>
+
+          <div class="form-group"><label>Notificación a RH</label><input class="fc" id="confNotificacionRh"></div>
+          <div class="form-group"><label>Respuesta de RH</label><input class="fc" id="confRespuestaRh"></div>
+          <div class="form-group"><label>Atención de anomalía</label><input class="fc" id="confAtencionAnomalia"></div>
+          <div class="form-group"><label>Estatus</label><input class="fc" id="confEstatus" placeholder="Ej. CERRADA, PENDIENTE…"></div>
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label>Comentarios</label>
+          <textarea class="fc" id="confComentarios" rows="3" style="resize:vertical;"></textarea>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalRegistrarConfronta')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarConfronta" style="display:none;" onclick="guardarConfronta()">Guardar Confronta</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: EDITAR RESGUARDO (corrección directa, sin generar reemplazo) -->
 <div class="modal-overlay" id="modalEditarResguardo">
   <div class="modal modal-lg">
@@ -964,6 +1070,14 @@ async function cargarDesdeSB(){
       toast('Falta crear la tabla flotilla_personal en Supabase (corre el script SQL de Personal)', 'warn');
     }
     renderPersonal();
+
+    try{
+      CONFRONTAS = await sbGet('flotilla_confrontas', 'order=fecha.desc&limit=2000');
+    }catch(e3){
+      console.error(e3);
+      CONFRONTAS = [];
+    }
+    renderConfrontas();
   }catch(e){
     console.error(e);
     badge.textContent = '🔴 Sin conexión';
@@ -1624,6 +1738,7 @@ function valoresUnicos(campo){
   VEHICULOS.forEach(v=>{ if(v[campo]) set.add(v[campo]); });
   PERSONAL.forEach(p=>{ if(p[campo]) set.add(p[campo]); });
   RESGUARDOS.forEach(r=>{ if(r[campo]) set.add(r[campo]); });
+  CONFRONTAS.forEach(c=>{ if(c[campo]) set.add(c[campo]); });
   return [...set].sort((a,b)=>a.localeCompare(b));
 }
 
@@ -1666,7 +1781,7 @@ function manejarOpcionNueva(selectId){
     sel.value = '';
   }
 }
-['perCargo','perNivel','perSiglas','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea'].forEach(id=>{
+['perCargo','perNivel','perSiglas','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea','confMotivo'].forEach(id=>{
   document.getElementById(id).addEventListener('change', ()=>manejarOpcionNueva(id));
 });
 
@@ -2225,6 +2340,384 @@ function renderTablaAuditoria(){
 
 document.getElementById('filtroEstatusAuditoria').addEventListener('change', renderTablaAuditoria);
 document.getElementById('buscarAuditoria').addEventListener('input', renderTablaAuditoria);
+
+// ═══════════════════════════════════════════════════════════════════════
+// ═══ CONFRONTAS (verificación física — solo ARRENDADOS por ahora) ══════
+// ═══════════════════════════════════════════════════════════════════════
+const DIAS_VIGENCIA_CONFRONTA = 365;
+
+function confrontasDeVehiculo(vehiculoId){
+  return CONFRONTAS.filter(c=>c.vehiculo_id===vehiculoId).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+}
+
+function diasDesde(fechaISO){
+  if(!fechaISO) return null;
+  const ms = Date.now() - new Date(fechaISO+'T00:00:00').getTime();
+  return Math.floor(ms / 86400000);
+}
+
+function confrontasPorVehiculoArrendado(){
+  return VEHICULOS.filter(v=>v.origen==='ARRENDADO').map(v=>{
+    const historial = confrontasDeVehiculo(v.id);
+    const ultima = historial[0] || null;
+    const dias = ultima ? diasDesde(ultima.fecha) : null;
+    let estatusVigencia;
+    if(!ultima) estatusVigencia = 'NUNCA';
+    else if(dias > DIAS_VIGENCIA_CONFRONTA) estatusVigencia = 'VENCIDA';
+    else estatusVigencia = 'AL DÍA';
+    return {vehiculo: v, historial, ultima, dias, estatusVigencia};
+  });
+}
+
+function confrontasFiltradas(){
+  const estatusSel = document.getElementById('filtroEstatusConfronta').value;
+  const q = (document.getElementById('buscarConfronta').value||'').trim().toLowerCase();
+  return confrontasPorVehiculoArrendado().filter(c=>{
+    if(estatusSel && c.estatusVigencia!==estatusSel) return false;
+    if(q){
+      const campos = [c.vehiculo.no_economico, c.vehiculo.placas].map(x=>(x||'').toLowerCase());
+      if(!campos.some(x=>x.includes(q))) return false;
+    }
+    return true;
+  });
+}
+
+function badgeVigenciaConfronta(estatus){
+  return ({
+    'VENCIDA': '<span class="badge badge-red">VENCIDA</span>',
+    'AL DÍA': '<span class="badge badge-green">AL DÍA</span>',
+    'NUNCA': '<span class="badge badge-amber">NUNCA CONFRONTADA</span>',
+  })[estatus];
+}
+
+function renderConfrontas(){
+  const todas = confrontasPorVehiculoArrendado();
+  const lista = confrontasFiltradas();
+
+  const vencidas = todas.filter(c=>c.estatusVigencia==='VENCIDA').length;
+  const nunca = todas.filter(c=>c.estatusVigencia==='NUNCA').length;
+  const alDia = todas.filter(c=>c.estatusVigencia==='AL DÍA').length;
+
+  document.getElementById('kpiConfrontas').innerHTML =
+    kpiCard('Total confrontas registradas', CONFRONTAS.length) +
+    kpiCard('🚨 Vencidas', vencidas, 'var(--red)') +
+    kpiCard('⚠️ Nunca confrontadas', nunca, 'var(--amber)') +
+    kpiCard('✅ Al día', alDia, '#1b6b2b');
+
+  document.getElementById('emptyConfrontas').style.display = lista.length ? 'none' : 'block';
+  document.getElementById('emptyConfrontas').querySelector('p').textContent =
+    todas.length ? 'No hay vehículos que coincidan con el filtro.' : 'No se encontraron confrontas en Supabase.';
+
+  if(!lista.length){ document.getElementById('tablaConfrontas').innerHTML = ''; return; }
+
+  lista.sort((a,b)=>{
+    const orden = {'VENCIDA':0,'NUNCA':1,'AL DÍA':2};
+    return orden[a.estatusVigencia]-orden[b.estatusVigencia] || a.vehiculo.no_economico.localeCompare(b.vehiculo.no_economico);
+  });
+
+  document.getElementById('tablaConfrontas').innerHTML = `
+    <table class="tbl">
+      <thead><tr>
+        <th>No. Económico</th><th>Placas</th><th>Departamento</th><th>Última Confronta</th>
+        <th>Motivo</th><th>Días desde la última</th><th>Vigencia</th><th>Historial</th><th>Acciones</th>
+      </tr></thead>
+      <tbody>
+        ${lista.map(c=>`
+          <tr>
+            <td class="tbl-num">${vehHoverSpan(c.vehiculo.id, c.vehiculo.no_economico)}</td>
+            <td>${vehHoverSpan(c.vehiculo.id, c.vehiculo.placas)}</td>
+            <td>${c.vehiculo.siglas ? `<span class="badge badge-blue">${escapeHtml(c.vehiculo.siglas)}</span>` : '—'}</td>
+            <td>${c.ultima ? fechaCorta(c.ultima.fecha) : '—'}</td>
+            <td>${c.ultima ? escapeHtml(c.ultima.motivo) : '—'}</td>
+            <td class="tbl-center">${c.dias!==null ? c.dias : '—'}</td>
+            <td>${badgeVigenciaConfronta(c.estatusVigencia)}</td>
+            <td class="tbl-center">${c.historial.length ? `<span class="badge badge-gray">${c.historial.length}</span>` : '—'}</td>
+            <td class="btn-group">
+              <button class="btn btn-outline btn-xs" onclick="verHistorialConfronta('${c.vehiculo.id}')">Historial</button>
+              <button class="btn btn-outline btn-xs" onclick="abrirRegistrarConfronta('${c.vehiculo.id}')">Registrar</button>
+              ${c.ultima ? `<button class="btn btn-primary btn-xs" onclick="generarConfrontaPDF('${c.ultima.id}')">PDF</button>` : ''}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function verHistorialConfronta(vehiculoId){
+  const v = vehiculoDe(vehiculoId);
+  const historial = confrontasDeVehiculo(vehiculoId);
+  document.getElementById('modalHistorialConfrontaBody').innerHTML = `
+    <p style="margin-bottom:12px;font-size:12.5px;color:var(--gray);">
+      <strong style="color:var(--gd);">${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)}</strong> —
+      ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')}
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Fecha</th><th>Motivo</th><th>Atendió</th><th>Daños</th><th>Modif./Golpes</th><th>Pernocta</th><th>Estatus</th><th></th></tr></thead>
+        <tbody>
+          ${historial.map(c=>`
+            <tr>
+              <td>${fechaCorta(c.fecha)}</td>
+              <td>${escapeHtml(c.motivo)}</td>
+              <td>${escapeHtml(c.atendio_confronta)}</td>
+              <td>${escapeHtml(c.danos)||'—'}</td>
+              <td>${escapeHtml(c.modificaciones_golpes)||'—'}</td>
+              <td>${escapeHtml(c.pernocta)||'—'}</td>
+              <td>${escapeHtml(c.estatus)||'—'}</td>
+              <td><button class="btn btn-outline btn-xs" onclick="generarConfrontaPDF('${c.id}')">PDF</button></td>
+            </tr>
+          `).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--gray);">Sin confrontas registradas todavía.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `;
+  openModal('modalHistorialConfronta');
+}
+
+// ═══ REGISTRAR NUEVA CONFRONTA ═══════════════════════════════════════
+let CONF_VEHICULO_ID = null;
+
+function abrirRegistrarConfronta(vehiculoIdPreseleccionado){
+  CONF_VEHICULO_ID = null;
+  document.getElementById('confBuscarVehiculo').value = '';
+  document.getElementById('confSugerencias').style.display = 'none';
+  document.getElementById('confVehiculoActual').style.display = 'none';
+  document.getElementById('confForm').style.display = 'none';
+  document.getElementById('btnGuardarConfronta').style.display = 'none';
+  ['confAtendio','confFicha','confDesviacionCromatica','confIndicarDanos','confIndicarModifGolpe',
+   'confQuienAutoriza','confActaCircunstanciada','confNotificacionRh','confRespuestaRh',
+   'confAtencionAnomalia','confEstatus','confComentarios'].forEach(id=>document.getElementById(id).value='');
+  ['confCromaticaCompleta','confDanos','confModificacionesGolpes','confReportadoSeguro','confPernocta','confInvestigacion','confSancionada']
+    .forEach(id=>document.getElementById(id).value='');
+  document.getElementById('confFecha').value = new Date().toISOString().slice(0,10);
+  poblarSelect('confMotivo', 'motivo', '');
+
+  openModal('modalRegistrarConfronta');
+  if(vehiculoIdPreseleccionado) seleccionarVehiculoParaConfronta(vehiculoIdPreseleccionado);
+}
+
+document.getElementById('confBuscarVehiculo').addEventListener('input', function(){
+  const q = this.value.trim().toLowerCase();
+  const cont = document.getElementById('confSugerencias');
+  if(q.length < 2){ cont.style.display='none'; return; }
+  const resultados = VEHICULOS.filter(v=>v.origen==='ARRENDADO' &&
+    ((v.no_economico||'').toLowerCase().includes(q) || (v.placas||'').toLowerCase().includes(q))
+  ).slice(0, 12);
+  if(!resultados.length){ cont.innerHTML = `<div style="padding:10px 14px;color:var(--gray);font-size:12.5px;">Sin resultados (solo arrendados por ahora)</div>`; cont.style.display='block'; return; }
+  cont.innerHTML = resultados.map(v=>`
+    <div style="padding:9px 14px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border);"
+         onmouseover="this.style.background='#eaf3f0'" onmouseout="this.style.background=''"
+         onclick="seleccionarVehiculoParaConfronta('${v.id}')">
+      <strong>${escapeHtml(v.no_economico)}</strong> · ${escapeHtml(v.placas)} — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')}
+    </div>
+  `).join('');
+  cont.style.display = 'block';
+});
+
+function seleccionarVehiculoParaConfronta(vehiculoId){
+  const v = vehiculoDe(vehiculoId);
+  if(!v){ toast('Vehículo no encontrado', 'warn'); return; }
+  CONF_VEHICULO_ID = vehiculoId;
+  document.getElementById('confBuscarVehiculo').value = `${v.no_economico} · ${v.placas}`;
+  document.getElementById('confSugerencias').style.display = 'none';
+
+  const historial = confrontasDeVehiculo(vehiculoId);
+  const ultima = historial[0];
+  const dias = ultima ? diasDesde(ultima.fecha) : null;
+  const vigente = RESGUARDOS.find(r=>r.vehiculo_id===vehiculoId && r.vigente);
+
+  const infoBox = document.getElementById('confVehiculoActual');
+  infoBox.style.display = 'block';
+  infoBox.innerHTML = `
+    <strong>${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)}</strong> — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')}<br>
+    <span style="color:var(--gray);">${escapeHtml(v.direccion)} › ${escapeHtml(v.subdireccion)} › ${escapeHtml(v.gerencia_unidad)}</span><br>
+    ${vigente ? `Resguardante actual: <strong>${escapeHtml(vigente.titular_responsable)}</strong> (ficha ${escapeHtml(vigente.ficha_titular)})<br>` : ''}
+    ${ultima
+      ? `Última confronta: ${fechaCorta(ultima.fecha)} (hace ${dias} días) — ${dias>DIAS_VIGENCIA_CONFRONTA ? '<span class="badge badge-red">VENCIDA</span>' : '<span class="badge badge-green">AL DÍA</span>'}`
+      : `<span class="badge badge-amber">Nunca ha sido confrontado</span>`}
+  `;
+
+  // sugerir ficha/atendió a partir del resguardante vigente, si existe
+  if(vigente){
+    document.getElementById('confAtendio').value = vigente.titular_responsable || '';
+    document.getElementById('confFicha').value = vigente.ficha_titular || '';
+  }
+
+  document.getElementById('confForm').style.display = 'block';
+  document.getElementById('btnGuardarConfronta').style.display = 'inline-flex';
+}
+
+async function guardarConfronta(){
+  if(!CONF_VEHICULO_ID){ toast('Selecciona primero un vehículo', 'warn'); return; }
+  const fecha = document.getElementById('confFecha').value;
+  if(!fecha){ toast('La fecha es obligatoria', 'warn'); return; }
+
+  const val = id => document.getElementById(id).value.trim() || null;
+  const nuevaConfronta = {
+    vehiculo_id: CONF_VEHICULO_ID,
+    fecha,
+    motivo: val('confMotivo'),
+    atendio_confronta: val('confAtendio'),
+    ficha: val('confFicha'),
+    cromatica_completa: val('confCromaticaCompleta'),
+    desviacion_cromatica: val('confDesviacionCromatica'),
+    danos: val('confDanos'),
+    indicar_danos: val('confIndicarDanos'),
+    modificaciones_golpes: val('confModificacionesGolpes'),
+    indicar_modif_golpe: val('confIndicarModifGolpe'),
+    reportado_seguro: val('confReportadoSeguro'),
+    pernocta: val('confPernocta'),
+    quien_autoriza_no_pernoctar: val('confQuienAutoriza'),
+    comentarios: val('confComentarios'),
+    investigacion_administrativa: val('confInvestigacion'),
+    sancionada: val('confSancionada'),
+    acta_circunstanciada: val('confActaCircunstanciada'),
+    notificacion_rh: val('confNotificacionRh'),
+    respuesta_rh: val('confRespuestaRh'),
+    atencion_anomalia: val('confAtencionAnomalia'),
+    estatus: val('confEstatus'),
+  };
+
+  const btn = document.getElementById('btnGuardarConfronta');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    const insertado = await sbInsert('flotilla_confrontas', nuevaConfronta);
+    CONFRONTAS.unshift(insertado[0]);
+    toast('Confronta registrada correctamente', 'ok');
+    closeModal('modalRegistrarConfronta');
+    renderConfrontas();
+  }catch(e){
+    console.error(e);
+    toast('Error al guardar: '+e.message, 'warn');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar Confronta';
+  }
+}
+
+// ═══ GENERAR PDF DE CONFRONTA (formato oficial) ═══════════════════════
+function generarConfrontaPDF(confrontaId){
+  const c = CONFRONTAS.find(x=>x.id===confrontaId);
+  if(!c){ toast('Confronta no encontrada', 'warn'); return; }
+  const v = vehiculoDe(c.vehiculo_id);
+  if(!v){ toast('Vehículo no encontrado', 'warn'); return; }
+  const vigente = RESGUARDOS.find(r=>r.vehiculo_id===v.id && r.vigente);
+  const ciudad = v.ciudad || v.jurisdiccion || 'COATZACOALCOS, VER.';
+
+  const filaCheck = (label) => `<td class="chk-lbl">${label}</td><td class="chk-box"></td>`;
+
+  const contenido = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Confronta de Verificación Física</title>
+<style>
+  @page{margin:12mm;size:letter portrait}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#000;}
+  .doc-hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px;}
+  .doc-hdr img{height:50px;}
+  .doc-hdr .org{text-align:right;font-size:9px;line-height:1.5;font-weight:bold;}
+  .doc-fecha{text-align:right;font-size:10px;margin-bottom:10px;}
+  .doc-title{text-align:center;font-size:14px;font-weight:bold;text-decoration:underline;margin-bottom:14px;}
+  .campos{width:100%;border-collapse:collapse;margin-bottom:10px;}
+  .campos td{border:1px solid #000;padding:4px 8px;font-size:10px;vertical-align:top;}
+  .campos .lbl{font-weight:bold;width:22%;background:#f2f2f2;}
+  .campos .val{width:28%;}
+  .chk-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+  .chk-table td{border:1px solid #000;padding:4px 6px;font-size:9.5px;}
+  .chk-lbl{width:34%;}
+  .chk-box{width:8px;text-align:center;}
+  .obs-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:10px;}
+  .obs-cell{border:1px solid #000;padding:6px 8px;font-size:9.5px;}
+  .obs-cell b{display:block;margin-bottom:4px;}
+  .firma-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:34px;text-align:center;font-size:10px;}
+  .firma-linea{margin-top:44px;border-top:1px solid #000;padding-top:4px;}
+</style>
+</head><body>
+
+  <div class="doc-hdr">
+    <img src="${LOGO_PEMEX_B64}" alt="PEMEX">
+    <div class="org">
+      Subdirección de Servicios y Administración de Bienes<br>
+      Unidad Regional de Servicios Corporativos Sur<br>
+      Servicios Corporativos ${escapeHtml(v.jurisdiccion||'')}
+    </div>
+  </div>
+  <div class="doc-fecha">${escapeHtml(ciudad)}, a ${fechaLargaEspanol(new Date(c.fecha+'T00:00:00'))}</div>
+  <div class="doc-title">CONFRONTA DE VERIFICACIÓN FÍSICA DE UNIDAD</div>
+
+  <table class="campos">
+    <tr>
+      <td class="lbl">No. Económico:</td><td class="val">${escapeHtml(v.no_economico)}</td>
+      <td class="lbl">Marca:</td><td class="val">${escapeHtml(v.marca)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">No. de Placas:</td><td class="val">${escapeHtml(v.placas)}</td>
+      <td class="lbl">Tipo:</td><td class="val">${escapeHtml(v.tipo_vehiculo)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">No. de Serie:</td><td class="val">${escapeHtml(v.no_serie)}</td>
+      <td class="lbl">Modelo:</td><td class="val">${escapeHtml(v.modelo)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Nombre Asignatario:</td><td class="val">${escapeHtml(vigente?vigente.titular_responsable:'')}</td>
+      <td class="lbl">Submarca:</td><td class="val">${escapeHtml(v.submarca)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Cargo Asignatario:</td><td class="val">${escapeHtml(vigente?vigente.cargo:'')}</td>
+      <td class="lbl">Nivel:</td><td class="val">${escapeHtml(vigente?vigente.nivel:'')}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Ficha:</td><td class="val">${escapeHtml(vigente?vigente.ficha_titular:'')}</td>
+      <td class="lbl">Dirección:</td><td class="val">${escapeHtml(v.direccion)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Gerencia/Unidad:</td><td class="val">${escapeHtml(v.gerencia_unidad)}</td>
+      <td class="lbl">Subdirección:</td><td class="val">${escapeHtml(v.subdireccion)}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Celular:</td><td class="val">${escapeHtml(vigente?vigente.celular:'')}</td>
+      <td class="lbl">Correo:</td><td class="val">${escapeHtml(vigente?vigente.correo:'')}</td>
+    </tr>
+  </table>
+
+  <table class="chk-table">
+    <tr>${filaCheck('Gato')}${filaCheck('Extintor')}${filaCheck('Espejos')}</tr>
+    <tr>${filaCheck('Maneral')}${filaCheck('Cables')}${filaCheck('Llaves')}</tr>
+    <tr>${filaCheck('Llave de ruedas')}${filaCheck('Tapón de combustible')}${filaCheck('Control Remoto')}</tr>
+    <tr>${filaCheck('Birlo de seguridad')}${filaCheck('Tapones y bayoneta de motor')}${filaCheck('Tarjeta de circulación')}</tr>
+    <tr>${filaCheck('Llanta de refacción')}${filaCheck('Copas de Rines')}${filaCheck('Póliza Seguro')}</tr>
+    <tr>${filaCheck('Manual')}${filaCheck('Póliza de Garantía')}${filaCheck('Kilometraje')}</tr>
+    <tr>${filaCheck('Señales de seguridad')}${filaCheck('Antena')}<td class="chk-lbl"></td><td class="chk-box"></td></tr>
+    <tr>${filaCheck('Tapetes')}<td class="chk-lbl"></td><td class="chk-box"></td><td class="chk-lbl"></td><td class="chk-box"></td></tr>
+  </table>
+
+  <div class="obs-grid">
+    <div class="obs-cell"><b>¿CROMÁTICA COMPLETA?</b> ${escapeHtml(c.cromatica_completa)||'—'}${c.desviacion_cromatica?`<br>Desviación: ${escapeHtml(c.desviacion_cromatica)}`:''}</div>
+    <div class="obs-cell"><b>¿MODIFICACIÓN O GOLPES VISIBLES?</b> ${escapeHtml(c.modificaciones_golpes)||'—'}${c.indicar_modif_golpe?`<br>${escapeHtml(c.indicar_modif_golpe)}`:''}</div>
+    <div class="obs-cell"><b>¿UNIDAD PERNOCTA EN EL CENTRO DE TRABAJO?</b> ${escapeHtml(c.pernocta)||'—'}${c.quien_autoriza_no_pernoctar?`<br>Autoriza: ${escapeHtml(c.quien_autoriza_no_pernoctar)}`:''}</div>
+  </div>
+  <div class="obs-grid" style="grid-template-columns:1fr;">
+    <div class="obs-cell"><b>¿SE REPORTÓ AL SEGURO?</b> ${escapeHtml(c.reportado_seguro)||'—'} &nbsp;&nbsp; <b>¿DAÑOS?</b> ${escapeHtml(c.danos)||'—'} ${c.indicar_danos?`— ${escapeHtml(c.indicar_danos)}`:''}</div>
+  </div>
+  ${c.comentarios ? `<div class="obs-cell" style="border:1px solid #000;padding:8px;margin-bottom:10px;"><b>COMENTARIOS</b>${escapeHtml(c.comentarios)}</div>` : ''}
+
+  <div class="firma-grid">
+    <div>Presenta el vehículo<div class="firma-linea">Nombre y Firma</div></div>
+    <div>Realiza la Confronta<br>${escapeHtml(c.atendio_confronta||'')} ${c.ficha?`(Ficha ${escapeHtml(c.ficha)})`:''}<div class="firma-linea">Nombre y Firma</div></div>
+  </div>
+
+</body></html>`;
+
+  const win = window.open('','_blank','width=900,height=1000');
+  if(!win){ toast('Permite ventanas emergentes para generar el PDF', 'warn'); return; }
+  win.document.write(contenido);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); }, 500);
+  toast(`📄 Confronta de ${v.no_economico} — selecciona "Guardar como PDF" en el diálogo`, 'ok');
+}
+
+document.getElementById('filtroEstatusConfronta').addEventListener('change', renderConfrontas);
+document.getElementById('buscarConfronta').addEventListener('input', renderConfrontas);
 </script>
 </body>
 </html>
