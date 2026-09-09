@@ -552,7 +552,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="card">
       <div class="card-hdr">
         <h3>📋 Vehículos registrados</h3>
-        <button class="btn btn-outline btn-sm" onclick="exportarExcel(vehiculosFiltrados(), 'catalogo_vehiculos')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
+        <div class="btn-group">
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(vehiculosFiltrados(), 'catalogo_vehiculos')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirRegistrarReemplazo()">🔄 Registrar Reemplazo de Unidad</button>
+        </div>
       </div>
       <div class="card-body">
         <div class="filter-bar">
@@ -740,6 +743,55 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
   </div>
 </footer>
+
+<!-- MODAL: HISTORIAL DE REEMPLAZOS DE UNIDAD -->
+<div class="modal-overlay" id="modalHistorialReemplazos">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2>🔄 Historial de Reemplazos de Unidad</h2>
+      <button class="modal-close" onclick="closeModal('modalHistorialReemplazos')">✕</button>
+    </div>
+    <div class="modal-body" id="modalHistorialReemplazosBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalHistorialReemplazos')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REGISTRAR REEMPLAZO DE UNIDAD -->
+<div class="modal-overlay" id="modalRegistrarReemplazo">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2>🔄 Registrar Reemplazo de Unidad</h2>
+      <button class="modal-close" onclick="closeModal('modalRegistrarReemplazo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:14px;position:relative;">
+        <label>Buscar vehículo (No. Económico o Placas) *</label>
+        <input class="fc" id="reemBuscarVehiculo" placeholder="Escribe para buscar…" autocomplete="off">
+        <div id="reemSugerencias" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;z-index:50;"></div>
+      </div>
+      <div id="reemVehiculoActual" style="display:none;margin-bottom:14px;padding:10px 14px;background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:8px;font-size:12.5px;"></div>
+
+      <div id="reemForm" style="display:none;">
+        <div class="form-grid">
+          <div class="form-group"><label>Nueva Placa *</label><input class="fc" id="reemPlacaNueva" placeholder="Placa de la nueva unidad" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>Fecha del Reemplazo *</label><input class="fc" type="date" id="reemFecha"></div>
+          <div class="form-group"><label>Nuevo No. de Serie (opcional)</label><input class="fc" id="reemSerieNueva" placeholder="Si también cambió"></div>
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label>Comentarios</label>
+          <textarea class="fc" id="reemComentarios" rows="2" style="resize:vertical;"></textarea>
+        </div>
+        <p style="font-size:11px;color:var(--gray);margin-top:10px;">Al guardar, la placa (y serie, si la capturaste) del vehículo se actualiza en el Catálogo — será la que se use de aquí en adelante en Resguardos, Confrontas y demás módulos. La placa anterior queda registrada en el historial.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalRegistrarReemplazo')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarReemplazo" style="display:none;" onclick="guardarReemplazo()">Guardar Reemplazo</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: DETALLE DE VEHÍCULO -->
 <div class="modal-overlay" id="modalVehiculo">
@@ -1067,6 +1119,7 @@ let RESGUARDOS = [];
 let TARJETAS = [];
 let CONFRONTAS = [];
 let PERSONAL = [];
+let REEMPLAZOS = [];
 
 // ═══ TOAST ═════════════════════════════════════════════════════════════
 function toast(msg, tipo='ok'){
@@ -1140,6 +1193,13 @@ async function cargarDesdeSB(){
       CONFRONTAS = [];
     }
     renderConfrontas();
+
+    try{
+      REEMPLAZOS = await sbGet('flotilla_reemplazos_unidad', 'order=fecha_reemplazo.desc&limit=2000');
+    }catch(e4){
+      console.error(e4);
+      REEMPLAZOS = [];
+    }
   }catch(e){
     console.error(e);
     badge.textContent = '🔴 Sin conexión';
@@ -1307,7 +1367,10 @@ function renderCatalogo(){
             <td>${badgeOrigen(v.origen)}</td>
             <td>${badgeEstatus(v.estatus)}</td>
             <td>${escapeHtml(v.nombre_responsable)}</td>
-            <td><button class="btn btn-outline btn-xs" onclick="verDetalleVehiculo('${v.id}')">Ver</button></td>
+            <td class="btn-group">
+              <button class="btn btn-outline btn-xs" onclick="verDetalleVehiculo('${v.id}')">Ver</button>
+              <button class="btn btn-outline btn-xs" onclick="verHistorialReemplazos('${v.id}')">Reemplazos${conteoReemplazos(v.id)>0?` (${conteoReemplazos(v.id)})`:''}</button>
+            </td>
           </tr>
         `).join('')}
       </tbody>
@@ -1340,6 +1403,139 @@ function verDetalleVehiculo(id){
     </div>
   `;
   openModal('modalVehiculo');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ═══ REEMPLAZO DE UNIDAD (arrendadora cambia el vehículo físico) ═══════
+// ═══════════════════════════════════════════════════════════════════════
+function conteoReemplazos(vehiculoId){
+  return REEMPLAZOS.filter(r=>r.vehiculo_id===vehiculoId).length;
+}
+
+function verHistorialReemplazos(vehiculoId){
+  const v = vehiculoDe(vehiculoId);
+  const historial = REEMPLAZOS.filter(r=>r.vehiculo_id===vehiculoId)
+    .sort((a,b)=>(b.fecha_reemplazo||'').localeCompare(a.fecha_reemplazo||''));
+
+  document.getElementById('modalHistorialReemplazosBody').innerHTML = `
+    <p style="margin-bottom:12px;font-size:12.5px;color:var(--gray);">
+      <strong style="color:var(--gd);">${escapeHtml(v.no_economico)}</strong> — Placa actual: <strong>${escapeHtml(v.placas)}</strong> ${badgeOrigen(v.origen)}
+    </p>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Fecha</th><th>Placa Anterior</th><th>Placa Nueva</th><th>Serie Anterior</th><th>Serie Nueva</th><th>Comentarios</th></tr></thead>
+        <tbody>
+          ${historial.map(r=>`
+            <tr>
+              <td>${fechaCorta(r.fecha_reemplazo)}</td>
+              <td>${escapeHtml(r.placa_anterior)||'—'}</td>
+              <td><strong>${escapeHtml(r.placa_nueva)}</strong></td>
+              <td>${escapeHtml(r.no_serie_anterior)||'—'}</td>
+              <td>${escapeHtml(r.no_serie_nueva)||'—'}</td>
+              <td>${escapeHtml(r.comentarios)||'—'}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray);">Esta unidad no ha tenido reemplazos registrados.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  `;
+  openModal('modalHistorialReemplazos');
+}
+
+let REEM_VEHICULO_ID = null;
+
+function abrirRegistrarReemplazo(vehiculoIdPreseleccionado){
+  REEM_VEHICULO_ID = null;
+  document.getElementById('reemBuscarVehiculo').value = '';
+  document.getElementById('reemSugerencias').style.display = 'none';
+  document.getElementById('reemVehiculoActual').style.display = 'none';
+  document.getElementById('reemForm').style.display = 'none';
+  document.getElementById('btnGuardarReemplazo').style.display = 'none';
+  document.getElementById('reemPlacaNueva').value = '';
+  document.getElementById('reemSerieNueva').value = '';
+  document.getElementById('reemComentarios').value = '';
+  document.getElementById('reemFecha').value = new Date().toISOString().slice(0,10);
+
+  openModal('modalRegistrarReemplazo');
+  if(vehiculoIdPreseleccionado) seleccionarVehiculoParaReemplazo(vehiculoIdPreseleccionado);
+}
+
+document.getElementById('reemBuscarVehiculo').addEventListener('input', function(){
+  const q = this.value.trim().toLowerCase();
+  const cont = document.getElementById('reemSugerencias');
+  if(q.length < 2){ cont.style.display='none'; return; }
+  const resultados = VEHICULOS.filter(v=>
+    (v.no_economico||'').toLowerCase().includes(q) || (v.placas||'').toLowerCase().includes(q)
+  ).slice(0, 12);
+  if(!resultados.length){ cont.innerHTML = `<div style="padding:10px 14px;color:var(--gray);font-size:12.5px;">Sin resultados</div>`; cont.style.display='block'; return; }
+  cont.innerHTML = resultados.map(v=>`
+    <div style="padding:9px 14px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border);"
+         onmouseover="this.style.background='#eaf3f0'" onmouseout="this.style.background=''"
+         onclick="seleccionarVehiculoParaReemplazo('${v.id}')">
+      <strong>${escapeHtml(v.no_economico)}</strong> · ${escapeHtml(v.placas)} — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} ${badgeOrigen(v.origen)}
+    </div>
+  `).join('');
+  cont.style.display = 'block';
+});
+
+function seleccionarVehiculoParaReemplazo(vehiculoId){
+  const v = vehiculoDe(vehiculoId);
+  if(!v){ toast('Vehículo no encontrado', 'warn'); return; }
+  REEM_VEHICULO_ID = vehiculoId;
+  document.getElementById('reemBuscarVehiculo').value = `${v.no_economico} · ${v.placas}`;
+  document.getElementById('reemSugerencias').style.display = 'none';
+
+  const infoBox = document.getElementById('reemVehiculoActual');
+  infoBox.style.display = 'block';
+  infoBox.innerHTML = `
+    <strong>${escapeHtml(v.no_economico)}</strong> — Placa actual: <strong>${escapeHtml(v.placas)}</strong> ${badgeOrigen(v.origen)}<br>
+    <span style="color:var(--gray);">${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} — Serie actual: ${escapeHtml(v.no_serie)||'—'}</span>
+    ${conteoReemplazos(v.id)>0 ? `<br><span class="badge badge-amber">${conteoReemplazos(v.id)} reemplazo(s) previo(s)</span>` : ''}
+  `;
+
+  document.getElementById('reemForm').style.display = 'block';
+  document.getElementById('btnGuardarReemplazo').style.display = 'inline-flex';
+}
+
+async function guardarReemplazo(){
+  if(!REEM_VEHICULO_ID){ toast('Selecciona primero un vehículo', 'warn'); return; }
+  const v = vehiculoDe(REEM_VEHICULO_ID);
+  const placaNueva = document.getElementById('reemPlacaNueva').value.trim().toUpperCase();
+  const fecha = document.getElementById('reemFecha').value;
+  if(!placaNueva || !fecha){ toast('Nueva Placa y Fecha son obligatorios', 'warn'); return; }
+  const serieNueva = document.getElementById('reemSerieNueva').value.trim() || null;
+  const comentarios = document.getElementById('reemComentarios').value.trim() || null;
+
+  const btn = document.getElementById('btnGuardarReemplazo');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    const registro = {
+      vehiculo_id: REEM_VEHICULO_ID,
+      placa_anterior: v.placas,
+      placa_nueva: placaNueva,
+      no_serie_anterior: v.no_serie,
+      no_serie_nueva: serieNueva,
+      fecha_reemplazo: fecha,
+      comentarios,
+    };
+    const insertado = await sbInsert('flotilla_reemplazos_unidad', registro);
+    REEMPLAZOS.unshift(insertado[0]);
+
+    const cambiosVehiculo = {placas: placaNueva};
+    if(serieNueva) cambiosVehiculo.no_serie = serieNueva;
+    const actualizado = await sbUpdate('flotilla_vehiculos', `id=eq.${REEM_VEHICULO_ID}`, cambiosVehiculo);
+    const idx = VEHICULOS.findIndex(x=>x.id===REEM_VEHICULO_ID);
+    if(idx>=0) VEHICULOS[idx] = actualizado[0];
+
+    toast(`Reemplazo registrado — nueva placa: ${placaNueva}`, 'ok');
+    closeModal('modalRegistrarReemplazo');
+    renderCatalogo();
+  }catch(e){
+    console.error(e);
+    toast('Error al guardar: '+e.message, 'warn');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar Reemplazo';
+  }
 }
 
 // ═══ LISTENERS DE FILTRO — CATÁLOGO ════════════════════════════════════
