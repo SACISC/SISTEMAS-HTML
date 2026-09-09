@@ -735,6 +735,34 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
   </div>
 </div>
+<!-- MODAL: EDITAR RESGUARDO (corrección directa, sin generar reemplazo) -->
+<div class="modal-overlay" id="modalEditarResguardo">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2>✏️ Editar Resguardo</h2>
+      <button class="modal-close" onclick="closeModal('modalEditarResguardo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="editResguardoVehiculo" style="margin-bottom:14px;padding:10px 14px;background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:8px;font-size:12.5px;"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nombre del Titular</label><input class="fc" id="editNombre"></div>
+        <div class="form-group"><label>Ficha</label><input class="fc" id="editFicha"></div>
+        <div class="form-group"><label>Cargo</label><input class="fc" id="editCargo"></div>
+        <div class="form-group"><label>Nivel del Asignatario</label><input class="fc" id="editNivel"></div>
+        <div class="form-group"><label>Correo Electrónico</label><input class="fc" id="editCorreo"></div>
+        <div class="form-group"><label>No. de Extensión</label><input class="fc" id="editExtension"></div>
+        <div class="form-group"><label>No. Celular</label><input class="fc" id="editCelular"></div>
+        <div class="form-group"><label>Fecha del Resguardo</label><input class="fc" type="date" id="editFecha"></div>
+      </div>
+      <p style="font-size:11px;color:var(--gray);margin-top:10px;">Esto corrige los datos de este resguardo tal cual — no genera un reemplazo ni afecta el historial. Si en realidad cambió la persona, usa "Reasignar" en vez de esto.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalEditarResguardo')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarEdicionResguardo" onclick="guardarEdicionResguardo()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: HISTORIAL DE RESGUARDOS -->
 <div class="modal-overlay" id="modalHistorialResguardo">
   <div class="modal modal-lg">
@@ -1224,6 +1252,8 @@ function renderResguardos(){
               <button class="btn btn-outline btn-xs" onclick="verHistorialResguardo('${r._vehiculo.id}')">Historial</button>
               <button class="btn btn-outline btn-xs" onclick="abrirAsignarResguardante('${r._vehiculo.id}')">Reasignar</button>
               <button class="btn btn-primary btn-xs" onclick="generarResguardoPDF('${r.id}')">PDF</button>
+              <button class="btn btn-outline btn-xs" onclick="abrirEditarResguardo('${r.id}')">Editar</button>
+              <button class="btn btn-danger btn-xs" onclick="eliminarResguardo('${r.id}')">Eliminar</button>
             </td>
           </tr>
         `;}).join('')}
@@ -1263,6 +1293,75 @@ function renderSinResguardo(){
   `;
 }
 
+
+// ═══ EDITAR RESGUARDO (corrección directa, sin generar reemplazo) ══════
+function abrirEditarResguardo(resguardoId){
+  const r = RESGUARDOS.find(x=>x.id===resguardoId);
+  if(!r){ toast('Resguardo no encontrado', 'warn'); return; }
+  const v = vehiculoDe(r.vehiculo_id);
+
+  document.getElementById('editResguardoVehiculo').innerHTML = v
+    ? `<strong>${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)}</strong> — ${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} ${badgeOrigen(v.origen)}`
+    : '';
+
+  document.getElementById('editNombre').value = r.titular_responsable || '';
+  document.getElementById('editFicha').value = r.ficha_titular || '';
+  document.getElementById('editCargo').value = r.cargo || '';
+  document.getElementById('editNivel').value = r.nivel || '';
+  document.getElementById('editCorreo').value = r.correo || '';
+  document.getElementById('editExtension').value = r.extension || '';
+  document.getElementById('editCelular').value = r.celular || '';
+  document.getElementById('editFecha').value = r.fecha_resguardo || '';
+
+  EDIT_RESGUARDO_ID = resguardoId;
+  openModal('modalEditarResguardo');
+}
+
+async function guardarEdicionResguardo(){
+  if(!EDIT_RESGUARDO_ID){ toast('No hay resguardo seleccionado', 'warn'); return; }
+  const datos = {
+    titular_responsable: document.getElementById('editNombre').value.trim() || null,
+    ficha_titular: document.getElementById('editFicha').value.trim() || null,
+    cargo: document.getElementById('editCargo').value.trim() || null,
+    nivel: document.getElementById('editNivel').value.trim() || null,
+    correo: document.getElementById('editCorreo').value.trim() || null,
+    extension: document.getElementById('editExtension').value.trim() || null,
+    celular: document.getElementById('editCelular').value.trim() || null,
+    fecha_resguardo: document.getElementById('editFecha').value || null,
+  };
+  const btn = document.getElementById('btnGuardarEdicionResguardo');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    const actualizado = await sbUpdate('flotilla_resguardos', `id=eq.${EDIT_RESGUARDO_ID}`, datos);
+    const idx = RESGUARDOS.findIndex(x=>x.id===EDIT_RESGUARDO_ID);
+    if(idx>=0) RESGUARDOS[idx] = actualizado[0];
+    toast('Resguardo actualizado', 'ok');
+    closeModal('modalEditarResguardo');
+    renderResguardos();
+  }catch(e){
+    console.error(e);
+    toast('Error al guardar: '+e.message, 'warn');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar Cambios';
+  }
+}
+
+async function eliminarResguardo(resguardoId){
+  const r = RESGUARDOS.find(x=>x.id===resguardoId);
+  if(!r) return;
+  const v = vehiculoDe(r.vehiculo_id);
+  const etiqueta = v ? `${v.no_economico} · ${v.placas}` : 'este vehículo';
+  if(!confirm(`¿Eliminar el resguardo de "${r.titular_responsable||'(sin nombre)'}" para ${etiqueta}? Esta acción no se puede deshacer.`)) return;
+  try{
+    await sbDelete('flotilla_resguardos', `id=eq.${resguardoId}`);
+    RESGUARDOS = RESGUARDOS.filter(x=>x.id!==resguardoId);
+    renderResguardos();
+    toast('Resguardo eliminado', 'ok');
+  }catch(e){
+    console.error(e);
+    toast('Error al eliminar: '+e.message, 'warn');
+  }
+}
 
 function verHistorialResguardo(vehiculoId){
   const v = vehiculoDe(vehiculoId);
@@ -1631,6 +1730,7 @@ async function eliminarPersonal(personaId){
 
 // ═══ ASIGNAR NUEVO RESGUARDANTE ═════════════════════════════════════════
 let ASIG_VEHICULO_ID = null;
+let EDIT_RESGUARDO_ID = null;
 let ASIG_PERSONA_ID = null;
 
 function abrirAsignarResguardante(vehiculoIdPreseleccionado){
