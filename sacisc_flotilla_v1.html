@@ -2504,24 +2504,21 @@ function renderConfrontas(){
   document.getElementById('tablaConfrontas').innerHTML = `
     <table class="tbl">
       <thead><tr>
-        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Departamento</th><th>Última Confronta</th>
+        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Departamento</th><th>Estatus de Unidad</th><th>Última Confronta</th>
         <th>Motivo</th><th>Titular Resguardante</th><th>Atendió la Confronta</th><th>Días desde la última</th><th>Vigencia</th><th>Historial</th><th>Acciones</th>
       </tr></thead>
       <tbody>
-        ${lista.map(c=>{
-          const presente = c.ultima && c.titular && palabrasNombre(c.titular)===palabrasNombre(c.ultima.atendio_confronta);
-          return `
+        ${lista.map(c=>`
           <tr>
             <td class="tbl-num">${vehHoverSpan(c.vehiculo.id, c.vehiculo.no_economico)}</td>
             <td>${vehHoverSpan(c.vehiculo.id, c.vehiculo.placas)}</td>
             <td>${badgeOrigen(c.vehiculo.origen)}</td>
             <td>${c.vehiculo.siglas ? `<span class="badge badge-blue">${escapeHtml(c.vehiculo.siglas)}</span>` : '—'}</td>
+            <td>${badgeEstatus(c.vehiculo.estatus)}</td>
             <td>${c.ultima ? fechaCorta(c.ultima.fecha) : '—'}</td>
             <td>${c.ultima ? escapeHtml(c.ultima.motivo) : '—'}</td>
             <td>${escapeHtml(c.titular)||'<span class="badge badge-gray">SIN TITULAR</span>'}</td>
-            <td>${c.ultima ? (escapeHtml(c.ultima.atendio_confronta)||'—') : '—'}
-              ${c.ultima ? (presente ? ' <span class="badge badge-green">✓ TITULAR PRESENTE</span>' : ' <span class="badge badge-amber">⚠ NO COINCIDE</span>') : ''}
-            </td>
+            <td>${c.ultima ? (escapeHtml(c.ultima.atendio_confronta)||'—') : '—'}</td>
             <td class="tbl-center">${c.dias!==null ? c.dias : '—'}</td>
             <td>${badgeVigenciaConfronta(c.estatusVigencia)}</td>
             <td class="tbl-center">${c.historial.length ? `<span class="badge badge-gray">${c.historial.length}</span>` : '—'}</td>
@@ -2529,9 +2526,11 @@ function renderConfrontas(){
               <button class="btn btn-outline btn-xs" onclick="verHistorialConfronta('${c.vehiculo.id}')">Historial</button>
               <button class="btn btn-outline btn-xs" onclick="abrirRegistrarConfronta('${c.vehiculo.id}')">Registrar</button>
               ${c.ultima ? `<button class="btn btn-primary btn-xs" onclick="generarConfrontaPDF('${c.ultima.id}')">Formato</button>` : ''}
+              ${c.ultima ? `<button class="btn btn-outline btn-xs" onclick="abrirEditarConfronta('${c.ultima.id}')">Editar</button>` : ''}
+              ${c.ultima ? `<button class="btn btn-danger btn-xs" onclick="eliminarConfronta('${c.ultima.id}')">Eliminar</button>` : ''}
             </td>
           </tr>
-        `;}).join('')}
+        `).join('')}
       </tbody>
     </table>
   `;
