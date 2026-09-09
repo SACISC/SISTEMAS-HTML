@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>SACISC - Flotilla Vehicular</title>
+<title>SACISC - Parque Vehicular</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjYgMCA1MiA1OCI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImcxIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzFlNWI0ZiIvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMyZDllN2UiLz4KPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8cG9seWdvbiBwb2ludHM9IjMyLDIuNiA1NiwxNS44IDU2LDQyLjIgMzIsNTUuNCA4LDQyLjIgOCwxNS44IiBmaWxsPSJ1cmwoI2cxKSIvPgo8cGF0aCBkPSJNMjIuNCAyMS44IEMyMi40IDIxLjggNDEuNiAyMS44IDQxLjYgMjkgQzQxLjYgMzYuMiAyMi40IDMxLjQgMjIuNCAzOC42IEMyMi40IDQ1LjggNDEuNiA0NS44IDQxLjYgNDUuOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjYgMCA1MiA1OCI+Cjxwb2x5Z29uIHBvaW50cz0iMzIsMi42IDU2LDE1LjggNTYsNDIuMiAzMiw1NS40IDgsNDIuMiA4LDE1LjgiIGZpbGw9IiMxZTViNGYiLz4KPHBhdGggZD0iTTIyLjQgMjEuOCBDMjIuNCAyMS44IDQxLjYgMjEuOCA0MS42IDI5IEM0MS42IDM2LjIgMjIuNCAzMS40IDIyLjQgMzguNiBDMjIuNCA0NS44IDQxLjYgNDUuOCA0MS42IDQ1LjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -423,7 +423,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
               <path d="M9 17h6"/>
             </svg>
           </div>
-          <div class="selector-title">FLOTILLA VEHICULAR</div>
+          <div class="selector-title">PARQUE VEHICULAR</div>
           <div class="selector-desc">Vehículos propios y arrendados<br>Resguardos · Tarjetas · Confrontas</div>
           <span class="selector-badge ok">Disponible</span>
         </button>
@@ -472,7 +472,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
 
     <div class="header-title">
-      <div class="main">Flotilla Vehicular</div>
+      <div class="main">Parque Vehicular</div>
       <div class="sub">Sistema Administrativo de Control Integral de Servicios Corporativos</div>
     </div>
   </div>
@@ -501,6 +501,11 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <span class="nav-label">Resguardos</span>
     <span class="nav-sub">Titulares</span>
   </button>
+  <button class="nav-tab" data-panel="pan-personal" onclick="showPanel('pan-personal')" id="tab-pan-personal">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+    <span class="nav-label">Personal</span>
+    <span class="nav-sub">Directorio</span>
+  </button>
   <button class="nav-tab" data-panel="pan-tarjetas" onclick="showPanel('pan-tarjetas')" id="tab-pan-tarjetas">
     <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
     <span class="nav-label">Tarjetas</span>
@@ -517,14 +522,17 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
   <!-- ═══ PANEL: CATÁLOGO ═══ -->
   <div class="panel active" id="pan-catalogo">
-    <div class="page-eyebrow">Flotilla Vehicular</div>
+    <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Catálogo de Vehículos</h1>
     <p class="page-desc">Inventario unificado de vehículos propios y arrendados.</p>
 
     <div class="kpi-grid" id="kpiCatalogo"></div>
 
     <div class="card">
-      <div class="card-hdr"><h3>📋 Vehículos registrados</h3></div>
+      <div class="card-hdr">
+        <h3>📋 Vehículos registrados</h3>
+        <button class="btn btn-outline btn-sm" onclick="exportarExcel(vehiculosFiltrados(), 'catalogo_vehiculos')">📊 Exportar Excel</button>
+      </div>
       <div class="card-body">
         <div class="filter-bar">
           <select class="filter-sel" id="filtroOrigen"><option value="">Todos los orígenes</option><option value="PROPIO">Propios</option><option value="ARRENDADO">Arrendados</option></select>
@@ -539,7 +547,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
   <!-- ═══ PANEL: RESGUARDOS ═══ -->
   <div class="panel" id="pan-resguardos">
-    <div class="page-eyebrow">Flotilla Vehicular</div>
+    <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Resguardos</h1>
     <p class="page-desc">Asignación de titulares responsables por vehículo y generación del formato oficial.</p>
 
@@ -548,7 +556,10 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="card">
       <div class="card-hdr">
         <h3>📝 Resguardos vigentes</h3>
-        <button class="btn btn-primary btn-sm" onclick="abrirAsignarResguardante()">➕ Asignar Resguardante</button>
+        <div class="btn-group">
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(resguardosFiltrados().map(r=>({no_economico:r._vehiculo.no_economico, placas:r._vehiculo.placas, origen:r._vehiculo.origen, titular:r.titular_responsable, ficha:r.ficha_titular, cargo:r.cargo, fecha_resguardo:r.fecha_resguardo})), 'resguardos_vigentes')">📊 Exportar Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirAsignarResguardante()">➕ Asignar Resguardante</button>
+        </div>
       </div>
       <div class="card-body">
         <div class="filter-bar">
@@ -562,22 +573,37 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
         <div class="tbl-wrap" id="tablaResguardos"></div>
       </div>
     </div>
+  </div>
+
+  <!-- ═══ PANEL: PERSONAL ═══ -->
+  <div class="panel" id="pan-personal">
+    <div class="page-eyebrow">Parque Vehicular</div>
+    <h1 class="page-title">Directorio de Personal</h1>
+    <p class="page-desc">Catálogo maestro de personal: departamento, clave económica (SERAP, SACAD, SIPA, CMEDO, GMOPI…) y datos de contacto usados en el llenado de los formatos.</p>
+
+    <div class="kpi-grid" id="kpiPersonal"></div>
 
     <div class="card">
-      <div class="card-hdr"><h3>👥 Directorio de Personal</h3></div>
-      <div class="card-body">
-        <p class="page-desc" style="margin-bottom:10px;">Personas con resguardo vigente y el departamento del vehículo que tienen asignado (Dirección › Subdirección › Gerencia/Unidad › Coordinación/Área).</p>
-        <div class="filter-bar">
-          <input class="search-inp" id="buscarDirectorio" placeholder="Buscar por nombre, ficha o departamento…" style="min-width:280px;">
+      <div class="card-hdr">
+        <h3>👥 Personal registrado</h3>
+        <div class="btn-group">
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(personalFiltrado(), 'directorio_personal')">📊 Exportar Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirFormPersonal()">➕ Agregar Persona</button>
         </div>
-        <div class="tbl-wrap" id="tablaDirectorio"></div>
+      </div>
+      <div class="card-body">
+        <div class="filter-bar">
+          <input class="search-inp" id="buscarPersonal" placeholder="Buscar por nombre, ficha, siglas o departamento…" style="min-width:300px;">
+        </div>
+        <div class="empty-state" id="emptyPersonal"><div class="icon">👥</div><p>Cargando personal desde Supabase…</p></div>
+        <div class="tbl-wrap" id="tablaPersonal"></div>
       </div>
     </div>
   </div>
 
   <!-- ═══ PANEL: TARJETAS ═══ -->
   <div class="panel" id="pan-tarjetas">
-    <div class="page-eyebrow">Flotilla Vehicular</div>
+    <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Tarjetas de Combustible</h1>
     <p class="page-desc">Tarjetas EFECTICARD asignadas a cada vehículo y generación de Carta Responsiva.</p>
     <div class="card">
@@ -590,7 +616,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 
   <!-- ═══ PANEL: CONFRONTAS ═══ -->
   <div class="panel" id="pan-confrontas">
-    <div class="page-eyebrow">Flotilla Vehicular</div>
+    <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Confrontas</h1>
     <p class="page-desc">Verificación física periódica de unidades y generación del formato oficial.</p>
     <div class="card">
@@ -608,7 +634,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="footer-org">
       <p>Unidad Regional de Servicios Corporativos Sur</p>
       <p>Superintendencia de Servicios Corporativos Sur Zona Coatzacoalcos</p>
-      <p>Flotilla Vehicular</p>
+      <p>Parque Vehicular</p>
     </div>
     <div class="footer-credits">
       <p>SACISC</p>
@@ -643,6 +669,37 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
   </div>
 </div>
+<!-- MODAL: AGREGAR / EDITAR PERSONAL -->
+<div class="modal-overlay" id="modalPersonal">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2 id="modalPersonalTitulo">➕ Agregar Persona</h2>
+      <button class="modal-close" onclick="closeModal('modalPersonal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Nombre completo *</label><input class="fc" id="perNombre"></div>
+        <div class="form-group"><label>Ficha</label><input class="fc" id="perFicha"></div>
+        <div class="form-group"><label>Cargo</label><input class="fc" id="perCargo"></div>
+        <div class="form-group"><label>Nivel</label><input class="fc" id="perNivel"></div>
+        <div class="form-group"><label>Categoría</label><input class="fc" id="perCategoria"></div>
+        <div class="form-group"><label>Clave económica (siglas)</label><input class="fc" id="perSiglas" placeholder="SERAP, SACAD, SIPA, CMEDO, GMOPI…" style="text-transform:uppercase;"></div>
+        <div class="form-group"><label>Correo electrónico</label><input class="fc" id="perCorreo"></div>
+        <div class="form-group"><label>No. de Extensión</label><input class="fc" id="perExtension"></div>
+        <div class="form-group"><label>No. Celular</label><input class="fc" id="perCelular"></div>
+        <div class="form-group"><label>Dirección</label><input class="fc" id="perDireccion"></div>
+        <div class="form-group"><label>Subdirección</label><input class="fc" id="perSubdireccion"></div>
+        <div class="form-group"><label>Gerencia / Unidad</label><input class="fc" id="perGerenciaUnidad"></div>
+        <div class="form-group"><label>Coordinación / Área</label><input class="fc" id="perCoordinacionArea"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalPersonal')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGuardarPersonal" onclick="guardarPersonal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: ASIGNAR RESGUARDANTE -->
 <div class="modal-overlay" id="modalAsignarResguardante">
   <div class="modal modal-lg">
@@ -716,6 +773,7 @@ let VEHICULOS = [];
 let RESGUARDOS = [];
 let TARJETAS = [];
 let CONFRONTAS = [];
+let PERSONAL = [];
 
 // ═══ TOAST ═════════════════════════════════════════════════════════════
 function toast(msg, tipo='ok'){
@@ -772,6 +830,15 @@ async function cargarDesdeSB(){
     badge.classList.add('conectado');
     renderCatalogo();
     renderResguardos();
+
+    try{
+      PERSONAL = await sbGet('flotilla_personal', 'order=nombre.asc&limit=2000');
+    }catch(e2){
+      console.error(e2);
+      PERSONAL = [];
+      toast('Falta crear la tabla flotilla_personal en Supabase (corre el script SQL de Personal)', 'warn');
+    }
+    renderPersonal();
   }catch(e){
     console.error(e);
     badge.textContent = '🔴 Sin conexión';
@@ -1007,8 +1074,6 @@ function renderResguardos(){
       </tbody>
     </table>
   `;
-
-  renderDirectorio();
 }
 
 function verHistorialResguardo(vehiculoId){
@@ -1165,40 +1230,56 @@ function generarResguardoPDF(resguardoId){
   toast(`📄 Resguardo de ${v.no_economico} — selecciona "Guardar como PDF" en el diálogo`, 'ok');
 }
 
-// ═══ DIRECTORIO DE PERSONAL ═════════════════════════════════════════════
-// Se construye a partir de los resguardos vigentes: cada persona con
-// resguardo activo hereda el departamento (Dirección/Subdirección/
-// Gerencia-Unidad/Coordinación-Área) del vehículo que tiene asignado.
-function directorioPersonal(){
-  return resguardosVigentesConVehiculo()
-    .filter(r=>r.titular_responsable)
-    .map(r=>({
-      nombre: r.titular_responsable, ficha: r.ficha_titular, cargo: r.cargo,
-      direccion: r._vehiculo.direccion, subdireccion: r._vehiculo.subdireccion,
-      gerencia_unidad: r._vehiculo.gerencia_unidad, coordinacion_area: r._vehiculo.coordinacion_area,
-      no_economico: r._vehiculo.no_economico, placas: r._vehiculo.placas,
-    }))
-    .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+// ═══ EXPORTAR A EXCEL (SheetJS) ═════════════════════════════════════════
+function exportarExcel(filas, nombreArchivo){
+  if(!filas || !filas.length){ toast('No hay datos para exportar', 'warn'); return; }
+  const limpias = filas.map(f=>{
+    const {_vehiculo, id, vehiculo_id, ...resto} = f;
+    return resto;
+  });
+  const ws = XLSX.utils.json_to_sheet(limpias);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+  const fecha = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `${nombreArchivo}_${fecha}.xlsx`);
+  toast('Excel generado', 'ok');
 }
 
-function renderDirectorio(){
-  const q = (document.getElementById('buscarDirectorio').value||'').trim().toLowerCase();
-  let lista = directorioPersonal();
+// ═══ DIRECTORIO DE PERSONAL (CRUD completo, tabla flotilla_personal) ═══
+function personalFiltrado(){
+  const q = (document.getElementById('buscarPersonal').value||'').trim().toLowerCase();
+  let lista = [...PERSONAL].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
   if(q){
     lista = lista.filter(p=>{
-      const campos = [p.nombre, p.ficha, p.direccion, p.subdireccion, p.gerencia_unidad, p.coordinacion_area].map(x=>(x||'').toLowerCase());
+      const campos = [p.nombre, p.ficha, p.siglas, p.direccion, p.subdireccion, p.gerencia_unidad, p.coordinacion_area, p.cargo].map(x=>(x||'').toLowerCase());
       return campos.some(c=>c.includes(q));
     });
   }
-  if(!lista.length){
-    document.getElementById('tablaDirectorio').innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No se encontraron personas con ese criterio.</p></div>`;
-    return;
-  }
-  document.getElementById('tablaDirectorio').innerHTML = `
+  return lista;
+}
+
+function renderPersonal(){
+  const lista = personalFiltrado();
+  const conSiglas = PERSONAL.filter(p=>p.siglas).length;
+  const conContacto = PERSONAL.filter(p=>p.correo||p.celular).length;
+
+  document.getElementById('kpiPersonal').innerHTML =
+    kpiCard('Total personal', PERSONAL.length) +
+    kpiCard('Con clave económica', conSiglas, 'var(--blue)') +
+    kpiCard('Con datos de contacto', conContacto, '#1b6b2b');
+
+  document.getElementById('emptyPersonal').style.display = lista.length ? 'none' : 'block';
+  document.getElementById('emptyPersonal').querySelector('p').textContent =
+    PERSONAL.length ? 'No hay personal que coincida con la búsqueda.' : 'No se encontró personal en Supabase. Agrega el primero con el botón de arriba.';
+
+  if(!lista.length){ document.getElementById('tablaPersonal').innerHTML = ''; return; }
+
+  document.getElementById('tablaPersonal').innerHTML = `
     <table class="tbl">
       <thead><tr>
-        <th>Nombre</th><th>Ficha</th><th>Cargo</th><th>Dirección</th><th>Subdirección</th>
-        <th>Gerencia / Unidad</th><th>Coordinación / Área</th><th>Vehículo</th>
+        <th>Nombre</th><th>Ficha</th><th>Cargo</th><th>Nivel</th><th>Categoría</th>
+        <th>Siglas</th><th>Dirección</th><th>Subdirección</th><th>Gerencia/Unidad</th>
+        <th>Correo</th><th>Ext.</th><th>Celular</th><th>Acciones</th>
       </tr></thead>
       <tbody>
         ${lista.map(p=>`
@@ -1206,18 +1287,113 @@ function renderDirectorio(){
             <td>${escapeHtml(p.nombre)}</td>
             <td class="tbl-num">${escapeHtml(p.ficha)}</td>
             <td>${escapeHtml(p.cargo)}</td>
+            <td>${escapeHtml(p.nivel)}</td>
+            <td>${escapeHtml(p.categoria)}</td>
+            <td>${p.siglas?`<span class="badge badge-blue">${escapeHtml(p.siglas)}</span>`:''}</td>
             <td>${escapeHtml(p.direccion)}</td>
             <td>${escapeHtml(p.subdireccion)}</td>
             <td>${escapeHtml(p.gerencia_unidad)}</td>
-            <td>${escapeHtml(p.coordinacion_area)}</td>
-            <td>${escapeHtml(p.no_economico)} · ${escapeHtml(p.placas)}</td>
+            <td>${escapeHtml(p.correo)}</td>
+            <td class="tbl-center">${escapeHtml(p.extension)}</td>
+            <td>${escapeHtml(p.celular)}</td>
+            <td class="btn-group">
+              <button class="btn btn-outline btn-xs" onclick="abrirFormPersonal('${p.id}')">Editar</button>
+              <button class="btn btn-danger btn-xs" onclick="eliminarPersonal('${p.id}')">Eliminar</button>
+            </td>
           </tr>
         `).join('')}
       </tbody>
     </table>
   `;
 }
-document.getElementById('buscarDirectorio').addEventListener('input', renderDirectorio);
+document.getElementById('buscarPersonal').addEventListener('input', renderPersonal);
+
+let PERSONAL_EDIT_ID = null;
+
+function abrirFormPersonal(personaId){
+  PERSONAL_EDIT_ID = personaId || null;
+  const p = personaId ? PERSONAL.find(x=>x.id===personaId) : null;
+
+  document.getElementById('modalPersonalTitulo').textContent = p ? '✏️ Editar Persona' : '➕ Agregar Persona';
+  const campos = ['perNombre','perFicha','perCargo','perNivel','perCategoria','perCorreo','perExtension','perCelular','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea','perSiglas'];
+  campos.forEach(id=>document.getElementById(id).value = '');
+
+  if(p){
+    document.getElementById('perNombre').value = p.nombre||'';
+    document.getElementById('perFicha').value = p.ficha||'';
+    document.getElementById('perCargo').value = p.cargo||'';
+    document.getElementById('perNivel').value = p.nivel||'';
+    document.getElementById('perCategoria').value = p.categoria||'';
+    document.getElementById('perCorreo').value = p.correo||'';
+    document.getElementById('perExtension').value = p.extension||'';
+    document.getElementById('perCelular').value = p.celular||'';
+    document.getElementById('perDireccion').value = p.direccion||'';
+    document.getElementById('perSubdireccion').value = p.subdireccion||'';
+    document.getElementById('perGerenciaUnidad').value = p.gerencia_unidad||'';
+    document.getElementById('perCoordinacionArea').value = p.coordinacion_area||'';
+    document.getElementById('perSiglas').value = p.siglas||'';
+  }
+  openModal('modalPersonal');
+}
+
+async function guardarPersonal(){
+  const nombre = document.getElementById('perNombre').value.trim();
+  const ficha = document.getElementById('perFicha').value.trim();
+  if(!nombre){ toast('El nombre es obligatorio', 'warn'); return; }
+
+  const datos = {
+    nombre,
+    ficha: ficha || null,
+    cargo: document.getElementById('perCargo').value.trim() || null,
+    nivel: document.getElementById('perNivel').value.trim() || null,
+    categoria: document.getElementById('perCategoria').value.trim() || null,
+    correo: document.getElementById('perCorreo').value.trim() || null,
+    extension: document.getElementById('perExtension').value.trim() || null,
+    celular: document.getElementById('perCelular').value.trim() || null,
+    direccion: document.getElementById('perDireccion').value.trim() || null,
+    subdireccion: document.getElementById('perSubdireccion').value.trim() || null,
+    gerencia_unidad: document.getElementById('perGerenciaUnidad').value.trim() || null,
+    coordinacion_area: document.getElementById('perCoordinacionArea').value.trim() || null,
+    siglas: document.getElementById('perSiglas').value.trim().toUpperCase() || null,
+  };
+
+  const btn = document.getElementById('btnGuardarPersonal');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    if(PERSONAL_EDIT_ID){
+      const actualizado = await sbUpdate('flotilla_personal', `id=eq.${PERSONAL_EDIT_ID}`, datos);
+      const idx = PERSONAL.findIndex(p=>p.id===PERSONAL_EDIT_ID);
+      if(idx>=0) PERSONAL[idx] = actualizado[0];
+      toast('Persona actualizada', 'ok');
+    }else{
+      const insertado = await sbInsert('flotilla_personal', datos);
+      PERSONAL.push(insertado[0]);
+      toast('Persona agregada', 'ok');
+    }
+    closeModal('modalPersonal');
+    renderPersonal();
+  }catch(e){
+    console.error(e);
+    toast('Error al guardar: '+e.message, 'warn');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar';
+  }
+}
+
+async function eliminarPersonal(personaId){
+  const p = PERSONAL.find(x=>x.id===personaId);
+  if(!p) return;
+  if(!confirm(`¿Eliminar a "${p.nombre}" del directorio? Esta acción no se puede deshacer.`)) return;
+  try{
+    await sbDelete('flotilla_personal', `id=eq.${personaId}`);
+    PERSONAL = PERSONAL.filter(x=>x.id!==personaId);
+    renderPersonal();
+    toast('Persona eliminada', 'ok');
+  }catch(e){
+    console.error(e);
+    toast('Error al eliminar: '+e.message, 'warn');
+  }
+}
 
 // ═══ ASIGNAR NUEVO RESGUARDANTE ═════════════════════════════════════════
 let ASIG_VEHICULO_ID = null;
