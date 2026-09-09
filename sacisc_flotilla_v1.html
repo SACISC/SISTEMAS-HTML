@@ -496,15 +496,15 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <span class="nav-label">Catálogo</span>
     <span class="nav-sub">Vehículos</span>
   </button>
-  <button class="nav-tab" data-panel="pan-resguardos" onclick="showPanel('pan-resguardos')" id="tab-pan-resguardos">
-    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg></span>
-    <span class="nav-label">Resguardos</span>
-    <span class="nav-sub">Titulares</span>
-  </button>
   <button class="nav-tab" data-panel="pan-personal" onclick="showPanel('pan-personal')" id="tab-pan-personal">
     <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
     <span class="nav-label">Personal</span>
     <span class="nav-sub">Directorio</span>
+  </button>
+  <button class="nav-tab" data-panel="pan-resguardos" onclick="showPanel('pan-resguardos')" id="tab-pan-resguardos">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg></span>
+    <span class="nav-label">Resguardos</span>
+    <span class="nav-sub">Titulares</span>
   </button>
   <button class="nav-tab" data-panel="pan-tarjetas" onclick="showPanel('pan-tarjetas')" id="tab-pan-tarjetas">
     <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
@@ -680,16 +680,30 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <div class="form-grid">
         <div class="form-group"><label>Nombre completo *</label><input class="fc" id="perNombre"></div>
         <div class="form-group"><label>Ficha</label><input class="fc" id="perFicha"></div>
-        <div class="form-group"><label>Cargo</label><input class="fc" id="perCargo"></div>
-        <div class="form-group"><label>Nivel</label><input class="fc" id="perNivel"></div>
-        <div class="form-group"><label>Departamento (siglas)</label><input class="fc" id="perSiglas" placeholder="SERAP, SACAD, SIPA, CMEDO, GMOPI…" style="text-transform:uppercase;"></div>
+        <div class="form-group"><label>Cargo</label>
+          <select class="fc" id="perCargo"><option value="">— Selecciona —</option></select>
+        </div>
+        <div class="form-group"><label>Nivel</label>
+          <select class="fc" id="perNivel"><option value="">— Selecciona —</option></select>
+        </div>
+        <div class="form-group"><label>Departamento (siglas)</label>
+          <select class="fc" id="perSiglas"><option value="">— Selecciona —</option></select>
+        </div>
         <div class="form-group"><label>Correo electrónico</label><input class="fc" id="perCorreo"></div>
         <div class="form-group"><label>No. de Extensión</label><input class="fc" id="perExtension"></div>
         <div class="form-group"><label>No. Celular</label><input class="fc" id="perCelular"></div>
-        <div class="form-group"><label>Dirección</label><input class="fc" id="perDireccion"></div>
-        <div class="form-group"><label>Subdirección</label><input class="fc" id="perSubdireccion"></div>
-        <div class="form-group"><label>Gerencia / Unidad</label><input class="fc" id="perGerenciaUnidad"></div>
-        <div class="form-group"><label>Coordinación / Área</label><input class="fc" id="perCoordinacionArea"></div>
+        <div class="form-group"><label>Dirección</label>
+          <select class="fc" id="perDireccion"><option value="">— Selecciona —</option></select>
+        </div>
+        <div class="form-group"><label>Subdirección</label>
+          <select class="fc" id="perSubdireccion"><option value="">— Selecciona —</option></select>
+        </div>
+        <div class="form-group"><label>Gerencia / Unidad</label>
+          <select class="fc" id="perGerenciaUnidad"><option value="">— Selecciona —</option></select>
+        </div>
+        <div class="form-group"><label>Coordinación / Área</label>
+          <select class="fc" id="perCoordinacionArea"><option value="">— Selecciona —</option></select>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1313,25 +1327,74 @@ function abrirFormPersonal(personaId){
   const p = personaId ? PERSONAL.find(x=>x.id===personaId) : null;
 
   document.getElementById('modalPersonalTitulo').textContent = p ? '✏️ Editar Persona' : '➕ Agregar Persona';
-  const campos = ['perNombre','perFicha','perCargo','perNivel','perCorreo','perExtension','perCelular','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea','perSiglas'];
-  campos.forEach(id=>document.getElementById(id).value = '');
+  const camposTexto = ['perNombre','perFicha','perCorreo','perExtension','perCelular'];
+  camposTexto.forEach(id=>document.getElementById(id).value = '');
 
   if(p){
     document.getElementById('perNombre').value = p.nombre||'';
     document.getElementById('perFicha').value = p.ficha||'';
-    document.getElementById('perCargo').value = p.cargo||'';
-    document.getElementById('perNivel').value = p.nivel||'';
     document.getElementById('perCorreo').value = p.correo||'';
     document.getElementById('perExtension').value = p.extension||'';
     document.getElementById('perCelular').value = p.celular||'';
-    document.getElementById('perDireccion').value = p.direccion||'';
-    document.getElementById('perSubdireccion').value = p.subdireccion||'';
-    document.getElementById('perGerenciaUnidad').value = p.gerencia_unidad||'';
-    document.getElementById('perCoordinacionArea').value = p.coordinacion_area||'';
-    document.getElementById('perSiglas').value = p.siglas||'';
   }
+
+  poblarSelectsPersonal(p || {});
   openModal('modalPersonal');
 }
+
+// ═══ Listas desplegables con valores existentes (históricos) ═══════════
+// Cargo y Nivel también se recopilan del historial de Resguardos, ya que
+// ahí quedan capturados aunque hayan cambiado desde el registro actual.
+function valoresUnicos(campo){
+  const set = new Set();
+  VEHICULOS.forEach(v=>{ if(v[campo]) set.add(v[campo]); });
+  PERSONAL.forEach(p=>{ if(p[campo]) set.add(p[campo]); });
+  RESGUARDOS.forEach(r=>{ if(r[campo]) set.add(r[campo]); });
+  return [...set].sort((a,b)=>a.localeCompare(b));
+}
+
+const OPCION_NUEVA = '__nuevo__';
+
+function poblarSelect(selectId, campo, valorActual){
+  const sel = document.getElementById(selectId);
+  const valores = valoresUnicos(campo);
+  // si el valor actual no está en la lista (dato histórico distinto), lo agregamos igual
+  if(valorActual && !valores.includes(valorActual)) valores.unshift(valorActual);
+
+  sel.innerHTML = '<option value="">— Selecciona —</option>' +
+    valores.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('') +
+    `<option value="${OPCION_NUEVA}">➕ Otro (escribir nuevo)</option>`;
+  sel.value = valorActual || '';
+}
+
+function poblarSelectsPersonal(p){
+  poblarSelect('perCargo', 'cargo', p.cargo);
+  poblarSelect('perNivel', 'nivel', p.nivel);
+  poblarSelect('perSiglas', 'siglas', p.siglas);
+  poblarSelect('perDireccion', 'direccion', p.direccion);
+  poblarSelect('perSubdireccion', 'subdireccion', p.subdireccion);
+  poblarSelect('perGerenciaUnidad', 'gerencia_unidad', p.gerencia_unidad);
+  poblarSelect('perCoordinacionArea', 'coordinacion_area', p.coordinacion_area);
+}
+
+function manejarOpcionNueva(selectId){
+  const sel = document.getElementById(selectId);
+  if(sel.value !== OPCION_NUEVA) return;
+  const nuevo = (prompt('Escribe el nuevo valor:')||'').trim();
+  // quitar la opción "➕ Otro" temporalmente para insertar el nuevo valor antes de ella
+  const opcionNueva = sel.querySelector(`option[value="${OPCION_NUEVA}"]`);
+  if(nuevo){
+    const opt = document.createElement('option');
+    opt.value = nuevo; opt.textContent = nuevo;
+    sel.insertBefore(opt, opcionNueva);
+    sel.value = nuevo;
+  }else{
+    sel.value = '';
+  }
+}
+['perCargo','perNivel','perSiglas','perDireccion','perSubdireccion','perGerenciaUnidad','perCoordinacionArea'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', ()=>manejarOpcionNueva(id));
+});
 
 async function guardarPersonal(){
   const nombre = document.getElementById('perNombre').value.trim();
