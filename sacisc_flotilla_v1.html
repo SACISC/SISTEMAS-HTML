@@ -137,7 +137,7 @@ header{
 .nav-tab.active .nav-sub{color:rgba(17,205,120,.65)}
 
 /* ── MAIN ── */
-.main-content{flex:1;max-width:1440px;width:100%;margin:0 auto;padding:22px 24px}
+.main-content{flex:1;max-width:1800px;width:100%;margin:0 auto;padding:22px 24px}
 .panel{display:none}.panel.active{display:block}
 
 /* ── CARDS ── */
@@ -1274,7 +1274,7 @@ function renderPersonal(){
   if(!lista.length){ document.getElementById('tablaPersonal').innerHTML = ''; return; }
 
   document.getElementById('tablaPersonal').innerHTML = `
-    <table class="tbl">
+    <table class="tbl" style="min-width:1500px;table-layout:auto">
       <thead><tr>
         <th>Nombre</th><th>Ficha</th><th>Cargo</th><th>Nivel</th>
         <th>Departamento</th><th>Dirección</th><th>Subdirección</th><th>Gerencia/Unidad</th>
