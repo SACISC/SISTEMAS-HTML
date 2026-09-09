@@ -506,6 +506,11 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <span class="nav-label">Resguardos</span>
     <span class="nav-sub">Titulares</span>
   </button>
+  <button class="nav-tab" data-panel="pan-auditoria" onclick="showPanel('pan-auditoria')" id="tab-pan-auditoria">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+    <span class="nav-label">Auditoría</span>
+    <span class="nav-sub">Cartucho</span>
+  </button>
   <button class="nav-tab" data-panel="pan-tarjetas" onclick="showPanel('pan-tarjetas')" id="tab-pan-tarjetas">
     <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
     <span class="nav-label">Tarjetas</span>
@@ -571,6 +576,64 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
         </div>
         <div class="empty-state" id="emptyResguardos"><div class="icon">📝</div><p>Cargando resguardos desde Supabase…</p></div>
         <div class="tbl-wrap" id="tablaResguardos"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3>⚠️ Vehículos sin resguardo vigente</h3></div>
+      <div class="card-body">
+        <p class="page-desc" style="margin-bottom:10px;">Si un vehículo no tiene resguardo, revisa su Estatus de Unidad — puede ser que esté <strong>chocada</strong>, sea <strong>unidad robada</strong>, o simplemente le falte asignar titular.</p>
+        <div class="tbl-wrap" id="tablaSinResguardo"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PANEL: AUDITORÍA (Cartucho BigData Combustibles) ═══ -->
+  <div class="panel" id="pan-auditoria">
+    <div class="page-eyebrow">Parque Vehicular</div>
+    <h1 class="page-title">Auditoría de Resguardo</h1>
+    <p class="page-desc">Sube el Cartucho BigData de Combustibles y detecta automáticamente qué vehículos cambiaron de usuario sin que se haya actualizado el resguardo en el sistema.</p>
+
+    <div class="card">
+      <div class="card-hdr"><h3>📤 Cargar Cartucho BigData de Combustibles</h3></div>
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <input type="file" id="auditArchivo" accept=".xlsx,.xls" style="display:none" onchange="procesarCartuchoAuditoria(this)">
+          <button class="btn btn-primary" onclick="document.getElementById('auditArchivo').click()">📁 Seleccionar archivo .xlsx</button>
+          <span id="auditNombreArchivo" style="font-size:12.5px;color:var(--gray);"></span>
+        </div>
+        <div id="auditEstado" style="margin-top:14px;font-size:12.5px;color:var(--gray);"></div>
+      </div>
+    </div>
+
+    <div id="auditResultados" style="display:none;">
+      <div class="kpi-grid" id="kpiAuditoria"></div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <h3>🚨 Vehículos que cambiaron de usuario sin avisar</h3>
+          <button class="btn btn-outline btn-sm" onclick="exportarExcel(AUDITORIA.filter(a=>a.estatus==='NO COINCIDE').map(a=>({no_economico:a.no_economico, placas:a.placas, origen:a.origen, resguardante_sistema:a.nombre_sys, usuarios_combustible:a.usuarios.map(u=>u.nombre).join('; ')})), 'auditoria_no_coincide')">📊 Exportar Excel</button>
+        </div>
+        <div class="card-body">
+          <div id="auditAlertas"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr"><h3>📋 Resultado completo por vehículo</h3></div>
+        <div class="card-body">
+          <div class="filter-bar">
+            <select class="filter-sel" id="filtroEstatusAuditoria">
+              <option value="">Todos los estatus</option>
+              <option value="NO COINCIDE">No coincide</option>
+              <option value="COINCIDE">Coincide</option>
+              <option value="SIN RESGUARDANTE">Sin resguardante en sistema</option>
+              <option value="SIN CONSUMO">Sin consumo en el cartucho</option>
+            </select>
+            <input class="search-inp" id="buscarAuditoria" placeholder="Buscar por placa, económico o nombre…">
+          </div>
+          <div class="tbl-wrap" id="tablaAuditoria"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -731,14 +794,19 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
       <div id="asigVehiculoActual" style="display:none;margin-bottom:14px;padding:10px 14px;background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:8px;font-size:12.5px;"></div>
 
       <div id="asigFormPersona" style="display:none;">
+        <div class="form-group" style="margin-bottom:14px;position:relative;">
+          <label>Nombre completo (busca en el Directorio de Personal) *</label>
+          <input class="fc" id="asigNombre" placeholder="Escribe para buscar en Personal…" autocomplete="off">
+          <div id="asigNombreSugerencias" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;z-index:50;"></div>
+          <div id="asigNombreAviso" style="display:none;margin-top:6px;font-size:11.5px;color:var(--red);"></div>
+        </div>
         <div class="form-grid">
-          <div class="form-group"><label>Nombre completo *</label><input class="fc" id="asigNombre" placeholder="Nombre del nuevo titular"></div>
-          <div class="form-group"><label>Ficha *</label><input class="fc" id="asigFicha" placeholder="Ficha PEMEX"></div>
-          <div class="form-group"><label>Cargo</label><input class="fc" id="asigCargo" placeholder="Cargo / puesto"></div>
-          <div class="form-group"><label>Nivel del Asignatario</label><input class="fc" id="asigNivel" placeholder="Nivel"></div>
-          <div class="form-group"><label>Correo Electrónico</label><input class="fc" id="asigCorreo" placeholder="correo@pemex.com"></div>
-          <div class="form-group"><label>No. de Extensión</label><input class="fc" id="asigExtension" placeholder="Extensión"></div>
-          <div class="form-group"><label>No. Celular</label><input class="fc" id="asigCelular" placeholder="Celular"></div>
+          <div class="form-group"><label>Ficha *</label><input class="fc" id="asigFicha" placeholder="Ficha PEMEX" readonly style="background:#f8fafc;"></div>
+          <div class="form-group"><label>Cargo</label><input class="fc" id="asigCargo" placeholder="Cargo / puesto" readonly style="background:#f8fafc;"></div>
+          <div class="form-group"><label>Nivel del Asignatario</label><input class="fc" id="asigNivel" placeholder="Nivel" readonly style="background:#f8fafc;"></div>
+          <div class="form-group"><label>Correo Electrónico</label><input class="fc" id="asigCorreo" placeholder="correo@pemex.com" readonly style="background:#f8fafc;"></div>
+          <div class="form-group"><label>No. de Extensión</label><input class="fc" id="asigExtension" placeholder="Extensión" readonly style="background:#f8fafc;"></div>
+          <div class="form-group"><label>No. Celular</label><input class="fc" id="asigCelular" placeholder="Celular" readonly style="background:#f8fafc;"></div>
           <div class="form-group"><label>Fecha del Resguardo</label><input class="fc" type="date" id="asigFecha"></div>
         </div>
       </div>
@@ -1061,7 +1129,7 @@ function renderResguardos(){
   document.getElementById('tablaResguardos').innerHTML = `
     <table class="tbl">
       <thead><tr>
-        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Titular</th>
+        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Estatus de Unidad</th><th>Titular</th>
         <th>Ficha</th><th>Cargo</th><th>Fecha Resguardo</th><th>Historial</th><th>Acciones</th>
       </tr></thead>
       <tbody>
@@ -1072,6 +1140,7 @@ function renderResguardos(){
             <td class="tbl-num">${escapeHtml(r._vehiculo.no_economico)}</td>
             <td>${escapeHtml(r._vehiculo.placas)}</td>
             <td>${badgeOrigen(r._vehiculo.origen)}</td>
+            <td>${badgeEstatus(r._vehiculo.estatus)}</td>
             <td>${escapeHtml(r.titular_responsable)||'<span class="badge badge-gray">SIN TITULAR</span>'}</td>
             <td>${escapeHtml(r.ficha_titular)}</td>
             <td>${escapeHtml(r.cargo)}</td>
@@ -1087,7 +1156,39 @@ function renderResguardos(){
       </tbody>
     </table>
   `;
+
+  renderSinResguardo();
 }
+
+// ═══ Vehículos SIN resguardo vigente — ¿es por estatus (robada/chocada)? ══
+function renderSinResguardo(){
+  const idsConResguardo = new Set(resguardosVigentesConVehiculo().map(r=>r._vehiculo.id));
+  const sinResguardo = VEHICULOS.filter(v=>!idsConResguardo.has(v.id));
+  const cont = document.getElementById('tablaSinResguardo');
+  if(!cont) return;
+
+  if(!sinResguardo.length){
+    cont.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Todos los vehículos tienen resguardo vigente.</p></div>`;
+    return;
+  }
+  cont.innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>No. Económico</th><th>Placas</th><th>Origen</th><th>Estatus de Unidad</th><th>Marca / Submarca</th></tr></thead>
+      <tbody>
+        ${sinResguardo.map(v=>`
+          <tr>
+            <td class="tbl-num">${escapeHtml(v.no_economico)}</td>
+            <td>${escapeHtml(v.placas)}</td>
+            <td>${badgeOrigen(v.origen)}</td>
+            <td>${badgeEstatus(v.estatus)}</td>
+            <td>${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
 
 function verHistorialResguardo(vehiculoId){
   const v = vehiculoDe(vehiculoId);
@@ -1456,14 +1557,18 @@ async function eliminarPersonal(personaId){
 
 // ═══ ASIGNAR NUEVO RESGUARDANTE ═════════════════════════════════════════
 let ASIG_VEHICULO_ID = null;
+let ASIG_PERSONA_ID = null;
 
 function abrirAsignarResguardante(vehiculoIdPreseleccionado){
   ASIG_VEHICULO_ID = null;
+  ASIG_PERSONA_ID = null;
   document.getElementById('asigBuscarVehiculo').value = '';
   document.getElementById('asigSugerencias').style.display = 'none';
   document.getElementById('asigVehiculoActual').style.display = 'none';
   document.getElementById('asigFormPersona').style.display = 'none';
   document.getElementById('btnGuardarResguardante').style.display = 'none';
+  document.getElementById('asigNombreSugerencias').style.display = 'none';
+  document.getElementById('asigNombreAviso').style.display = 'none';
   ['asigNombre','asigFicha','asigCargo','asigNivel','asigCorreo','asigExtension','asigCelular'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('asigFecha').value = new Date().toISOString().slice(0,10);
 
@@ -1514,8 +1619,56 @@ function seleccionarVehiculoParaAsignar(vehiculoId){
   document.getElementById('btnGuardarResguardante').style.display = 'inline-flex';
 }
 
+// ── Buscar Nombre en el Directorio de Personal (Catálogo) ──────────────
+document.getElementById('asigNombre').addEventListener('input', function(){
+  ASIG_PERSONA_ID = null; // cualquier tecleo invalida la selección previa
+  document.getElementById('asigNombreAviso').style.display = 'none';
+  const q = this.value.trim().toLowerCase();
+  const cont = document.getElementById('asigNombreSugerencias');
+  if(q.length < 2){ cont.style.display='none'; return; }
+
+  const resultados = PERSONAL.filter(p=>(p.nombre||'').toLowerCase().includes(q)).slice(0, 12);
+  if(!resultados.length){
+    cont.style.display='none';
+    const aviso = document.getElementById('asigNombreAviso');
+    aviso.style.display = 'block';
+    aviso.innerHTML = '⚠️ Esta persona no existe en el Directorio de Personal. Ve primero a la pestaña <strong>Personal</strong> y dala de alta ahí, luego regresa aquí para asignarla.';
+    return;
+  }
+  cont.innerHTML = resultados.map(p=>`
+    <div style="padding:9px 14px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--border);"
+         onmouseover="this.style.background='#eaf3f0'" onmouseout="this.style.background=''"
+         onclick="seleccionarPersonaParaAsignar('${p.id}')">
+      <strong>${escapeHtml(p.nombre)}</strong>${p.ficha?` — ficha ${escapeHtml(p.ficha)}`:''}${p.siglas?` <span class="badge badge-blue">${escapeHtml(p.siglas)}</span>`:''}
+    </div>
+  `).join('');
+  cont.style.display = 'block';
+});
+
+function seleccionarPersonaParaAsignar(personaId){
+  const p = PERSONAL.find(x=>x.id===personaId);
+  if(!p){ toast('Persona no encontrada', 'warn'); return; }
+  ASIG_PERSONA_ID = personaId;
+  document.getElementById('asigNombre').value = p.nombre||'';
+  document.getElementById('asigFicha').value = p.ficha||'';
+  document.getElementById('asigCargo').value = p.cargo||'';
+  document.getElementById('asigNivel').value = p.nivel||'';
+  document.getElementById('asigCorreo').value = p.correo||'';
+  document.getElementById('asigExtension').value = p.extension||'';
+  document.getElementById('asigCelular').value = p.celular||'';
+  document.getElementById('asigNombreSugerencias').style.display = 'none';
+  document.getElementById('asigNombreAviso').style.display = 'none';
+}
+
 async function guardarNuevoResguardante(){
   if(!ASIG_VEHICULO_ID){ toast('Selecciona primero un vehículo', 'warn'); return; }
+  if(!ASIG_PERSONA_ID){
+    const aviso = document.getElementById('asigNombreAviso');
+    aviso.style.display = 'block';
+    aviso.innerHTML = '⚠️ Debes elegir a la persona de la lista del Directorio de Personal. Si no aparece, ve primero a la pestaña <strong>Personal</strong> y dala de alta ahí.';
+    toast('Elige a la persona del Directorio de Personal', 'warn');
+    return;
+  }
   const nombre = document.getElementById('asigNombre').value.trim();
   const ficha = document.getElementById('asigFicha').value.trim();
   if(!nombre || !ficha){ toast('Nombre y Ficha son obligatorios', 'warn'); return; }
@@ -1565,6 +1718,235 @@ async function guardarNuevoResguardante(){
 document.getElementById('filtroOrigenResg').addEventListener('change', renderResguardos);
 document.getElementById('filtroSoloReemplazos').addEventListener('change', renderResguardos);
 document.getElementById('buscarResguardo').addEventListener('input', renderResguardos);
+
+// ═══════════════════════════════════════════════════════════════════════
+// ═══ AUDITORÍA DE RESGUARDO — Cruce contra Cartucho BigData Combustibles
+// ═══════════════════════════════════════════════════════════════════════
+let AUDITORIA = [];
+
+function sinAcentos(s){
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function palabrasNombre(s){
+  if(!s) return null;
+  const limpio = sinAcentos(s).toUpperCase().replace(/[.,]/g,'').trim().split(/\s+/).filter(Boolean).sort().join(' ');
+  return limpio || null;
+}
+function fichaValida(f){
+  if(f===null || f===undefined) return null;
+  const s = String(f).trim();
+  return /^\d+$/.test(s) ? s : null;
+}
+
+function procesarCartuchoAuditoria(input){
+  const file = input.files[0];
+  if(!file) return;
+  document.getElementById('auditNombreArchivo').textContent = file.name;
+  document.getElementById('auditEstado').textContent = '⏳ Leyendo archivo… esto puede tardar unos segundos con archivos grandes.';
+  document.getElementById('auditResultados').style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    // pequeño delay para que el navegador alcance a pintar el mensaje de "leyendo" antes del trabajo pesado
+    setTimeout(()=>{
+      try{
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array'});
+        const nombreHoja = wb.SheetNames.includes('Hoja1') ? 'Hoja1' : wb.SheetNames[0];
+        const ws = wb.Sheets[nombreHoja];
+        const filas = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null, blankrows:false});
+
+        document.getElementById('auditEstado').textContent = `⏳ Procesando ${filas.length.toLocaleString()} filas de "${nombreHoja}"…`;
+        setTimeout(()=>ejecutarAuditoria(filas), 30);
+      }catch(err){
+        console.error(err);
+        document.getElementById('auditEstado').textContent = '❌ No se pudo leer el archivo: '+err.message;
+      }
+    }, 30);
+  };
+  reader.onerror = function(){
+    document.getElementById('auditEstado').textContent = '❌ Error al leer el archivo.';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function ejecutarAuditoria(filas){
+  // Columnas esperadas (0-based), según el Cartucho BigData de Combustibles:
+  // 5=Ficha Trabajo, 6=Usuario, 32=Inventario, 33=Economico
+  const IDX_FICHA = 5, IDX_USUARIO = 6, IDX_INVENTARIO = 32, IDX_ECONOMICO = 33;
+
+  // Detectar encabezados por si el orden de columnas cambiara
+  const header = filas[0] || [];
+  const idxFicha = header.indexOf('Ficha Trabajo') >= 0 ? header.indexOf('Ficha Trabajo') : IDX_FICHA;
+  const idxUsuario = header.indexOf('Usuario') >= 0 ? header.indexOf('Usuario') : IDX_USUARIO;
+  const idxInventario = header.indexOf('Inventario') >= 0 ? header.indexOf('Inventario') : IDX_INVENTARIO;
+  const idxEconomico = header.indexOf('Economico') >= 0 ? header.indexOf('Economico') : IDX_ECONOMICO;
+
+  // usuariosPorId: { id: { nombreNorm: {nombreOriginal, fichas:Set} } }
+  const usuariosPorId = {};
+  for(let i=1; i<filas.length; i++){
+    const row = filas[i];
+    if(!row) continue;
+    const usuario = row[idxUsuario];
+    if(!usuario || !String(usuario).trim()) continue;
+    const nombreNorm = palabrasNombre(usuario);
+    if(!nombreNorm) continue;
+    const fichaOk = fichaValida(row[idxFicha]);
+
+    [row[idxEconomico], row[idxInventario]].forEach(val=>{
+      if(val===null || val===undefined) return;
+      const key = String(val).trim();
+      if(!key || key==='N/A' || key==='NA') return;
+      if(!usuariosPorId[key]) usuariosPorId[key] = {};
+      if(!usuariosPorId[key][nombreNorm]) usuariosPorId[key][nombreNorm] = {nombreOriginal: String(usuario).trim(), fichas: new Set()};
+      if(fichaOk) usuariosPorId[key][nombreNorm].fichas.add(fichaOk);
+    });
+  }
+
+  // Comparar contra el resguardante VIGENTE actual (en memoria, ya cargado de Supabase)
+  const resultado = VEHICULOS.map(v=>{
+    const vigente = RESGUARDOS.find(r=>r.vehiculo_id===v.id && r.vigente);
+    const nombreSysNorm = vigente ? palabrasNombre(vigente.titular_responsable) : null;
+    const fichaSysOk = vigente ? fichaValida(vigente.ficha_titular) : null;
+
+    const bucket = usuariosPorId[v.no_economico] || {};
+    const usuarios = Object.values(bucket).map(u=>({
+      nombre: u.nombreOriginal,
+      ficha: u.fichas.size ? [...u.fichas].sort()[0] : null,
+    }));
+
+    let estatus;
+    const coincideNombre = nombreSysNorm && usuarios.some(u=>palabrasNombre(u.nombre)===nombreSysNorm);
+    const coincideFicha = fichaSysOk && usuarios.some(u=>u.ficha===fichaSysOk);
+
+    if(!nombreSysNorm) estatus = 'SIN RESGUARDANTE';
+    else if(!usuarios.length) estatus = 'SIN CONSUMO';
+    else if(coincideNombre || coincideFicha) estatus = 'COINCIDE';
+    else estatus = 'NO COINCIDE';
+
+    return {
+      no_economico: v.no_economico, placas: v.placas, origen: v.origen, estatus_unidad: v.estatus,
+      ficha_sys: vigente ? vigente.ficha_titular : null,
+      nombre_sys: vigente ? vigente.titular_responsable : null,
+      vehiculo_id: v.id,
+      usuarios, estatus,
+    };
+  });
+
+  AUDITORIA = resultado;
+  document.getElementById('auditEstado').textContent = `✅ Análisis completo — ${filas.length.toLocaleString()} filas procesadas.`;
+  document.getElementById('auditResultados').style.display = 'block';
+  renderAuditoria();
+}
+
+function renderAuditoria(){
+  const noCoincide = AUDITORIA.filter(a=>a.estatus==='NO COINCIDE');
+  const coincide = AUDITORIA.filter(a=>a.estatus==='COINCIDE');
+  const sinResg = AUDITORIA.filter(a=>a.estatus==='SIN RESGUARDANTE');
+  const sinConsumo = AUDITORIA.filter(a=>a.estatus==='SIN CONSUMO');
+
+  document.getElementById('kpiAuditoria').innerHTML =
+    kpiCard('🚨 No coinciden', noCoincide.length, 'var(--red)') +
+    kpiCard('✅ Coinciden', coincide.length, '#1b6b2b') +
+    kpiCard('Sin resguardante en sistema', sinResg.length, 'var(--amber)') +
+    kpiCard('Sin consumo en el cartucho', sinConsumo.length, 'var(--gray)');
+
+  // ── Alertas visuales prominentes ──
+  const cont = document.getElementById('auditAlertas');
+  if(!noCoincide.length){
+    cont.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Ningún vehículo cambió de usuario sin avisar. Todo en orden.</p></div>`;
+  }else{
+    cont.innerHTML = noCoincide.map(a=>`
+      <div style="border:2px solid #ef5350;background:#fdecea;border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#8a3a2e;">
+            🚨 ${escapeHtml(a.no_economico)} · ${escapeHtml(a.placas)} ${badgeOrigen(a.origen)}
+          </div>
+          <div style="font-size:12.5px;margin-top:4px;">
+            <strong>Registrado en el sistema:</strong> ${escapeHtml(a.nombre_sys)||'(sin nombre)'} ${a.ficha_sys?`(ficha ${escapeHtml(a.ficha_sys)})`:''}
+          </div>
+          <div style="font-size:12.5px;color:#8a3a2e;">
+            <strong>Detectado usando el vehículo en combustible:</strong> ${a.usuarios.map(u=>`${escapeHtml(u.nombre)}${u.ficha?` (ficha ${escapeHtml(u.ficha)})`:''}`).join('; ')}
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary btn-sm" onclick="abrirAsignarResguardanteDesdeAuditoria('${a.vehiculo_id}')">Reasignar ahora</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderTablaAuditoria();
+}
+
+function abrirAsignarResguardanteDesdeAuditoria(vehiculoId){
+  const registro = AUDITORIA.find(a=>a.vehiculo_id===vehiculoId);
+  const usuarioDetectado = registro && registro.usuarios[0];
+  abrirAsignarResguardante(vehiculoId);
+  if(usuarioDetectado && usuarioDetectado.nombre){
+    // Solo prellenamos el texto de búsqueda; el usuario debe confirmar
+    // eligiendo a la persona real del Directorio (o darla de alta si no existe)
+    const campoNombre = document.getElementById('asigNombre');
+    campoNombre.value = usuarioDetectado.nombre;
+    campoNombre.dispatchEvent(new Event('input'));
+  }
+}
+
+function auditoriaFiltrada(){
+  const estatusSel = document.getElementById('filtroEstatusAuditoria').value;
+  const q = (document.getElementById('buscarAuditoria').value||'').trim().toLowerCase();
+  return AUDITORIA.filter(a=>{
+    if(estatusSel && a.estatus!==estatusSel) return false;
+    if(q){
+      const campos = [a.no_economico, a.placas, a.nombre_sys, ...a.usuarios.map(u=>u.nombre)].map(x=>(x||'').toLowerCase());
+      if(!campos.some(c=>c.includes(q))) return false;
+    }
+    return true;
+  });
+}
+
+function renderTablaAuditoria(){
+  const lista = auditoriaFiltrada();
+  const orden = {'NO COINCIDE':0, 'SIN RESGUARDANTE':1, 'SIN CONSUMO':2, 'COINCIDE':3};
+  lista.sort((a,b)=>orden[a.estatus]-orden[b.estatus] || a.no_economico.localeCompare(b.no_economico));
+
+  if(!lista.length){
+    document.getElementById('tablaAuditoria').innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No hay resultados con ese filtro.</p></div>`;
+    return;
+  }
+
+  const badgeEstatusAud = e => ({
+    'NO COINCIDE': '<span class="badge badge-red">NO COINCIDE</span>',
+    'COINCIDE': '<span class="badge badge-green">COINCIDE</span>',
+    'SIN RESGUARDANTE': '<span class="badge badge-amber">SIN RESGUARDANTE</span>',
+    'SIN CONSUMO': '<span class="badge badge-gray">SIN CONSUMO</span>',
+  }[e]);
+
+  document.getElementById('tablaAuditoria').innerHTML = `
+    <table class="tbl">
+      <thead><tr>
+        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Estatus Unidad</th>
+        <th>Resguardante en Sistema</th><th>Usuario(s) en Combustible</th><th>Resultado</th>
+      </tr></thead>
+      <tbody>
+        ${lista.map(a=>`
+          <tr>
+            <td class="tbl-num">${escapeHtml(a.no_economico)}</td>
+            <td>${escapeHtml(a.placas)}</td>
+            <td>${badgeOrigen(a.origen)}</td>
+            <td>${badgeEstatus(a.estatus_unidad)}</td>
+            <td>${escapeHtml(a.nombre_sys)||'—'}</td>
+            <td>${a.usuarios.length ? escapeHtml(a.usuarios.map(u=>u.nombre).join('; ')) : '—'}</td>
+            <td class="tbl-center">${badgeEstatusAud(a.estatus)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('filtroEstatusAuditoria').addEventListener('change', renderTablaAuditoria);
+document.getElementById('buscarAuditoria').addEventListener('input', renderTablaAuditoria);
 </script>
 </body>
 </html>
