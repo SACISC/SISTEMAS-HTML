@@ -1307,6 +1307,45 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ═══ IMPRIMIR/GUARDAR PDF sin ventana intermedia visible ═══════════════
+// Usa un iframe oculto en vez de window.open: el navegador manda directo
+// al diálogo de impresión/guardar como PDF, sin mostrar ninguna ventana
+// del documento de por medio.
+function imprimirDocumento(html){
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.style.visibility = 'hidden';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  const limpiar = () => { if(iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+  iframe.contentWindow.onafterprint = limpiar;
+
+  setTimeout(()=>{
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(limpiar, 1500); // respaldo si el navegador no dispara onafterprint
+  }, 350);
+}
+
+// ═══ PROTECCIÓN CONTRA CIERRE ACCIDENTAL DE LA PESTAÑA ══════════════════
+// El navegador muestra su aviso nativo de confirmación ("¿Seguro que
+// quieres salir?") si se intenta cerrar la pestaña, recargar o navegar
+// fuera de la app — evita perder de vista un formulario a medio llenar.
+window.addEventListener('beforeunload', function(e){
+  e.preventDefault();
+  e.returnValue = '';
+});
+
 // ═══ TOOLTIP DE VEHÍCULO — hover sobre No. Económico / Placas ══════════
 function vehHoverSpan(vehiculoId, texto){
   if(!vehiculoId) return escapeHtml(texto);
@@ -1972,12 +2011,7 @@ function generarResguardoPDF(resguardoId){
 
 </body></html>`;
 
-  const win = window.open('','_blank','width=900,height=1000');
-  if(!win){ toast('Permite ventanas emergentes para generar el PDF', 'warn'); return; }
-  win.document.write(contenido);
-  win.document.close();
-  win.focus();
-  setTimeout(()=>{ win.print(); }, 500);
+  imprimirDocumento(contenido);
   toast(`📄 Resguardo de ${v.no_economico} — selecciona "Guardar como PDF" en el diálogo`, 'ok');
 }
 
@@ -2978,27 +3012,36 @@ function generarCartaResponsivaPDF(vehiculoId){
 <style>
   @page{margin:0;size:letter portrait}
   html,body{margin:0;padding:0;}
-  body{font-family:'Noto Sans',Arial,sans-serif;font-size:11.5px;color:#000;position:relative;}
+  body{font-family:'Noto Sans',Arial,sans-serif;font-size:12px;color:#000;position:relative;}
   .membrete{position:absolute;top:0;left:0;width:8.5in;height:11in;z-index:-1;}
-  .hoja{padding:1.0in 0.6in 1.3in 0.6in;box-sizing:border-box;min-height:11in;display:flex;flex-direction:column;}
-  .doc-fecha{text-align:right;font-size:11.5px;margin-bottom:18px;}
-  .doc-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:20px;letter-spacing:.04em;}
+  /* Márgenes calcados del w:pgMar original: top .985in right .526in bottom (ajustado para no pisar el pie) left .394in */
+  .hoja{padding:0.985in 0.526in 1.15in 0.394in;box-sizing:border-box;min-height:11in;}
+  .doc-fecha{text-align:right;font-size:12px;margin-bottom:14px;}
+  .doc-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:16px;}
 
-  .campos{width:100%;border-collapse:collapse;margin-bottom:18px;}
-  .campos tr{height:25px;}
-  .campos td{padding:0 10px 4px 0;font-size:11px;vertical-align:bottom;}
-  .campos .lbl{font-weight:700;white-space:nowrap;width:1%;padding-right:6px;}
-  .campos .val{border-bottom:1px solid #000;padding-left:6px;}
-  .campos .val.vacio{border-bottom:1px solid #000;}
+  .campos{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:16px;}
+  .campos col.c1{width:17.2%;}
+  .campos col.c2{width:30.8%;}
+  .campos col.c3{width:1.4%;}
+  .campos col.c4{width:16.0%;}
+  .campos col.c5{width:34.6%;}
+  .campos td{padding:5px 8px 2px 0;font-size:12px;vertical-align:bottom;overflow-wrap:break-word;}
+  .campos .lbl{font-weight:400;white-space:normal;padding-right:6px;}
+  .campos .val{border-bottom:0.75pt solid #000;padding-left:6px;min-height:14px;}
   .campos .sinlinea{border-bottom:none;}
+  /* fila 1 (No. Tarjeta / Placas): única con recuadro completo, calcado del original */
+  .campos .box-lbl{border-right:0.5pt solid #000;}
+  .campos .box-val{border:0.5pt solid #000;padding:3px 6px;}
 
-  .chk{display:inline-block;width:15px;height:13px;border:1px solid #000;text-align:center;font-weight:700;margin:0 6px 0 5px;vertical-align:middle;line-height:13px;font-size:10px;}
-  .parrafo{font-size:11px;text-align:justify;line-height:1.48;margin:12px 0;}
-  .firma-box{text-align:center;margin-top:26px;font-size:11.5px;}
-  .firma-box .titulo{font-weight:700;margin-bottom:26px;}
-  .firma-box .nombre{font-weight:700;font-size:13px;text-decoration:underline;text-underline-offset:5px;}
-  .firma-box .sub{font-size:10px;margin-top:3px;}
-  .anexos{background:#d9d9d9;padding:8px 10px;font-size:10.5px;margin-top:auto;}
+  .chk{display:inline-block;width:14px;height:12px;border:0.5pt solid #000;text-align:center;font-weight:700;margin:0 6px 0 4px;vertical-align:middle;line-height:12px;font-size:9px;}
+  .parrafo{font-size:12px;text-align:justify;line-height:1.32;margin:0 0 14px 0;}
+
+  .firma-tabla{width:3.6in;margin:18px auto 0 auto;border-collapse:collapse;text-align:center;font-size:12px;}
+  .firma-tabla .titulo{font-weight:700;padding-bottom:20px;}
+  .firma-tabla .nombre{font-weight:700;font-size:16px;border-bottom:0.5pt solid #000;padding-bottom:3px;}
+  .firma-tabla .sub{font-size:12px;padding-top:3px;}
+
+  .anexos{background:#d9d9d9;padding:6px 8px;font-size:10.5px;margin-top:16px;}
 </style>
 </head><body>
 
@@ -3009,50 +3052,63 @@ function generarCartaResponsivaPDF(vehiculoId){
     <div class="doc-title">CARTA RESPONSIVA</div>
 
     <table class="campos">
+      <colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"></colgroup>
       <tr>
-        <td class="lbl">No. Tarjeta:</td><td class="val">${escapeHtml(t.no_tarjeta)}</td>
-        <td class="lbl">Placas:</td><td class="val">${escapeHtml(v.placas)}</td>
+        <td class="lbl box-lbl"><strong>No. Tarjeta:</strong></td><td class="val box-val"><strong>${escapeHtml(t.no_tarjeta)}</strong></td>
+        <td class="sinlinea"></td>
+        <td class="lbl"><strong>Placas:</strong></td><td class="val box-val"><strong>${escapeHtml(v.placas)}</strong></td>
       </tr>
+      <tr><td colspan="5" style="height:8px;"></td></tr>
       <tr>
         <td class="lbl">Nombre del Titular:</td><td class="val">${escapeHtml(nombreTitular)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">No. Económico:</td><td class="val">${escapeHtml(v.no_economico)}</td>
       </tr>
       <tr>
         <td class="lbl">Ficha del Titular:</td><td class="val">${escapeHtml(fichaTitular)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Marca:</td><td class="val">${escapeHtml(v.marca)}</td>
       </tr>
       <tr>
         <td class="lbl">Nivel del Titular:</td><td class="val">${escapeHtml(persona?persona.nivel:'')}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Submarca:</td><td class="val">${escapeHtml(v.submarca)}</td>
       </tr>
       <tr>
         <td class="lbl">Extensión:</td><td class="val">${escapeHtml(persona?persona.extension:'')}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Año:</td><td class="val">${escapeHtml(v.modelo)}</td>
       </tr>
       <tr>
         <td class="lbl">Correo Electrónico:</td><td class="val">${escapeHtml(persona?persona.correo:'')}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">No. de Serie:</td><td class="val">${escapeHtml(v.no_serie)}</td>
       </tr>
       <tr>
         <td class="lbl">Dirección:</td><td class="val">${escapeHtml(v.direccion)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">No. de Motor:</td><td class="val"></td>
       </tr>
       <tr>
         <td class="lbl">Subdirección:</td><td class="val">${escapeHtml(v.subdireccion)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Color:</td><td class="val">${escapeHtml(v.color)}</td>
       </tr>
       <tr>
         <td class="lbl">Gerencia:</td><td class="val">${escapeHtml(v.gerencia_unidad)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Tipo de Vehículo o Equipo:</td><td class="val">${escapeHtml(v.tipo_vehiculo)}</td>
       </tr>
       <tr>
         <td class="lbl">Área:</td><td class="val">${escapeHtml(v.coordinacion_area)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl sinlinea"></td><td class="val sinlinea"></td>
       </tr>
       <tr>
         <td class="lbl">Centro Gestor:</td><td class="val"></td>
+        <td class="sinlinea"></td>
         <td class="lbl">Combustible:</td>
-        <td class="val sinlinea">Magna<span class="chk">${esMagna?'X':''}</span>Diesel<span class="chk">${esDiesel?'X':''}</span></td>
+        <td class="val sinlinea">Magna<span class="chk">${esMagna?'X':''}</span>&nbsp;&nbsp;Diesel<span class="chk">${esDiesel?'X':''}</span></td>
       </tr>
     </table>
 
@@ -3066,23 +3122,18 @@ function generarCartaResponsivaPDF(vehiculoId){
 
     <div class="parrafo">El titular de la tarjeta de suministro de combustible, objeto de este documento, es responsable ante Petróleos Mexicanos, o cualquier autoridad Administrativa o Judicial en caso de incumplir con las condiciones y obligaciones antes descritas o en caso de incurrir en algún ilícito administrativo y/o penal derivado del mal uso que se lleve a cabo con la tarjeta asignada.</div>
 
-    <div class="firma-box">
-      <div class="titulo">Acepto la responsabilidad:</div>
-      <div class="nombre">${escapeHtml(nombreTitular)}</div>
-      <div class="sub">Nombre y Firma</div>
-    </div>
+    <table class="firma-tabla">
+      <tr><td class="titulo">Acepto la responsabilidad:</td></tr>
+      <tr><td class="nombre">${escapeHtml(nombreTitular)}</td></tr>
+      <tr><td class="sub">Nombre y Firma</td></tr>
+    </table>
 
     <div class="anexos">Se anexan copias de la credencial del SIIU del titular de la tarjeta y de la tarjeta de circulación en caso de tratarse de unidad vehicular.</div>
   </div>
 
 </body></html>`;
 
-  const win = window.open('','_blank','width=900,height=1000');
-  if(!win){ toast('Permite ventanas emergentes para generar el PDF', 'warn'); return; }
-  win.document.write(contenido);
-  win.document.close();
-  win.focus();
-  setTimeout(()=>{ win.print(); }, 500);
+  imprimirDocumento(contenido);
   toast(`📄 Carta Responsiva de tarjeta ${t.no_tarjeta} — selecciona "Guardar como PDF" en el diálogo`, 'ok');
 }
 
@@ -3120,25 +3171,36 @@ function generarLiberacionPDF(vehiculoId){
   html,body{margin:0;padding:0;}
   body{font-family:'Noto Sans',Arial,sans-serif;font-size:11.5px;color:#000;position:relative;}
   .membrete{position:absolute;top:0;left:0;width:8.5in;height:11in;z-index:-1;}
-  .hoja{padding:1.0in 0.6in 1.3in 0.6in;box-sizing:border-box;min-height:11in;display:flex;flex-direction:column;}
-  .doc-fecha{text-align:right;font-size:11.5px;margin-bottom:18px;}
-  .doc-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:20px;letter-spacing:.04em;}
+  .hoja{padding:0.985in 0.526in 1.15in 0.394in;box-sizing:border-box;min-height:11in;}
+  .doc-fecha{text-align:right;font-size:12px;margin-bottom:14px;}
+  .doc-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:16px;}
 
-  .campos{width:100%;border-collapse:collapse;margin-bottom:18px;}
-  .campos tr{height:25px;}
-  .campos td{padding:0 10px 4px 0;font-size:11px;vertical-align:bottom;}
-  .campos .lbl{font-weight:700;white-space:nowrap;width:1%;padding-right:6px;}
-  .campos .val{border-bottom:1px solid #000;padding-left:6px;}
+  .campos{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:16px;}
+  .campos col.c1{width:17.2%;}
+  .campos col.c2{width:30.8%;}
+  .campos col.c3{width:1.4%;}
+  .campos col.c4{width:16.0%;}
+  .campos col.c5{width:34.6%;}
+  .campos td{padding:5px 8px 2px 0;font-size:12px;vertical-align:bottom;overflow-wrap:break-word;}
+  .campos .lbl{font-weight:400;white-space:normal;padding-right:6px;}
+  .campos .val{border-bottom:0.75pt solid #000;padding-left:6px;min-height:14px;}
   .campos .sinlinea{border-bottom:none;}
+  .campos .box-lbl{border-right:0.5pt solid #000;}
+  .campos .box-val{border:0.5pt solid #000;padding:3px 6px;}
 
-  .chk{display:inline-block;width:15px;height:13px;border:1px solid #000;text-align:center;font-weight:700;margin:0 6px 0 5px;vertical-align:middle;line-height:13px;font-size:10px;}
-  .parrafo{font-size:11px;text-align:justify;line-height:1.48;margin:12px 0;}
-  .firmas{width:100%;border-collapse:collapse;margin-top:34px;text-align:center;font-size:11px;table-layout:fixed;}
-  .firmas td{width:50%;vertical-align:top;padding:0 15px;}
-  .firmas .rotulo{font-weight:700;margin-bottom:36px;letter-spacing:.03em;}
-  .firmas .nombre{font-weight:700;font-size:12.5px;border-top:1px solid #000;padding-top:4px;margin-top:0;}
-  .firmas .linea-vacia{border-top:1px solid #000;height:1px;margin-top:0;}
-  .firmas .sub{font-size:10px;margin-top:3px;}
+  .chk{display:inline-block;width:14px;height:12px;border:0.5pt solid #000;text-align:center;font-weight:700;margin:0 6px 0 4px;vertical-align:middle;line-height:12px;font-size:9px;}
+  /* Párrafos legales y bloque Entrega/Recibe: en el Word original NO llevan
+     w:sz explícito, por lo que heredan el tamaño por defecto (12pt) —
+     distinto de la tabla de datos, que sí es 9pt explícito. */
+  .parrafo{font-size:16px;text-align:justify;line-height:1.3;margin:0 0 14px 0;}
+
+  .firmas{width:100%;border-collapse:collapse;margin-top:18px;text-align:center;font-size:16px;table-layout:fixed;}
+  .firmas col.f1{width:44.5%;} .firmas col.f2{width:12.2%;} .firmas col.f3{width:43.3%;}
+  .firmas td{vertical-align:top;padding:0 10px;}
+  .firmas .rotulo{padding-bottom:34px;}
+  .firmas .nombre{font-weight:700;border-bottom:0.5pt solid #000;padding-bottom:3px;}
+  .firmas .linea-vacia{border-bottom:0.5pt solid #000;height:1px;}
+  .firmas .sub{font-size:16px;padding-top:4px;}
 </style>
 </head><body>
 
@@ -3149,50 +3211,63 @@ function generarLiberacionPDF(vehiculoId){
     <div class="doc-title">CARTA DE LIBERACIÓN</div>
 
     <table class="campos">
+      <colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"></colgroup>
       <tr>
-        <td class="lbl">No. Tarjeta:</td><td class="val">${escapeHtml(t.no_tarjeta)}</td>
-        <td class="lbl">Placas:</td><td class="val">${escapeHtml(v.placas)}</td>
+        <td class="lbl box-lbl"><strong>No. Tarjeta:</strong></td><td class="val box-val"><strong>${escapeHtml(t.no_tarjeta)}</strong></td>
+        <td class="sinlinea"></td>
+        <td class="lbl"><strong>Placas:</strong></td><td class="val box-val"><strong>${escapeHtml(v.placas)}</strong></td>
       </tr>
+      <tr><td colspan="5" style="height:8px;"></td></tr>
       <tr>
         <td class="lbl">Nombre del Titular:</td><td class="val">${escapeHtml(nombreTitular)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">No. Económico:</td><td class="val">${escapeHtml(v.no_economico)}</td>
       </tr>
       <tr>
         <td class="lbl">Ficha del Titular:</td><td class="val">${escapeHtml(fichaTitular)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Marca:</td><td class="val">${escapeHtml(v.marca)}</td>
       </tr>
       <tr>
         <td class="lbl">Nivel del Titular:</td><td class="val">${escapeHtml(persona?persona.nivel:'')}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Submarca:</td><td class="val">${escapeHtml(v.submarca)}</td>
       </tr>
       <tr>
         <td class="lbl">Extensión:</td><td class="val">${escapeHtml(persona?persona.extension:'')}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Año:</td><td class="val">${escapeHtml(v.modelo)}</td>
       </tr>
       <tr>
         <td class="lbl">Correo Electrónico:</td><td class="val">${escapeHtml(persona?persona.correo:'')}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">No. de Serie:</td><td class="val">${escapeHtml(v.no_serie)}</td>
       </tr>
       <tr>
         <td class="lbl">Dirección:</td><td class="val">${escapeHtml(v.direccion)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">No. de Motor:</td><td class="val"></td>
       </tr>
       <tr>
         <td class="lbl">Subdirección:</td><td class="val">${escapeHtml(v.subdireccion)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Color:</td><td class="val">${escapeHtml(v.color)}</td>
       </tr>
       <tr>
         <td class="lbl">Gerencia:</td><td class="val">${escapeHtml(v.gerencia_unidad)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl">Tipo de Vehículo o Equipo:</td><td class="val">${escapeHtml(v.tipo_vehiculo)}</td>
       </tr>
       <tr>
         <td class="lbl">Área:</td><td class="val">${escapeHtml(v.coordinacion_area)}</td>
+        <td class="sinlinea"></td>
         <td class="lbl sinlinea"></td><td class="val sinlinea"></td>
       </tr>
       <tr>
         <td class="lbl">Centro Gestor:</td><td class="val"></td>
+        <td class="sinlinea"></td>
         <td class="lbl">Combustible:</td>
-        <td class="val sinlinea">Magna<span class="chk">${esMagna?'X':''}</span>Diesel<span class="chk">${esDiesel?'X':''}</span></td>
+        <td class="val sinlinea">Magna<span class="chk">${esMagna?'X':''}</span>&nbsp;&nbsp;Diesel<span class="chk">${esDiesel?'X':''}</span></td>
       </tr>
     </table>
 
@@ -3204,32 +3279,31 @@ function generarLiberacionPDF(vehiculoId){
 
     <div class="parrafo">El que suscribe está consciente de que entregar la tarjeta, no lo exime de la responsabilidad derivada del incumplimiento en el buen Uso de la Tarjeta Inteligente durante el tiempo que la manejó y hasta la fecha de entrega.</div>
 
-    <div class="parrafo">Se entrega la presente junto con la tarjeta, siendo las ${hora} hrs. del día ${ahora.getDate()} del mes de ${MESES_ES2[ahora.getMonth()]} de ${ahora.getFullYear()}.</div>
+    <div class="parrafo" style="margin-bottom:8px;">Se entrega la presente junto con la tarjeta, siendo las ${hora} hrs. del día ${ahora.getDate()} del mes de ${MESES_ES2[ahora.getMonth()]} de ${ahora.getFullYear()}.</div>
 
     <table class="firmas">
+      <colgroup><col class="f1"><col class="f2"><col class="f3"></colgroup>
       <tr>
-        <td>
-          <div class="rotulo">ENTREGA</div>
-          <div class="nombre">${escapeHtml(nombreTitular)}</div>
-          <div class="sub">Nombre y Firma</div>
-        </td>
-        <td>
-          <div class="rotulo">RECIBE</div>
-          <div class="linea-vacia">&nbsp;</div>
-          <div class="sub">Nombre, Ficha, Cargo y Firma</div>
-        </td>
+        <td class="rotulo" style="border-bottom:0.5pt solid #000;">ENTREGA</td>
+        <td></td>
+        <td class="rotulo" style="border-bottom:0.5pt solid #000;">RECIBE</td>
+      </tr>
+      <tr>
+        <td class="nombre" style="border-bottom:none;border-top:0.5pt solid #000;">${escapeHtml(nombreTitular)}</td>
+        <td></td>
+        <td style="border-top:0.5pt solid #000;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td class="sub">Nombre y Firma</td>
+        <td></td>
+        <td class="sub">Nombre, Ficha, Cargo y Firma</td>
       </tr>
     </table>
   </div>
 
 </body></html>`;
 
-  const win = window.open('','_blank','width=900,height=1000');
-  if(!win){ toast('Permite ventanas emergentes para generar el PDF', 'warn'); return; }
-  win.document.write(contenido);
-  win.document.close();
-  win.focus();
-  setTimeout(()=>{ win.print(); }, 500);
+  imprimirDocumento(contenido);
   toast(`📄 Carta de Liberación de tarjeta ${t.no_tarjeta} — selecciona "Guardar como PDF" en el diálogo`, 'ok');
 }
 
@@ -3833,12 +3907,7 @@ function generarConfrontaPDF(confrontaId){
 
 </body></html>`;
 
-  const win = window.open('','_blank','width=900,height=1000');
-  if(!win){ toast('Permite ventanas emergentes para generar el PDF', 'warn'); return; }
-  win.document.write(contenido);
-  win.document.close();
-  win.focus();
-  setTimeout(()=>{ win.print(); }, 500);
+  imprimirDocumento(contenido);
   toast(`📄 Confronta de ${v.no_economico} — selecciona "Guardar como PDF" en el diálogo`, 'ok');
 }
 
