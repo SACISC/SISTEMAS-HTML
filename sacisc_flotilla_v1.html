@@ -2230,11 +2230,18 @@ function generarResguardoPropioPDF(r, v){
   .campos-cap .cap3{font-style:italic;font-size:10.5px;padding-bottom:5px;}
 
   .parrafo{font-size:10.5px;text-align:justify;line-height:1.35;margin:0 0 8px 0;}
+  .parrafos-wrap{margin-top:34px;}
   .cierre-title{text-align:center;font-weight:700;font-size:12px;margin:10px 0 4px 0;}
   .cierre-txt{text-align:center;font-weight:700;font-size:12px;line-height:1.3;margin-bottom:14px;}
-  .firma-fila{display:flex;gap:8px;margin-top:16px;font-size:12px;}
-  .firma-fila .lbl2{width:60px;}
-  .firma-fila .linea2{flex:1;border-bottom:1px solid #000;text-align:right;padding-right:6px;}
+  /* Tabla Nombre/Firma calcada de las coordenadas reales del Word:
+     w:tblInd=4395 (~40.8% del ancho útil) y w:tblW=6697 (~62.2% del ancho útil) —
+     no ocupa toda la hoja, arranca pasada la mitad y el valor va justificado
+     a la derecha dentro de esa línea corta, no de toda la hoja. */
+  .firma-tabla2{width:62.2%;margin-left:40.8%;border-collapse:collapse;font-size:12px;margin-top:16px;}
+  .firma-tabla2 col.f1{width:12.4%;} .firma-tabla2 col.f2{width:87.6%;}
+  .firma-tabla2 td{padding:2px 4px;vertical-align:bottom;}
+  .firma-tabla2 .lbl2{white-space:nowrap;}
+  .firma-tabla2 .linea2{border-bottom:1px solid #000;text-align:right;font-weight:700;padding-right:6px;}
 </style>
 </head><body>
 <div class="hoja">
@@ -2273,15 +2280,23 @@ function generarResguardoPropioPDF(r, v){
     ${bloqueCaptionRow([{valor:ubicacionFisica(ciudad), caption:'Ubicación física de la Unidad (Entidad Federativa y Municipio)', span:2},{valor:CENTRO_TRABAJO_FIJO, caption:'Centro de Trabajo (Clave y denominación)', span:2}])}
   </table>
 
-  <div class="parrafo">El suscrito manifiesta tener pleno conocimiento de la responsabilidad que adquiere al asignarle el vehículo que ampara el presente resguardo y se compromete a darle el buen uso y del cuidado de su estado físico mecánico, así como gestionar sus servicios oportunamente e ingresar la unidad en las fechas de servicio programadas, cumplir con el Programa de Verificación.</div>
-  <div class="parrafo">El asignatario del vehículo del presente resguardo se responsabiliza de cualquier multa por faltas al reglamento de tránsito y demás reglamentos ambientales administrativos o ilícitos penales en las que estuviera involucrado, y estará obligado al pago de la multa en que incurra durante el tiempo que la unidad este bajo su resguardo.</div>
-  <div class="parrafo">El asignatario se compromete a dar aviso, por escrito, al área de Servicio Generales que le asigno la unidad (Unidad Regional o Superintendencia de Transportación), de cualquier cambio que se suscite por motivos de retiro del cargo o de las funciones vinculadas a la necesidad de tener el vehículo, para ser liberado de la responsabilidad contraída al momento de firmar el presente resguardo.</div>
-  <div class="parrafo">Lo anterior se encuentra normado en las Políticas y Procedimientos para la Prestación de los Servicios Generales en Petróleos Mexicanos, sus Empresas Productivas Subsidiarias y, en su caso Empresas Filiales, en el numeral III.7.1.2 De la asignación y uso de vehículos III.7.1.2.1, III.7.1.2.2 en sus incisos a), b), c), y d)</div>
+  <div class="parrafos-wrap">
+    <div class="parrafo">El suscrito manifiesta tener pleno conocimiento de la responsabilidad que adquiere al asignarle el vehículo que ampara el presente resguardo y se compromete a darle el buen uso y del cuidado de su estado físico mecánico, así como gestionar sus servicios oportunamente e ingresar la unidad en las fechas de servicio programadas, cumplir con el Programa de Verificación.</div>
+    <div class="parrafo">El asignatario del vehículo del presente resguardo se responsabiliza de cualquier multa por faltas al reglamento de tránsito y demás reglamentos ambientales administrativos o ilícitos penales en las que estuviera involucrado, y estará obligado al pago de la multa en que incurra durante el tiempo que la unidad este bajo su resguardo.</div>
+    <div class="parrafo">El asignatario se compromete a dar aviso, por escrito, al área de Servicio Generales que le asigno la unidad (Unidad Regional o Superintendencia de Transportación), de cualquier cambio que se suscite por motivos de retiro del cargo o de las funciones vinculadas a la necesidad de tener el vehículo, para ser liberado de la responsabilidad contraída al momento de firmar el presente resguardo.</div>
+    <div class="parrafo">Lo anterior se encuentra normado en las Políticas y Procedimientos para la Prestación de los Servicios Generales en Petróleos Mexicanos, sus Empresas Productivas Subsidiarias y, en su caso Empresas Filiales, en el numeral III.7.1.2 De la asignación y uso de vehículos III.7.1.2.1, III.7.1.2.2 en sus incisos a), b), c), y d)</div>
+  </div>
 
   <div class="cierre-title">ASIGNATARIO RESPONSABLE</div>
   <div class="cierre-txt">Por medio del presente hago constar que, durante la vigencia del presente resguardo, mi licencia de conducir se mantendrá vigente</div>
-  <div class="firma-fila"><div class="lbl2">Nombre:</div><div class="linea2" style="font-weight:700;text-align:center;">${escapeHtml(r.titular_responsable)||''}</div></div>
-  <div class="firma-fila"><div class="lbl2">Firma:</div><div class="linea2"></div></div>
+  <table class="firma-tabla2">
+    <colgroup><col class="f1"><col class="f2"></colgroup>
+    <tr><td class="lbl2">Nombre:</td><td class="linea2">${escapeHtml(r.titular_responsable)||''}</td></tr>
+  </table>
+  <table class="firma-tabla2">
+    <colgroup><col class="f1"><col class="f2"></colgroup>
+    <tr><td class="lbl2">Firma:</td><td class="linea2">&nbsp;</td></tr>
+  </table>
 </div>
 </body></html>`;
 
@@ -2323,10 +2338,15 @@ function generarResguardoArrendadoPDF(r, v){
   .campos-cap .cap3{font-style:italic;font-size:10.5px;padding-bottom:6px;}
 
   .parrafo{font-size:10.5px;text-align:justify;line-height:1.35;margin:0 0 8px 0;}
+  .parrafos-wrap{margin-top:32px;}
   .cierre-title{text-align:center;font-size:12px;margin:14px 0 10px 0;}
-  .firma-fila{display:flex;gap:8px;margin-top:14px;font-size:12px;}
-  .firma-fila .lbl2{width:60px;}
-  .firma-fila .linea2{flex:1;border-bottom:1px solid #000;}
+  /* Tabla Nombre/Firma calcada de las coordenadas reales del Word:
+     w:tblInd=354 (~3.3% del ancho útil) y w:tblW=5260 (~48.8% del ancho útil) */
+  .firma-tabla2{width:48.8%;margin-left:3.3%;border-collapse:collapse;font-size:12px;margin-top:14px;}
+  .firma-tabla2 col.f1{width:42.2%;} .firma-tabla2 col.f2{width:57.8%;}
+  .firma-tabla2 td{padding:2px 4px;vertical-align:bottom;}
+  .firma-tabla2 .lbl2{white-space:nowrap;}
+  .firma-tabla2 .linea2{border-bottom:1px solid #000;text-align:right;font-weight:700;padding-right:6px;}
 </style>
 </head><body>
 <div class="hoja">
@@ -2363,15 +2383,23 @@ function generarResguardoArrendadoPDF(r, v){
     ${bloqueCaptionRow([{valor:r.correo||'', caption:'Correo Electrónico', span:2},{valor:r.extension||'', caption:'No. de Extensión', span:1},{valor:r.celular||'', caption:'No. celular', span:1}])}
   </table>
 
-  <div class="parrafo">El suscrito manifiesta tener pleno conocimiento de la responsabilidad que adquiere al asignarle el vehículo que ampara el presente resguardo y se compromete a darle el buen uso y cuidado de su estado físico mecánico, a gestionar sus servicios oportunamente y a ingresar la unidad en la fecha que el prestador de servicio le programe su servicio.</div>
-  <div class="parrafo">Cumplir con el Programa de Verificación es de estricta responsabilidad, del asignatario, por lo que estará al tanto de los periodos de verificación para su debido cumplimiento.</div>
-  <div class="parrafo">El asignatario del vehículo del presente resguardo se responsabiliza de cualquier multa por faltas al reglamento de tránsito y demás reglamentos ambientales administrativos o ilícitos penales en las que estuviera involucrado, y estará obligado al pago de la multa en que incurra, a excepción de los casos en que se acredite fehacientemente que sea responsabilidad del Prestador del Servicio contratado por Pemex.</div>
-  <div class="parrafo">El asignatario se compromete a dar aviso a la Superintendencia de Transportación cualquier cambio que se suscite por motivos de retiro del cargo o de las funciones vinculadas a la necesidad de tener el vehículo a su cargo.</div>
-  <div class="parrafo">Al entregar la unidad y los accesorios relacionados en el inventario correspondiente, al área administradora o directamente a la Superintendencia de Transportación, el asignatario deberá recuperar el presente resguardo para que sea liberado de la responsabilidad contraída al momento de firmar el mismo.</div>
+  <div class="parrafos-wrap">
+    <div class="parrafo">El suscrito manifiesta tener pleno conocimiento de la responsabilidad que adquiere al asignarle el vehículo que ampara el presente resguardo y se compromete a darle el buen uso y cuidado de su estado físico mecánico, a gestionar sus servicios oportunamente y a ingresar la unidad en la fecha que el prestador de servicio le programe su servicio.</div>
+    <div class="parrafo">Cumplir con el Programa de Verificación es de estricta responsabilidad, del asignatario, por lo que estará al tanto de los periodos de verificación para su debido cumplimiento.</div>
+    <div class="parrafo">El asignatario del vehículo del presente resguardo se responsabiliza de cualquier multa por faltas al reglamento de tránsito y demás reglamentos ambientales administrativos o ilícitos penales en las que estuviera involucrado, y estará obligado al pago de la multa en que incurra, a excepción de los casos en que se acredite fehacientemente que sea responsabilidad del Prestador del Servicio contratado por Pemex.</div>
+    <div class="parrafo">El asignatario se compromete a dar aviso a la Superintendencia de Transportación cualquier cambio que se suscite por motivos de retiro del cargo o de las funciones vinculadas a la necesidad de tener el vehículo a su cargo.</div>
+    <div class="parrafo">Al entregar la unidad y los accesorios relacionados en el inventario correspondiente, al área administradora o directamente a la Superintendencia de Transportación, el asignatario deberá recuperar el presente resguardo para que sea liberado de la responsabilidad contraída al momento de firmar el mismo.</div>
+  </div>
 
   <div class="cierre-title">Asignatario:</div>
-  <div class="firma-fila"><div class="lbl2">Nombre:</div><div class="linea2" style="font-weight:700;text-align:center;">${escapeHtml(r.titular_responsable)||''}</div></div>
-  <div class="firma-fila"><div class="lbl2">Firma:</div><div class="linea2"></div></div>
+  <table class="firma-tabla2">
+    <colgroup><col class="f1"><col class="f2"></colgroup>
+    <tr><td class="lbl2">Nombre:</td><td class="linea2">${escapeHtml(r.titular_responsable)||''}</td></tr>
+  </table>
+  <table class="firma-tabla2">
+    <colgroup><col class="f1"><col class="f2"></colgroup>
+    <tr><td class="lbl2">Firma:</td><td class="linea2">&nbsp;</td></tr>
+  </table>
 </div>
 </body></html>`;
 
