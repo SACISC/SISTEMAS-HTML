@@ -1820,6 +1820,7 @@ function renderResguardos(){
               <button class="btn btn-primary btn-xs" onclick="generarResguardoPDF('${r.id}')">Formato</button>
               <button class="btn btn-outline btn-xs" onclick="abrirEditarResguardo('${r.id}')">Editar</button>
               <button class="btn btn-danger btn-xs" onclick="eliminarResguardo('${r.id}')">Eliminar</button>
+              <button class="btn btn-outline btn-xs" onclick="exportarResguardoATarjeta('${r.id}')" title="Envía este titular a Tarjetas, lo agrega al historial como MANUAL, y abre la Carta Responsiva">💳 Exportar a Tarjeta</button>
             </td>
           </tr>
         `;}).join('')}
@@ -1926,6 +1927,76 @@ async function eliminarResguardo(resguardoId){
   }catch(e){
     console.error(e);
     toast('Error al eliminar: '+e.message, 'warn');
+  }
+}
+
+// ═══ EXPORTAR RESGUARDO A TARJETA (manual, independiente del Cartucho) ═══
+// Toma al titular vigente del resguardo del vehículo y lo manda como
+// resguardante vigente de la TARJETA: actualiza flotilla_tarjetas,
+// agrega una fila etiquetada 'MANUAL' al historial, y abre de una vez
+// la Carta Responsiva.
+async function exportarResguardoATarjeta(resguardoId){
+  const r = RESGUARDOS.find(x=>x.id===resguardoId);
+  if(!r){ toast('Resguardo no encontrado', 'warn'); return; }
+  if(!r.titular_responsable){ toast('Este resguardo no tiene titular, no hay nada que exportar', 'warn'); return; }
+  const v = vehiculoDe(r.vehiculo_id);
+  if(!v){ toast('Vehículo no encontrado', 'warn'); return; }
+
+  const t = TARJETAS.find(x=>x.vehiculo_id===r.vehiculo_id);
+  if(!t || !t.no_tarjeta){
+    if(!confirm(`Este vehículo (${v.no_economico}) todavía no tiene un número de tarjeta registrado en el sistema.\n\n¿Quieres continuar de todas formas? El historial y la Carta Responsiva quedarán sin número de tarjeta hasta que lo captures en Tarjetas.`)) return;
+  }
+
+  const hoy = new Date().toISOString().slice(0,10);
+  const btnBuscado = document.querySelector(`button[onclick="exportarResguardoATarjeta('${resguardoId}')"]`);
+  if(btnBuscado){ btnBuscado.disabled = true; btnBuscado.textContent = 'Exportando…'; }
+
+  try{
+    // 1) Marcar como no-vigente cualquier entrada actual del historial de tarjeta
+    const anteriores = TARJETAS_HISTORIAL.filter(h=>h.vehiculo_id===r.vehiculo_id && h.es_actual);
+    for(const ant of anteriores){
+      const actualizado = await sbUpdate('flotilla_tarjetas_historial', `id=eq.${ant.id}`, {es_actual:false, fecha_fin: hoy});
+      Object.assign(ant, actualizado[0]);
+    }
+
+    // 2) Insertar la nueva entrada de historial, etiquetada MANUAL
+    const nuevoHistorial = {
+      vehiculo_id: r.vehiculo_id,
+      tarjeta: t ? t.no_tarjeta : null,
+      nombre: r.titular_responsable,
+      ficha: r.ficha_titular || null,
+      fecha_inicio: hoy, fecha_fin: hoy,
+      num_transacciones: 0,
+      es_actual: true,
+      origen: 'MANUAL',
+    };
+    const insertado = await sbInsert('flotilla_tarjetas_historial', nuevoHistorial);
+    TARJETAS_HISTORIAL.unshift(insertado[0]);
+
+    // 3) Upsert de flotilla_tarjetas con este resguardante como vigente
+    const datosTarjeta = {
+      ultimo_usuario_detectado: r.titular_responsable,
+      ultimo_usuario_ficha: r.ficha_titular || null,
+      fecha_ultimo_uso: hoy,
+    };
+    if(t){
+      const actualizado = await sbUpdate('flotilla_tarjetas', `id=eq.${t.id}`, datosTarjeta);
+      const idx = TARJETAS.findIndex(x=>x.id===t.id);
+      TARJETAS[idx] = actualizado[0];
+    }else{
+      datosTarjeta.vehiculo_id = r.vehiculo_id;
+      const insertadoT = await sbInsert('flotilla_tarjetas', datosTarjeta);
+      TARJETAS.push(insertadoT[0]);
+    }
+
+    toast(`${r.titular_responsable} exportado a Tarjetas — generando Carta Responsiva…`, 'ok');
+    renderTarjetas();
+    generarCartaResponsivaPDF(r.vehiculo_id);
+  }catch(e){
+    console.error(e);
+    toast('Error al exportar a Tarjeta: '+e.message, 'warn');
+  }finally{
+    if(btnBuscado){ btnBuscado.disabled = false; btnBuscado.textContent = '💳 Exportar a Tarjeta'; }
   }
 }
 
@@ -2487,7 +2558,7 @@ function procesarCartuchoAuditoria(input){
     setTimeout(()=>{
       try{
         const data = new Uint8Array(e.target.result);
-        const wb = XLSX.read(data, {type:'array'});
+        const wb = XLSX.read(data, {type:'array', cellDates:true});
         const nombreHoja = wb.SheetNames.includes('Hoja1') ? 'Hoja1' : wb.SheetNames[0];
         const ws = wb.Sheets[nombreHoja];
         const filas = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null, blankrows:false});
@@ -2877,7 +2948,7 @@ function procesarCartuchoParaTarjetas(input){
     setTimeout(()=>{
       try{
         const data = new Uint8Array(e.target.result);
-        const wb = XLSX.read(data, {type:'array'});
+        const wb = XLSX.read(data, {type:'array', cellDates:true});
         const nombreHoja = wb.SheetNames.includes('Hoja1') ? 'Hoja1' : wb.SheetNames[0];
         const ws = wb.Sheets[nombreHoja];
         const filas = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null, blankrows:false});
@@ -2996,53 +3067,84 @@ async function confirmarActualizacionCartuchoTarjetas(){
   const cont = document.getElementById('actTarjResumen');
   cont.innerHTML = `<p style="font-size:12.5px;color:var(--gray);">⏳ Guardando en Supabase… (${resultados.length} vehículos)</p>`;
 
+  const aFechaStr = (f) => f ? (f instanceof Date ? f.toISOString().slice(0,10) : String(f).slice(0,10)) : null;
+  const minFecha = (a,b) => { if(!a) return b; if(!b) return a; return a<b?a:b; };
+  const maxFecha = (a,b) => { if(!a) return b; if(!b) return a; return a>b?a:b; };
+
   try{
-    // 1) Upsert de flotilla_tarjetas, vehículo por vehículo
+    let filasNuevas = 0, filasExtendidas = 0;
+
     for(const r of resultados){
-      const fechaStr = r.fecha_ultimo_uso ? r.fecha_ultimo_uso.toISOString().slice(0,10) : null;
-      const datos = {
+      // ── 1) Combinar el historial de este vehículo: por cada persona detectada
+      //    en ESTE cartucho, si ya existía un registro suyo se EXTIENDE (nunca se
+      //    borra), y si es alguien nuevo se agrega. Así cada cartucho que subas
+      //    complementa el historial en vez de reemplazarlo.
+      const historialExistente = TARJETAS_HISTORIAL.filter(h=>h.vehiculo_id===r.vehiculo_id);
+
+      for(const h of r.historial){
+        const normNueva = palabrasNombre(h.nombre);
+        const fi = aFechaStr(h.fecha_inicio), ff = aFechaStr(h.fecha_fin);
+        const match = historialExistente.find(x=>palabrasNombre(x.nombre)===normNueva);
+
+        if(match){
+          const datos = {
+            fecha_inicio: minFecha(match.fecha_inicio, fi),
+            fecha_fin: maxFecha(match.fecha_fin, ff),
+            num_transacciones: (match.num_transacciones||0) + (h.num_transacciones||0),
+            ficha: match.ficha || h.ficha || null,
+          };
+          const actualizado = await sbUpdate('flotilla_tarjetas_historial', `id=eq.${match.id}`, datos);
+          Object.assign(match, actualizado[0]);
+          filasExtendidas++;
+        }else{
+          const nuevo = {
+            vehiculo_id: r.vehiculo_id, tarjeta: r.no_tarjeta, nombre: h.nombre, ficha: h.ficha,
+            fecha_inicio: fi, fecha_fin: ff, num_transacciones: h.num_transacciones, es_actual: false,
+            origen: 'CARTUCHO',
+          };
+          const insertado = await sbInsert('flotilla_tarjetas_historial', nuevo);
+          TARJETAS_HISTORIAL.push(insertado[0]);
+          historialExistente.push(insertado[0]);
+          filasNuevas++;
+        }
+      }
+
+      // ── 2) Recalcular cuál es el vigente (es_actual) entre TODO el historial
+      //    combinado de este vehículo (el de antes + lo que trajo este cartucho)
+      const historialFinal = TARJETAS_HISTORIAL.filter(h=>h.vehiculo_id===r.vehiculo_id);
+      let vigente = null;
+      historialFinal.forEach(h=>{ if(h.fecha_fin && (!vigente || h.fecha_fin>vigente.fecha_fin)) vigente = h; });
+      for(const h of historialFinal){
+        const debeSerVigente = vigente && h.id===vigente.id;
+        if(!!h.es_actual !== debeSerVigente){
+          const actualizado = await sbUpdate('flotilla_tarjetas_historial', `id=eq.${h.id}`, {es_actual: debeSerVigente});
+          Object.assign(h, actualizado[0]);
+        }
+      }
+
+      // ── 3) Upsert de flotilla_tarjetas, usando como "vigente" el que
+      //    resultó con la fecha_fin más reciente de TODO el historial combinado
+      const datosTarjeta = {
         no_tarjeta: r.no_tarjeta,
         tipo_combustible_detectado: r.tipo_combustible,
         departamento_detectado: r.departamento,
-        ultimo_usuario_detectado: r.ultimo_usuario,
-        ultimo_usuario_ficha: r.ultimo_usuario_ficha,
-        fecha_ultimo_uso: fechaStr,
+        ultimo_usuario_detectado: vigente ? vigente.nombre : r.ultimo_usuario,
+        ultimo_usuario_ficha: vigente ? vigente.ficha : r.ultimo_usuario_ficha,
+        fecha_ultimo_uso: vigente ? vigente.fecha_fin : aFechaStr(r.fecha_ultimo_uso),
       };
       const existente = TARJETAS.find(t=>t.vehiculo_id===r.vehiculo_id);
       if(existente){
-        const actualizado = await sbUpdate('flotilla_tarjetas', `id=eq.${existente.id}`, datos);
+        const actualizado = await sbUpdate('flotilla_tarjetas', `id=eq.${existente.id}`, datosTarjeta);
         const idx = TARJETAS.findIndex(t=>t.id===existente.id);
         TARJETAS[idx] = actualizado[0];
       }else{
-        datos.vehiculo_id = r.vehiculo_id;
-        const insertado = await sbInsert('flotilla_tarjetas', datos);
+        datosTarjeta.vehiculo_id = r.vehiculo_id;
+        const insertado = await sbInsert('flotilla_tarjetas', datosTarjeta);
         TARJETAS.push(insertado[0]);
       }
     }
 
-    // 2) Reemplazar el historial de estos vehículos: borrar y volver a insertar
-    const idsVehiculos = resultados.map(r=>r.vehiculo_id);
-    await sbDelete('flotilla_tarjetas_historial', `vehiculo_id=in.(${idsVehiculos.join(',')})`);
-    TARJETAS_HISTORIAL = TARJETAS_HISTORIAL.filter(h=>!idsVehiculos.includes(h.vehiculo_id));
-
-    const filasHistorial = [];
-    resultados.forEach(r=>{
-      r.historial.forEach(h=>{
-        filasHistorial.push({
-          vehiculo_id: r.vehiculo_id, tarjeta: r.no_tarjeta, nombre: h.nombre, ficha: h.ficha,
-          fecha_inicio: h.fecha_inicio ? h.fecha_inicio.toISOString().slice(0,10) : null,
-          fecha_fin: h.fecha_fin ? h.fecha_fin.toISOString().slice(0,10) : null,
-          num_transacciones: h.num_transacciones, es_actual: h.es_actual,
-        });
-      });
-    });
-    for(let i=0; i<filasHistorial.length; i+=500){
-      const lote = filasHistorial.slice(i, i+500);
-      const insertado = await sbInsert('flotilla_tarjetas_historial', lote);
-      TARJETAS_HISTORIAL.push(...insertado);
-    }
-
-    cont.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Listo — ${resultados.length} vehículos actualizados y su historial reemplazado.</p></div>`;
+    cont.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Listo — ${resultados.length} vehículos procesados (${filasNuevas} resguardantes nuevos agregados, ${filasExtendidas} extendidos). Nada se borró.</p></div>`;
     RESULTADO_CARTUCHO_TARJETAS = null;
     renderTarjetas();
     toast('Resguardantes de tarjeta actualizados desde el Cartucho', 'ok');
@@ -3070,7 +3172,7 @@ function verHistorialResguardantesTarjeta(vehiculoId){
     </p>
     <div class="tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>Nombre</th><th>Ficha</th><th>Desde</th><th>Hasta</th><th>Transacciones</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Ficha</th><th>Desde</th><th>Hasta</th><th>Transacciones</th><th>Origen</th><th>Estado</th></tr></thead>
         <tbody>
           ${historial.map(h=>`
             <tr>
@@ -3079,9 +3181,10 @@ function verHistorialResguardantesTarjeta(vehiculoId){
               <td>${fechaCorta(h.fecha_inicio)}</td>
               <td>${fechaCorta(h.fecha_fin)}</td>
               <td class="tbl-center">${h.num_transacciones??'—'}</td>
+              <td>${h.origen==='MANUAL' ? '<span class="badge badge-blue">✍ MANUAL</span>' : '<span class="badge badge-gray">📊 CARTUCHO</span>'}</td>
               <td>${h.es_actual ? '<span class="badge badge-green">VIGENTE</span>' : '<span class="badge badge-gray">ANTERIOR</span>'}</td>
             </tr>
-          `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray);">Sin historial detectado para esta tarjeta.</td></tr>'}
+          `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--gray);">Sin historial detectado para esta tarjeta.</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -3278,13 +3381,13 @@ function generarCartaResponsivaPDF(vehiculoId){
   .doc-fecha{text-align:right;font-size:12px;margin-bottom:14px;}
   .doc-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:16px;}
 
-  .campos{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:16px;}
+  .campos{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:14px;}
   .campos col.c1{width:17.2%;}
   .campos col.c2{width:30.8%;}
   .campos col.c3{width:1.4%;}
   .campos col.c4{width:16.0%;}
   .campos col.c5{width:34.6%;}
-  .campos td{padding:5px 8px 2px 0;font-size:12px;vertical-align:bottom;overflow-wrap:break-word;}
+  .campos td{padding:4px 8px 2px 0;font-size:12px;vertical-align:bottom;overflow-wrap:break-word;}
   .campos .lbl{font-weight:400;white-space:normal;padding-right:6px;}
   .campos .val{border-bottom:0.75pt solid #000;padding-left:6px;min-height:14px;}
   .campos .sinlinea{border-bottom:none;}
@@ -3293,14 +3396,15 @@ function generarCartaResponsivaPDF(vehiculoId){
   .campos .box-val{border:0.5pt solid #000;padding:3px 6px;}
 
   .chk{display:inline-block;width:14px;height:12px;border:0.5pt solid #000;text-align:center;font-weight:700;margin:0 6px 0 4px;vertical-align:middle;line-height:12px;font-size:9px;}
-  .parrafo{font-size:12px;text-align:justify;line-height:1.32;margin:0 0 14px 0;}
+  .parrafo{font-size:12px;text-align:justify;line-height:1.26;margin:0 0 10px 0;}
 
-  .firma-tabla{width:3.6in;margin:18px auto 0 auto;border-collapse:collapse;text-align:center;font-size:12px;}
-  .firma-tabla .titulo{font-weight:700;padding-bottom:20px;}
+  .cierre{page-break-inside:avoid;}
+  .firma-tabla{width:3.6in;margin:8px auto 0 auto;border-collapse:collapse;text-align:center;font-size:12px;}
+  .firma-tabla .titulo{font-weight:700;padding-bottom:12px;}
   .firma-tabla .nombre{font-weight:700;font-size:16px;border-bottom:0.5pt solid #000;padding-bottom:3px;}
   .firma-tabla .sub{font-size:12px;padding-top:3px;}
 
-  .anexos{background:#d9d9d9;padding:6px 8px;font-size:10.5px;margin-top:16px;}
+  .anexos{background:#d9d9d9;padding:6px 8px;font-size:10.5px;margin-top:6px;}
 </style>
 </head><body>
 
@@ -3381,13 +3485,15 @@ function generarCartaResponsivaPDF(vehiculoId){
 
     <div class="parrafo">El titular de la tarjeta de suministro de combustible, objeto de este documento, es responsable ante Petróleos Mexicanos, o cualquier autoridad Administrativa o Judicial en caso de incumplir con las condiciones y obligaciones antes descritas o en caso de incurrir en algún ilícito administrativo y/o penal derivado del mal uso que se lleve a cabo con la tarjeta asignada.</div>
 
-    <table class="firma-tabla">
-      <tr><td class="titulo">Acepto la responsabilidad:</td></tr>
-      <tr><td class="nombre">${escapeHtml(nombreTitular)}</td></tr>
-      <tr><td class="sub">Nombre y Firma</td></tr>
-    </table>
+    <div class="cierre">
+      <table class="firma-tabla">
+        <tr><td class="titulo">Acepto la responsabilidad:</td></tr>
+        <tr><td class="nombre">${escapeHtml(nombreTitular)}</td></tr>
+        <tr><td class="sub">Nombre y Firma</td></tr>
+      </table>
 
-    <div class="anexos">Se anexan copias de la credencial del SIIU del titular de la tarjeta y de la tarjeta de circulación en caso de tratarse de unidad vehicular.</div>
+      <div class="anexos">Se anexan copias de la credencial del SIIU del titular de la tarjeta y de la tarjeta de circulación en caso de tratarse de unidad vehicular.</div>
+    </div>
   </div>
 
 </body></html>`;
@@ -4288,7 +4394,14 @@ function lineaDeTiempoVehiculo(vehiculoId){
     eventos.push({fecha:r.fecha_resguardo, tipo:'📝 Resguardo (unidad)', detalle:`${r.titular_responsable||'(sin nombre)'}${r.reemplacado?' — reemplazado después':''}`});
   });
   TARJETAS_HISTORIAL.filter(h=>h.vehiculo_id===vehiculoId).forEach(h=>{
-    eventos.push({fecha:h.fecha_inicio, tipo:'💳 Resguardante de tarjeta', detalle:`${h.nombre||'(sin nombre)'}${h.fecha_fin && h.fecha_fin!==h.fecha_inicio ? ' (hasta '+fechaCorta(h.fecha_fin)+')' : ''}`});
+    const rango = h.fecha_inicio && h.fecha_fin
+      ? (h.fecha_inicio===h.fecha_fin ? `desde ${fechaCorta(h.fecha_inicio)}` : `desde ${fechaCorta(h.fecha_inicio)} hasta ${fechaCorta(h.fecha_fin)}`)
+      : (h.fecha_fin ? `hasta ${fechaCorta(h.fecha_fin)}` : (h.fecha_inicio ? `desde ${fechaCorta(h.fecha_inicio)}` : 'sin fechas registradas'));
+    eventos.push({
+      fecha: h.fecha_fin || h.fecha_inicio,
+      tipo: `💳 Resguardante de tarjeta${h.es_actual?' (vigente)':''}`,
+      detalle: `${h.nombre||'(sin nombre)'}${h.ficha?' — ficha '+h.ficha:''} · ${rango}${h.num_transacciones?' · '+h.num_transacciones+' transacciones':''} · ${h.origen==='MANUAL'?'origen: manual':'origen: cartucho'}`,
+    });
   });
   confrontasDeVehiculo(vehiculoId).forEach(c=>{
     if(!c.fecha) return; // omitimos las "NO REALIZADA" (sin fecha) de la línea de tiempo
