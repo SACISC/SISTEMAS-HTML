@@ -484,6 +484,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
           <rect x="12" y="51" width="40" height="2.5" rx="1.25" fill="url(#sac_g2)" opacity="0.8"></rect>
         </g>
       </svg>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:700;letter-spacing:4px;color:var(--gd);margin-left:9px;">SACISC</span>
     </div>
 
     <div class="header-title">
@@ -686,11 +687,34 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
   <div class="panel" id="pan-tarjetas">
     <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Tarjetas de Combustible</h1>
-    <p class="page-desc">Tarjetas EFECTICARD asignadas a cada vehículo y generación de Carta Responsiva.</p>
+    <p class="page-desc">Tarjetas EFECTICARD detectadas por vehículo (construido desde el Cartucho BigData) y su comparación contra el resguardante vigente en el sistema.</p>
+
+    <div class="kpi-grid" id="kpiTarjetas"></div>
+
     <div class="card">
-      <div class="card-hdr"><h3>💳 Tarjetas asignadas</h3></div>
+      <div class="card-hdr">
+        <h3>💳 Tarjetas por vehículo</h3>
+        <button class="btn btn-outline btn-sm" onclick="exportarExcel(tarjetasFiltradas().map(t=>({no_economico:t.vehiculo.no_economico, placas:t.vehiculo.placas, tarjeta:t.no_tarjeta, tipo_combustible:t.tipo_combustible_detectado, departamento:t.departamento_detectado, resguardante_sistema:t.resguardanteSistema, ultimo_usuario_cartucho:t.ultimo_usuario_detectado, coincide:t.coincide})), 'tarjetas_efecticard')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
+      </div>
       <div class="card-body">
-        <div class="empty-state" id="emptyTarjetas"><div class="icon">💳</div><p>Próximamente en esta fase.</p></div>
+        <div class="filter-bar">
+          <select class="filter-sel" id="filtroCoincideTarjeta">
+            <option value="">Todos</option>
+            <option value="NO">⚠ No coincide con el sistema</option>
+            <option value="SI">✓ Coincide</option>
+          </select>
+          <input class="search-inp" id="buscarTarjeta" placeholder="Buscar por placa, económico o tarjeta…">
+        </div>
+        <div class="empty-state" id="emptyTarjetas"><div class="icon">💳</div><p>Cargando tarjetas desde Supabase…</p></div>
+        <div class="tbl-wrap" id="tablaTarjetas"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3>👤 Personal detectado en tarjetas que no está en el Directorio</h3></div>
+      <div class="card-body">
+        <p class="page-desc" style="margin-bottom:10px;">Personas que aparecen como usuarios de alguna tarjeta en el historial del cartucho, pero que todavía no tienen registro en Personal.</p>
+        <div id="tarjetasPersonalFaltante"></div>
       </div>
     </div>
   </div>
@@ -734,7 +758,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="footer-org">
       <p>Unidad Regional de Servicios Corporativos Sur</p>
       <p>Superintendencia de Servicios Corporativos Sur Zona Coatzacoalcos</p>
-      <p>Servicios Corporativos Agua Dulce</p>
+      <p>Parque Vehicular</p>
     </div>
     <div class="footer-credits">
       <p>SACISC</p>
@@ -1116,6 +1140,7 @@ async function sbDelete(tabla, match){
 let VEHICULOS = [];
 let RESGUARDOS = [];
 let TARJETAS = [];
+let TARJETAS_HISTORIAL = [];
 let CONFRONTAS = [];
 let PERSONAL = [];
 let REEMPLAZOS = [];
@@ -1199,6 +1224,16 @@ async function cargarDesdeSB(){
       console.error(e4);
       REEMPLAZOS = [];
     }
+
+    try{
+      TARJETAS = await sbGet('flotilla_tarjetas', 'limit=2000');
+      TARJETAS_HISTORIAL = await sbGet('flotilla_tarjetas_historial', 'order=fecha_fin.desc&limit=2000');
+    }catch(e5){
+      console.error(e5);
+      TARJETAS = []; TARJETAS_HISTORIAL = [];
+      toast('Falta correr el script SQL de Tarjetas EFECTICARD en Supabase', 'warn');
+    }
+    renderTarjetas();
   }catch(e){
     console.error(e);
     badge.textContent = '🔴 Sin conexión';
@@ -2490,23 +2525,28 @@ function altaPersonalDesdeAuditoria(vehiculoId){
   const registro = AUDITORIA.find(a=>a.vehiculo_id===vehiculoId);
   const detectado = registro && registro.usuarios[0];
   if(!detectado){ toast('No hay usuario detectado para este vehículo', 'warn'); return; }
+  altaPersonalConDatos(detectado.nombre, detectado.ficha, detectado.siglas);
+}
 
-  abrirFormPersonal(null); // abre el modal de Personal en modo "Agregar"
-  document.getElementById('perNombre').value = detectado.nombre || '';
-  if(detectado.ficha) document.getElementById('perFicha').value = detectado.ficha;
+// ═══ Helper compartido: abre el modal de Personal en "Agregar" y aplica
+// nombre/ficha/siglas detectados, autocompletando depto por el mapa ═══
+function altaPersonalConDatos(nombre, ficha, siglas){
+  abrirFormPersonal(null);
+  document.getElementById('perNombre').value = nombre || '';
+  if(ficha) document.getElementById('perFicha').value = ficha;
 
-  if(detectado.siglas){
+  if(siglas){
     const selSiglas = document.getElementById('perSiglas');
-    if([...selSiglas.options].some(o=>o.value===detectado.siglas)){
-      selSiglas.value = detectado.siglas;
+    if([...selSiglas.options].some(o=>o.value===siglas)){
+      selSiglas.value = siglas;
     }else{
       const opt = document.createElement('option');
-      opt.value = detectado.siglas; opt.textContent = detectado.siglas;
+      opt.value = siglas; opt.textContent = siglas;
       selSiglas.insertBefore(opt, selSiglas.querySelector(`option[value="${OPCION_NUEVA}"]`));
-      selSiglas.value = detectado.siglas;
+      selSiglas.value = siglas;
     }
     const mapa = mapaDepartamentoPorSiglas();
-    const depto = mapa[detectado.siglas];
+    const depto = mapa[siglas];
     if(depto){
       ['perDireccion','perSubdireccion','perGerenciaUnidad'].forEach(id=>{
         const campo = {perDireccion:'direccion', perSubdireccion:'subdireccion', perGerenciaUnidad:'gerencia_unidad'}[id];
@@ -2521,12 +2561,142 @@ function altaPersonalDesdeAuditoria(vehiculoId){
           sel.value = valor;
         }
       });
-      toast(`Departamento ${detectado.siglas} autocompletado — solo falta Cargo, Nivel, Celular y demás datos`, 'ok');
+      toast(`Departamento ${siglas} autocompletado — solo falta Cargo, Nivel, Celular y demás datos`, 'ok');
     }else{
-      toast(`No encontré referencia previa para el departamento ${detectado.siglas} — completa Dirección/Subdirección/Gerencia manualmente`, 'warn');
+      toast(`No encontré referencia previa para el departamento ${siglas} — completa Dirección/Subdirección/Gerencia manualmente`, 'warn');
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// ═══ TARJETAS EFECTICARD (construido desde el Cartucho BigData) ═══════
+// ═══════════════════════════════════════════════════════════════════════
+function tarjetasConDatos(){
+  return TARJETAS.map(t=>{
+    const v = vehiculoDe(t.vehiculo_id);
+    if(!v) return null;
+    const vigente = RESGUARDOS.find(r=>r.vehiculo_id===t.vehiculo_id && r.vigente);
+    const resguardanteSistema = vigente ? vigente.titular_responsable : null;
+    let coincide = null;
+    if(resguardanteSistema && t.ultimo_usuario_detectado){
+      coincide = palabrasNombre(resguardanteSistema)===palabrasNombre(t.ultimo_usuario_detectado) ? 'SI' : 'NO';
+    }
+    return {...t, vehiculo: v, resguardanteSistema, coincide};
+  }).filter(Boolean);
+}
+
+function tarjetasFiltradas(){
+  const coincideSel = document.getElementById('filtroCoincideTarjeta').value;
+  const q = (document.getElementById('buscarTarjeta').value||'').trim().toLowerCase();
+  return tarjetasConDatos().filter(t=>{
+    if(coincideSel && t.coincide!==coincideSel) return false;
+    if(q){
+      const campos = [t.vehiculo.no_economico, t.vehiculo.placas, t.no_tarjeta].map(x=>(x||'').toLowerCase());
+      if(!campos.some(c=>c.includes(q))) return false;
+    }
+    return true;
+  });
+}
+
+function renderTarjetas(){
+  const todas = tarjetasConDatos();
+  const lista = tarjetasFiltradas();
+
+  const noCoincide = todas.filter(t=>t.coincide==='NO').length;
+  const coincide = todas.filter(t=>t.coincide==='SI').length;
+  const sinComparar = todas.length - noCoincide - coincide;
+
+  document.getElementById('kpiTarjetas').innerHTML =
+    kpiCard('Tarjetas detectadas', todas.length) +
+    kpiCard('🚨 No coincide con el sistema', noCoincide, 'var(--red)') +
+    kpiCard('✅ Coincide', coincide, '#1b6b2b') +
+    kpiCard('Sin resguardante para comparar', sinComparar, 'var(--gray)');
+
+  document.getElementById('emptyTarjetas').style.display = lista.length ? 'none' : 'block';
+  document.getElementById('emptyTarjetas').querySelector('p').textContent =
+    todas.length ? 'No hay tarjetas que coincidan con el filtro.' : 'No se encontraron tarjetas en Supabase — corre el script SQL de Tarjetas EFECTICARD.';
+
+  if(lista.length){
+    lista.sort((a,b)=>{
+      const orden = {'NO':0,null:1,'SI':2};
+      return orden[a.coincide]-orden[b.coincide] || a.vehiculo.no_economico.localeCompare(b.vehiculo.no_economico);
+    });
+    document.getElementById('tablaTarjetas').innerHTML = `
+      <table class="tbl">
+        <thead><tr>
+          <th>No. Económico</th><th>Placas</th><th>Tarjeta</th><th>Tipo Combustible</th><th>Departamento</th>
+          <th>Resguardante del Sistema</th><th>Último Usuario (Cartucho)</th><th>Últ. Uso</th><th>Alerta</th>
+        </tr></thead>
+        <tbody>
+          ${lista.map(t=>`
+            <tr${t.coincide==='NO'?' style="background:#fdecea;"':''}>
+              <td class="tbl-num">${vehHoverSpan(t.vehiculo.id, t.vehiculo.no_economico)}</td>
+              <td>${vehHoverSpan(t.vehiculo.id, t.vehiculo.placas)}</td>
+              <td class="tbl-num">${escapeHtml(t.no_tarjeta)}</td>
+              <td>${escapeHtml(t.tipo_combustible_detectado)||'—'}</td>
+              <td>${t.departamento_detectado?`<span class="badge badge-blue">${escapeHtml(t.departamento_detectado)}</span>`:'—'}</td>
+              <td>${escapeHtml(t.resguardanteSistema)||'<span class="badge badge-gray">SIN RESGUARDANTE</span>'}</td>
+              <td>${escapeHtml(t.ultimo_usuario_detectado)||'—'}</td>
+              <td>${fechaCorta(t.fecha_ultimo_uso)}</td>
+              <td class="tbl-center">${
+                t.coincide==='NO' ? '<span class="badge badge-red">⚠ NO COINCIDE</span>' :
+                t.coincide==='SI' ? '<span class="badge badge-green">✓ COINCIDE</span>' :
+                '<span class="badge badge-gray">SIN COMPARAR</span>'
+              }</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }else{
+    document.getElementById('tablaTarjetas').innerHTML = '';
+  }
+
+  renderPersonalFaltanteTarjetas();
+}
+
+// ═══ Personal detectado en el historial de tarjetas que no está en Personal ═══
+function renderPersonalFaltanteTarjetas(){
+  const vistos = new Set();
+  const faltantes = [];
+  TARJETAS_HISTORIAL.forEach(h=>{
+    if(!h.nombre) return;
+    const norm = palabrasNombre(h.nombre);
+    if(vistos.has(norm)) return;
+    if(personaExisteEnCatalogo(h.nombre)) return;
+    vistos.add(norm);
+    const tarjetaVeh = TARJETAS.find(t=>t.vehiculo_id===h.vehiculo_id);
+    const v = vehiculoDe(h.vehiculo_id);
+    const siglas = (tarjetaVeh && tarjetaVeh.departamento_detectado) || (v && v.siglas) || null;
+    faltantes.push({nombre: h.nombre, ficha: h.ficha, siglas, vehiculo: v});
+  });
+
+  const cont = document.getElementById('tarjetasPersonalFaltante');
+  if(!faltantes.length){
+    cont.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Todo el personal detectado en el historial de tarjetas ya está en el Directorio.</p></div>`;
+    return;
+  }
+  faltantes.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  cont.innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Nombre</th><th>Ficha</th><th>Departamento (Cartucho)</th><th>Detectado en</th><th>Acción</th></tr></thead>
+      <tbody>
+        ${faltantes.map(f=>`
+          <tr>
+            <td>${escapeHtml(f.nombre)}</td>
+            <td class="tbl-num">${escapeHtml(f.ficha)||'—'}</td>
+            <td>${f.siglas?`<span class="badge badge-blue">${escapeHtml(f.siglas)}</span>`:'—'}</td>
+            <td>${f.vehiculo?`${escapeHtml(f.vehiculo.no_economico)} · ${escapeHtml(f.vehiculo.placas)}`:'—'}</td>
+            <td><button class="btn btn-outline btn-xs" onclick="altaPersonalConDatos('${escapeHtml(f.nombre).replace(/'/g,"\\'")}', ${f.ficha?`'${f.ficha}'`:null}, ${f.siglas?`'${f.siglas}'`:null})">➕ Dar de alta</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+document.getElementById('filtroCoincideTarjeta').addEventListener('change', renderTarjetas);
+document.getElementById('buscarTarjeta').addEventListener('input', renderTarjetas);
 
 function abrirAsignarResguardanteDesdeAuditoria(vehiculoId){
   const registro = AUDITORIA.find(a=>a.vehiculo_id===vehiculoId);
