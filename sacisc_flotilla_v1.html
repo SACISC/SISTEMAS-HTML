@@ -1221,7 +1221,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 </div>
 
 <!-- MODAL: SELECCIONAR CORRESPONSABLES (Carta de Corresponsabilidad) -->
-<div class="modal-overlay" id="modalCorresponsables">
+<div class="modal-overlay" id="modalCorresponsables" style="z-index:700 !important;">
   <div class="modal modal-lg">
     <div class="modal-hdr">
       <h2>👥 Corresponsables de la Tarjeta</h2>
@@ -2178,12 +2178,22 @@ function generarResguardoPDF(resguardoId){
 }
 
 // Bloque compartido de "valor arriba (negrita, con línea) + leyenda en
-// cursiva debajo" — calcado del patrón visual de ambos formatos de Resguardo
+// cursiva debajo" — calcado del patrón visual de ambos formatos de Resguardo.
+// campos: [{valor, caption, span}] — span = cuántas de las 4 columnas de
+// la cuadrícula ocupa este campo (1 o 2), para que las líneas lleguen
+// exactamente hasta donde les toca según el ancho real de columna del Word.
 function bloqueCaptionRow(campos){
-  // campos: [{valor, caption, ancho}]
-  const tds1 = campos.map(c=>`<td class="val3" style="width:${c.ancho||''}%;">${escapeHtml(c.valor)}</td>`).join('');
-  const tds2 = campos.map(c=>`<td class="cap3">${escapeHtml(c.caption)}</td>`).join('');
+  const tds1 = campos.map(c=>`<td class="val3" colspan="${c.span||1}">${escapeHtml(c.valor)}</td>`).join('');
+  const tds2 = campos.map(c=>`<td class="cap3" colspan="${c.span||1}">${escapeHtml(c.caption)}</td>`).join('');
   return `<tr>${tds1}</tr><tr>${tds2}</tr>`;
+}
+
+// Convierte la ciudad guardada ("Las Choapas, Ver.") al orden que pide el
+// campo "Ubicación física de la Unidad (Entidad Federativa y Municipio)":
+// primero el Estado, después el Municipio — ej. "Veracruz, Las Choapas"
+function ubicacionFisica(ciudad){
+  const soloCiudad = String(ciudad||'').replace(/,?\s*ver\.?\s*$/i,'').trim();
+  return nombrePropio(soloCiudad ? `Veracruz, ${soloCiudad}` : 'Veracruz');
 }
 
 const CENTRO_TRABAJO_FIJO = '2231, ACTIVO DE EXTRACCIÓN CINCO PRESIDENTES';
@@ -2207,12 +2217,14 @@ function generarResguardoPropioPDF(r, v){
   .doc-fecha{text-align:right;font-size:12px;margin-bottom:10px;}
   .doc-title{text-align:center;font-size:14.5px;font-weight:700;margin-bottom:12px;}
 
-  .campos1{width:100%;border-collapse:collapse;margin-bottom:2px;}
-  .campos1 td{padding:2px 6px;font-size:12px;vertical-align:bottom;}
-  .campos1 .lbl{font-weight:700;text-align:right;white-space:nowrap;width:16%;}
+  .campos1{width:100%;border-collapse:collapse;margin-bottom:2px;table-layout:fixed;}
+  .campos1 col.p1{width:17.9%;} .campos1 col.p2{width:30.0%;} .campos1 col.p3{width:19.5%;} .campos1 col.p4{width:32.6%;}
+  .campos1 td{padding:2px 6px;font-size:12px;vertical-align:bottom;overflow-wrap:break-word;}
+  .campos1 .lbl{font-weight:700;text-align:right;white-space:nowrap;}
   .campos1 .val{font-weight:700;border-bottom:1px solid #000;padding-left:8px;}
 
-  .campos-cap{width:100%;border-collapse:collapse;margin:6px 0;}
+  .campos-cap{width:100%;border-collapse:collapse;margin:6px 0;table-layout:fixed;}
+  .campos-cap col{width:25%;}
   .campos-cap td{padding:1px 6px;text-align:center;}
   .campos-cap .val3{font-weight:700;font-size:12px;border-bottom:1px solid #000;padding-top:6px;}
   .campos-cap .cap3{font-style:italic;font-size:10.5px;padding-bottom:5px;}
@@ -2222,7 +2234,7 @@ function generarResguardoPropioPDF(r, v){
   .cierre-txt{text-align:center;font-weight:700;font-size:12px;line-height:1.3;margin-bottom:14px;}
   .firma-fila{display:flex;gap:8px;margin-top:16px;font-size:12px;}
   .firma-fila .lbl2{width:60px;}
-  .firma-fila .linea2{flex:1;border-bottom:1px solid #000;}
+  .firma-fila .linea2{flex:1;border-bottom:1px solid #000;text-align:right;padding-right:6px;}
 </style>
 </head><body>
 <div class="hoja">
@@ -2239,6 +2251,7 @@ function generarResguardoPropioPDF(r, v){
   <div class="doc-title">RESGUARDO DE VEHÍCULO PROPIO</div>
 
   <table class="campos1">
+    <colgroup><col class="p1"><col class="p2"><col class="p3"><col class="p4"></colgroup>
     <tr><td class="lbl">No. Inventario:</td><td class="val">${escapeHtml(v.no_economico)}</td>
         <td class="lbl">Tipo:</td><td class="val">${escapeHtml(v.tipo_vehiculo)}</td></tr>
     <tr><td class="lbl">No. de Placas:</td><td class="val">${escapeHtml(v.placas)}</td>
@@ -2252,11 +2265,12 @@ function generarResguardoPropioPDF(r, v){
   </table>
 
   <table class="campos-cap">
-    ${bloqueCaptionRow([{valor:r.titular_responsable||'', caption:'Nombre del Asignatario', ancho:55},{valor:r.cargo||'', caption:'Cargo', ancho:45}])}
-    ${bloqueCaptionRow([{valor:r.ficha_titular||'', caption:'Ficha', ancho:55},{valor:r.nivel||'', caption:'Nivel del Asignatario', ancho:45}])}
-    ${bloqueCaptionRow([{valor:'PETROLEOS MEXICANOS', caption:'Empresa', ancho:20},{valor:v.subdireccion||'', caption:'Subdirección', ancho:30},{valor:v.coordinacion_area||'', caption:'Coordinación', ancho:15},{valor:v.gerencia_unidad||'', caption:'Gerencia o Unidad', ancho:35}])}
-    ${bloqueCaptionRow([{valor:r.correo||'', caption:'Correo Electrónico', ancho:34},{valor:r.extension||'', caption:'No. de Extensión', ancho:33},{valor:r.celular||'', caption:'No. celular', ancho:33}])}
-    ${bloqueCaptionRow([{valor:nombrePropio(ciudad), caption:'Ubicación física de la Unidad (Entidad Federativa y Municipio)', ancho:50},{valor:CENTRO_TRABAJO_FIJO, caption:'Centro de Trabajo (Clave y denominación)', ancho:50}])}
+    <colgroup><col><col><col><col></colgroup>
+    ${bloqueCaptionRow([{valor:r.titular_responsable||'', caption:'Nombre del Asignatario', span:2},{valor:r.cargo||'', caption:'Cargo', span:2}])}
+    ${bloqueCaptionRow([{valor:r.ficha_titular||'', caption:'Ficha', span:2},{valor:r.nivel||'', caption:'Nivel del Asignatario', span:2}])}
+    ${bloqueCaptionRow([{valor:'PETROLEOS MEXICANOS', caption:'Empresa', span:1},{valor:v.subdireccion||'', caption:'Subdirección', span:1},{valor:v.coordinacion_area||'', caption:'Coordinación', span:1},{valor:v.gerencia_unidad||'', caption:'Gerencia o Unidad', span:1}])}
+    ${bloqueCaptionRow([{valor:r.correo||'', caption:'Correo Electrónico', span:2},{valor:r.extension||'', caption:'No. de Extensión', span:1},{valor:r.celular||'', caption:'No. celular', span:1}])}
+    ${bloqueCaptionRow([{valor:ubicacionFisica(ciudad), caption:'Ubicación física de la Unidad (Entidad Federativa y Municipio)', span:2},{valor:CENTRO_TRABAJO_FIJO, caption:'Centro de Trabajo (Clave y denominación)', span:2}])}
   </table>
 
   <div class="parrafo">El suscrito manifiesta tener pleno conocimiento de la responsabilidad que adquiere al asignarle el vehículo que ampara el presente resguardo y se compromete a darle el buen uso y del cuidado de su estado físico mecánico, así como gestionar sus servicios oportunamente e ingresar la unidad en las fechas de servicio programadas, cumplir con el Programa de Verificación.</div>
@@ -2294,14 +2308,16 @@ function generarResguardoArrendadoPDF(r, v){
   .doc-fecha{text-align:right;font-size:12px;margin-bottom:10px;}
   .doc-title{text-align:center;font-size:14.5px;font-weight:700;margin-bottom:16px;}
 
-  .campos1{width:100%;border-collapse:collapse;margin-bottom:2px;}
-  .campos1 td{padding:3px 6px;font-size:12px;vertical-align:bottom;}
-  .campos1 .lbl{font-weight:700;text-align:right;white-space:nowrap;width:18%;}
+  .campos1{width:100%;border-collapse:collapse;margin-bottom:2px;table-layout:fixed;}
+  .campos1 col.p1{width:20.9%;} .campos1 col.p2{width:28.3%;} .campos1 col.p3{width:20.3%;} .campos1 col.p4{width:30.4%;}
+  .campos1 td{padding:3px 6px;font-size:12px;vertical-align:bottom;overflow-wrap:break-word;}
+  .campos1 .lbl{font-weight:700;text-align:right;white-space:nowrap;}
   .campos1 .val{font-weight:700;border-bottom:1px solid #000;padding-left:8px;}
   .radio{font-size:11px;line-height:1.6;padding-top:2px;}
   .radio span{display:inline-block;width:12px;}
 
-  .campos-cap{width:100%;border-collapse:collapse;margin:10px 0;}
+  .campos-cap{width:100%;border-collapse:collapse;margin:10px 0;table-layout:fixed;}
+  .campos-cap col{width:25%;}
   .campos-cap td{padding:1px 6px;text-align:center;}
   .campos-cap .val3{font-weight:700;font-size:12px;border-bottom:1px solid #000;padding-top:8px;}
   .campos-cap .cap3{font-style:italic;font-size:10.5px;padding-bottom:6px;}
@@ -2340,10 +2356,11 @@ function generarResguardoArrendadoPDF(r, v){
   </table>
 
   <table class="campos-cap">
-    ${bloqueCaptionRow([{valor:r.titular_responsable||'', caption:'Nombre del Asignatario', ancho:60},{valor:r.cargo||'', caption:'Cargo', ancho:40}])}
-    ${bloqueCaptionRow([{valor:r.ficha_titular||'', caption:'Ficha', ancho:60},{valor:r.nivel||'', caption:'Nivel del Asignatario', ancho:40}])}
-    ${bloqueCaptionRow([{valor:v.direccion||'', caption:'Dirección', ancho:25},{valor:v.subdireccion||'', caption:'Subdirección', ancho:30},{valor:v.coordinacion_area||'', caption:'Coordinación', ancho:15},{valor:v.gerencia_unidad||'', caption:'Gerencia o Unidad', ancho:30}])}
-    ${bloqueCaptionRow([{valor:r.correo||'', caption:'Correo Electrónico', ancho:40},{valor:r.extension||'', caption:'No. de Extensión', ancho:30},{valor:r.celular||'', caption:'No. celular', ancho:30}])}
+    <colgroup><col><col><col><col></colgroup>
+    ${bloqueCaptionRow([{valor:r.titular_responsable||'', caption:'Nombre del Asignatario', span:2},{valor:r.cargo||'', caption:'Cargo', span:2}])}
+    ${bloqueCaptionRow([{valor:r.ficha_titular||'', caption:'Ficha', span:2},{valor:r.nivel||'', caption:'Nivel del Asignatario', span:2}])}
+    ${bloqueCaptionRow([{valor:v.direccion||'', caption:'Dirección', span:1},{valor:v.subdireccion||'', caption:'Subdirección', span:1},{valor:v.coordinacion_area||'', caption:'Coordinación', span:1},{valor:v.gerencia_unidad||'', caption:'Gerencia o Unidad', span:1}])}
+    ${bloqueCaptionRow([{valor:r.correo||'', caption:'Correo Electrónico', span:2},{valor:r.extension||'', caption:'No. de Extensión', span:1},{valor:r.celular||'', caption:'No. celular', span:1}])}
   </table>
 
   <div class="parrafo">El suscrito manifiesta tener pleno conocimiento de la responsabilidad que adquiere al asignarle el vehículo que ampara el presente resguardo y se compromete a darle el buen uso y cuidado de su estado físico mecánico, a gestionar sus servicios oportunamente y a ingresar la unidad en la fecha que el prestador de servicio le programe su servicio.</div>
@@ -3629,7 +3646,7 @@ function generarCartaResponsivaPDF(vehiculoId, fechaOverride){
   .campos .box-val{border:0.5pt solid #000;padding:3px 6px;}
 
   .chk{display:inline-block;width:14px;height:12px;border:0.5pt solid #000;text-align:center;font-weight:700;margin:0 6px 0 4px;vertical-align:middle;line-height:12px;font-size:9px;}
-  .parrafo{font-size:13.2px;text-align:justify;line-height:1.26;margin:0 0 9px 0;}
+  .parrafo{font-size:11px;text-align:justify;line-height:1.2;margin:0 0 7px 0;}
 
   .cierre{page-break-inside:avoid;margin-top:auto;}
   .firma-tabla{width:3.6in;margin:6px auto 0 auto;border-collapse:collapse;text-align:center;font-size:11px;}
