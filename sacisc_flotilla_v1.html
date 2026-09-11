@@ -1820,7 +1820,7 @@ function renderResguardos(){
               <button class="btn btn-primary btn-xs" onclick="generarResguardoPDF('${r.id}')">Formato</button>
               <button class="btn btn-outline btn-xs" onclick="abrirEditarResguardo('${r.id}')">Editar</button>
               <button class="btn btn-danger btn-xs" onclick="eliminarResguardo('${r.id}')">Eliminar</button>
-              <button class="btn btn-outline btn-xs" onclick="exportarResguardoATarjeta('${r.id}')" title="Envía este titular a Tarjetas, lo agrega al historial como MANUAL, y abre la Carta Responsiva">💳 Exportar a Tarjeta</button>
+              <button class="btn btn-outline btn-xs" onclick="exportarResguardoATarjeta('${r.id}')" title="Envía este titular a Tarjetas, lo agrega al historial como MANUAL, y abre la Carta Responsiva">💳 Exportar a C.R.</button>
             </td>
           </tr>
         `;}).join('')}
@@ -1947,7 +1947,9 @@ async function exportarResguardoATarjeta(resguardoId){
     if(!confirm(`Este vehículo (${v.no_economico}) todavía no tiene un número de tarjeta registrado en el sistema.\n\n¿Quieres continuar de todas formas? El historial y la Carta Responsiva quedarán sin número de tarjeta hasta que lo captures en Tarjetas.`)) return;
   }
 
-  const hoy = new Date().toISOString().slice(0,10);
+  // Alineamos con la fecha real del resguardo (no la fecha en que se da clic
+  // en "Exportar"), para que el historial y la Carta Responsiva coincidan
+  const hoy = r.fecha_resguardo || new Date().toISOString().slice(0,10);
   const btnBuscado = document.querySelector(`button[onclick="exportarResguardoATarjeta('${resguardoId}')"]`);
   if(btnBuscado){ btnBuscado.disabled = true; btnBuscado.textContent = 'Exportando…'; }
 
@@ -1991,12 +1993,12 @@ async function exportarResguardoATarjeta(resguardoId){
 
     toast(`${r.titular_responsable} exportado a Tarjetas — generando Carta Responsiva…`, 'ok');
     renderTarjetas();
-    generarCartaResponsivaPDF(r.vehiculo_id);
+    generarCartaResponsivaPDF(r.vehiculo_id, r.fecha_resguardo);
   }catch(e){
     console.error(e);
     toast('Error al exportar a Tarjeta: '+e.message, 'warn');
   }finally{
-    if(btnBuscado){ btnBuscado.disabled = false; btnBuscado.textContent = '💳 Exportar a Tarjeta'; }
+    if(btnBuscado){ btnBuscado.disabled = false; btnBuscado.textContent = '💳 Exportar a C.R.'; }
   }
 }
 
@@ -3345,7 +3347,7 @@ async function guardarResguardanteTarjeta(){
 }
 
 // ═══ GENERAR PDF DE CARTA RESPONSIVA (calca fiel del formato oficial) ══
-function generarCartaResponsivaPDF(vehiculoId){
+function generarCartaResponsivaPDF(vehiculoId, fechaOverride){
   const v = vehiculoDe(vehiculoId);
   if(!v){ toast('Vehículo no encontrado', 'warn'); return; }
   const t = TARJETAS.find(x=>x.vehiculo_id===vehiculoId);
@@ -3361,7 +3363,9 @@ function generarCartaResponsivaPDF(vehiculoId){
   if(!persona && nombreTitular) persona = PERSONAL.find(p=>palabrasNombre(p.nombre)===palabrasNombre(nombreTitular));
   const fichaTitular = t.ultimo_usuario_ficha || (persona ? persona.ficha : '') || '';
 
-  const hoy = new Date();
+  // Si viene una fecha específica (ej. la fecha real del resguardo cuando se
+  // exporta desde Resguardos), se usa esa; si no, la fecha de hoy.
+  const hoy = fechaOverride ? new Date(fechaOverride+'T00:00:00') : new Date();
   const ciudad = v.ciudad || v.jurisdiccion || 'COATZACOALCOS, VER.';
   const combustible = (t.tipo_combustible_detectado||'').toUpperCase();
   const esMagna = combustible.includes('MAGNA');
@@ -3381,13 +3385,13 @@ function generarCartaResponsivaPDF(vehiculoId){
   .doc-fecha{text-align:right;font-size:12px;margin-bottom:14px;}
   .doc-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:16px;}
 
-  .campos{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:14px;}
+  .campos{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:12px;}
   .campos col.c1{width:17.2%;}
   .campos col.c2{width:30.8%;}
   .campos col.c3{width:1.4%;}
   .campos col.c4{width:16.0%;}
   .campos col.c5{width:34.6%;}
-  .campos td{padding:4px 8px 2px 0;font-size:12px;vertical-align:bottom;overflow-wrap:break-word;}
+  .campos td{padding:3px 8px 2px 0;font-size:12px;vertical-align:bottom;overflow-wrap:break-word;}
   .campos .lbl{font-weight:400;white-space:normal;padding-right:6px;}
   .campos .val{border-bottom:0.75pt solid #000;padding-left:6px;min-height:14px;}
   .campos .sinlinea{border-bottom:none;}
@@ -3396,15 +3400,15 @@ function generarCartaResponsivaPDF(vehiculoId){
   .campos .box-val{border:0.5pt solid #000;padding:3px 6px;}
 
   .chk{display:inline-block;width:14px;height:12px;border:0.5pt solid #000;text-align:center;font-weight:700;margin:0 6px 0 4px;vertical-align:middle;line-height:12px;font-size:9px;}
-  .parrafo{font-size:12px;text-align:justify;line-height:1.26;margin:0 0 10px 0;}
+  .parrafo{font-size:11px;text-align:justify;line-height:1.22;margin:0 0 8px 0;}
 
   .cierre{page-break-inside:avoid;}
-  .firma-tabla{width:3.6in;margin:8px auto 0 auto;border-collapse:collapse;text-align:center;font-size:12px;}
-  .firma-tabla .titulo{font-weight:700;padding-bottom:12px;}
-  .firma-tabla .nombre{font-weight:700;font-size:16px;border-bottom:0.5pt solid #000;padding-bottom:3px;}
-  .firma-tabla .sub{font-size:12px;padding-top:3px;}
+  .firma-tabla{width:3.6in;margin:6px auto 0 auto;border-collapse:collapse;text-align:center;font-size:11px;}
+  .firma-tabla .titulo{font-weight:700;padding-bottom:9px;}
+  .firma-tabla .nombre{font-weight:700;font-size:13px;border-bottom:0.5pt solid #000;padding-bottom:3px;}
+  .firma-tabla .sub{font-size:11px;padding-top:3px;}
 
-  .anexos{background:#d9d9d9;padding:6px 8px;font-size:10.5px;margin-top:6px;}
+  .anexos{background:#d9d9d9;padding:5px 8px;font-size:10px;margin-top:5px;}
 </style>
 </head><body>
 
