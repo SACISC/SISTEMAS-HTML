@@ -537,6 +537,11 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <span class="nav-label">Confrontas</span>
     <span class="nav-sub">Verificación</span>
   </button>
+  <button class="nav-tab" data-panel="pan-analisis" onclick="showPanel('pan-analisis')" id="tab-pan-analisis">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-2.8-2.8L7 14"/></svg></span>
+    <span class="nav-label">Análisis</span>
+    <span class="nav-sub">Radiografía</span>
+  </button>
 </nav>
 
 <div class="main-content">
@@ -768,6 +773,35 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
   </div>
 
+  <!-- ═══ PANEL: ANÁLISIS (Radiografía por vehículo) ═══ -->
+  <div class="panel" id="pan-analisis">
+    <div class="page-eyebrow">Parque Vehicular</div>
+    <h1 class="page-title">Análisis</h1>
+    <p class="page-desc">Radiografía completa de cada vehículo: reemplazos de placa, resguardantes (unidad y tarjeta), confrontas, y un nivel de atención calculado cruzando todo lo anterior.</p>
+
+    <div class="kpi-grid" id="kpiAnalisis"></div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <h3>🩻 Radiografía por vehículo</h3>
+        <button class="btn btn-outline btn-sm" onclick="exportarExcel(analisisFiltrado().map(a=>({no_economico:a.vehiculo.no_economico, placas:a.vehiculo.placas, origen:a.vehiculo.origen, estatus:a.vehiculo.estatus, reemplazos_placa:a.reemplazos, resguardantes_vehiculares:a.resguardantesVehiculares, resguardantes_tarjeta:a.resguardantesTarjeta, confrontas_realizadas:a.confrontas, vigencia_confronta:a.vigenciaConfronta, nivel_atencion:a.nivel})), 'analisis_radiografia')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
+      </div>
+      <div class="card-body">
+        <div class="filter-bar">
+          <select class="filter-sel" id="filtroNivelAtencion">
+            <option value="">Todos los niveles</option>
+            <option value="ALTA">🚨 Atención alta</option>
+            <option value="MEDIA">⚠️ Atención media</option>
+            <option value="BAJA">✅ Atención baja</option>
+          </select>
+          <input class="search-inp" id="buscarAnalisis" placeholder="Buscar por placa o económico…">
+        </div>
+        <div class="empty-state" id="emptyAnalisis"><div class="icon">🩻</div><p>Calculando radiografía…</p></div>
+        <div class="tbl-wrap" id="tablaAnalisis"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <footer>
@@ -846,6 +880,20 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
   </div>
 </div>
+<!-- MODAL: RADIOGRAFÍA COMPLETA DEL VEHÍCULO -->
+<div class="modal-overlay" id="modalRadiografia">
+  <div class="modal modal-lg">
+    <div class="modal-hdr">
+      <h2>🩻 Radiografía del Vehículo</h2>
+      <button class="modal-close" onclick="closeModal('modalRadiografia')">✕</button>
+    </div>
+    <div class="modal-body" id="modalRadiografiaBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalRadiografia')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: HISTORIAL DE CONFRONTAS -->
 <div class="modal-overlay" id="modalHistorialConfronta">
   <div class="modal modal-lg">
@@ -1302,6 +1350,7 @@ async function cargarDesdeSB(){
       toast('Falta correr el script SQL de Tarjetas EFECTICARD en Supabase', 'warn');
     }
     renderTarjetas();
+    renderAnalisis();
   }catch(e){
     console.error(e);
     badge.textContent = '🔴 Sin conexión';
@@ -2707,12 +2756,14 @@ function renderTarjetas(){
   const noCoincide = todas.filter(t=>t.coincide==='NO').length;
   const coincide = todas.filter(t=>t.coincide==='SI').length;
   const sinComparar = todas.length - noCoincide - coincide;
+  const conMultiplesResguardantes = todas.filter(t=>conteoResguardantesTarjeta(t.vehiculo.id)>1).length;
 
   document.getElementById('kpiTarjetas').innerHTML =
     kpiCard('Tarjetas detectadas', todas.length) +
     kpiCard('🚨 No coincide con el sistema', noCoincide, 'var(--red)') +
     kpiCard('✅ Coincide', coincide, '#1b6b2b') +
-    kpiCard('Sin resguardante para comparar', sinComparar, 'var(--gray)');
+    kpiCard('Sin resguardante para comparar', sinComparar, 'var(--gray)') +
+    kpiCard('🕓 Con varios resguardantes', conMultiplesResguardantes, 'var(--amber)');
 
   document.getElementById('emptyTarjetas').style.display = lista.length ? 'none' : 'block';
   document.getElementById('emptyTarjetas').querySelector('p').textContent =
@@ -2733,10 +2784,10 @@ function renderTarjetas(){
           ${lista.map(t=>{
             const nHist = conteoResguardantesTarjeta(t.vehiculo.id);
             return `
-            <tr${t.coincide==='NO'?' style="background:#fdecea;"':''}>
+            <tr${t.coincide==='NO'?' style="background:#fdecea;"':(nHist>1?' style="background:#fff8e1;"':'')}>
               <td class="tbl-num">${vehHoverSpan(t.vehiculo.id, t.vehiculo.no_economico)}</td>
               <td>${vehHoverSpan(t.vehiculo.id, t.vehiculo.placas)}</td>
-              <td class="tbl-num">${escapeHtml(t.no_tarjeta)}</td>
+              <td class="tbl-num">${escapeHtml(t.no_tarjeta)} ${nHist>1?`<span class="badge badge-amber" title="Esta tarjeta ha tenido ${nHist} resguardantes distintos">🕓 ${nHist}</span>`:''}</td>
               <td>${escapeHtml(t.tipo_combustible_detectado)||'—'}</td>
               <td>${t.departamento_detectado?`<span class="badge badge-blue">${escapeHtml(t.departamento_detectado)}</span>`:'—'}</td>
               <td>${escapeHtml(t.resguardanteSistema)||'<span class="badge badge-gray">SIN RESGUARDANTE</span>'}</td>
@@ -3403,13 +3454,13 @@ function generarLiberacionPDF(vehiculoId){
      más espacio que la fuente de reemplazo usada en las pruebas) */
   .parrafo{font-size:13px;text-align:justify;line-height:1.25;margin:0 0 9px 0;}
 
-  .firmas{width:100%;border-collapse:collapse;margin-top:10px;text-align:center;font-size:13px;table-layout:fixed;page-break-inside:avoid;}
+  .firmas{width:100%;border-collapse:collapse;margin-top:55px;text-align:center;font-size:13px;table-layout:fixed;page-break-inside:avoid;}
   .firmas col.f1{width:44.5%;} .firmas col.f2{width:12.2%;} .firmas col.f3{width:43.3%;}
   .firmas td{vertical-align:top;padding:0 10px;}
-  .firmas .rotulo{padding-bottom:20px;}
+  .firmas .rotulo{padding-bottom:44px;}
   .firmas .nombre{font-weight:700;border-bottom:0.5pt solid #000;padding-bottom:3px;}
   .firmas .linea-vacia{border-bottom:0.5pt solid #000;height:1px;}
-  .firmas .sub{font-size:13px;padding-top:4px;}
+  .firmas .sub{font-size:13px;padding-top:5px;}
 </style>
 </head><body>
 
@@ -4122,6 +4173,176 @@ function generarConfrontaPDF(confrontaId){
 
 document.getElementById('filtroEstatusConfronta').addEventListener('change', renderConfrontas);
 document.getElementById('buscarConfronta').addEventListener('input', renderConfrontas);
+
+// ═══════════════════════════════════════════════════════════════════════
+// ═══ ANÁLISIS — Radiografía completa por vehículo ══════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+function nivelAtencion(vehiculoId){
+  const vigente = RESGUARDOS.find(r=>r.vehiculo_id===vehiculoId && r.vigente);
+  const sinResguardante = !vigente;
+  const c = confrontasPorVehiculo().find(x=>x.vehiculo.id===vehiculoId);
+  const confrontaMal = c && (c.estatusVigencia==='VENCIDA' || c.estatusVigencia==='NUNCA');
+  if(sinResguardante && confrontaMal) return 'ALTA';
+  if(sinResguardante || confrontaMal) return 'MEDIA';
+  return 'BAJA';
+}
+
+function badgeNivelAtencion(nivel){
+  return ({
+    'ALTA': '<span class="badge badge-red">🚨 ALTA</span>',
+    'MEDIA': '<span class="badge badge-amber">⚠️ MEDIA</span>',
+    'BAJA': '<span class="badge badge-green">✅ BAJA</span>',
+  })[nivel];
+}
+
+function analisisDeVehiculos(){
+  const confrontasPorVeh = confrontasPorVehiculo();
+  return VEHICULOS.map(v=>{
+    const confrontaInfo = confrontasPorVeh.find(c=>c.vehiculo.id===v.id);
+    return {
+      vehiculo: v,
+      reemplazos: REEMPLAZOS.filter(r=>r.vehiculo_id===v.id).length,
+      resguardantesVehiculares: RESGUARDOS.filter(r=>r.vehiculo_id===v.id).length,
+      resguardantesTarjeta: conteoResguardantesTarjeta(v.id),
+      confrontas: confrontaInfo ? confrontaInfo.historial.length : 0,
+      vigenciaConfronta: confrontaInfo ? confrontaInfo.estatusVigencia : 'NUNCA',
+      nivel: nivelAtencion(v.id),
+    };
+  });
+}
+
+function analisisFiltrado(){
+  const nivelSel = document.getElementById('filtroNivelAtencion').value;
+  const q = (document.getElementById('buscarAnalisis').value||'').trim().toLowerCase();
+  return analisisDeVehiculos().filter(a=>{
+    if(nivelSel && a.nivel!==nivelSel) return false;
+    if(q){
+      const campos = [a.vehiculo.no_economico, a.vehiculo.placas].map(x=>(x||'').toLowerCase());
+      if(!campos.some(c=>c.includes(q))) return false;
+    }
+    return true;
+  });
+}
+
+function renderAnalisis(){
+  const todos = analisisDeVehiculos();
+  const lista = analisisFiltrado();
+
+  const alta = todos.filter(a=>a.nivel==='ALTA').length;
+  const media = todos.filter(a=>a.nivel==='MEDIA').length;
+  const baja = todos.filter(a=>a.nivel==='BAJA').length;
+  const conReemplazoPlaca = todos.filter(a=>a.reemplazos>0).length;
+
+  document.getElementById('kpiAnalisis').innerHTML =
+    kpiCard('Total vehículos', todos.length) +
+    kpiCard('🚨 Atención alta', alta, 'var(--red)') +
+    kpiCard('⚠️ Atención media', media, 'var(--amber)') +
+    kpiCard('✅ Atención baja', baja, '#1b6b2b') +
+    kpiCard('🔄 Con cambio de placa', conReemplazoPlaca, 'var(--blue)');
+
+  document.getElementById('emptyAnalisis').style.display = lista.length ? 'none' : 'block';
+  document.getElementById('emptyAnalisis').querySelector('p').textContent =
+    todos.length ? 'No hay vehículos que coincidan con el filtro.' : 'No se encontraron vehículos.';
+
+  if(!lista.length){ document.getElementById('tablaAnalisis').innerHTML = ''; return; }
+
+  const orden = {'ALTA':0,'MEDIA':1,'BAJA':2};
+  lista.sort((a,b)=>orden[a.nivel]-orden[b.nivel] || a.vehiculo.no_economico.localeCompare(b.vehiculo.no_economico));
+
+  document.getElementById('tablaAnalisis').innerHTML = `
+    <table class="tbl">
+      <thead><tr>
+        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Estatus</th>
+        <th>Reemplazos de Placa</th><th>Resguardantes Vehiculares</th><th>Resguardantes Tarjeta</th>
+        <th>Confrontas</th><th>Vigencia Confronta</th><th>Mantenimientos</th><th>Nivel de Atención</th><th>Acciones</th>
+      </tr></thead>
+      <tbody>
+        ${lista.map(a=>`
+          <tr${a.nivel==='ALTA'?' style="background:#fdecea;"':a.nivel==='MEDIA'?' style="background:#fff8e1;"':''}>
+            <td class="tbl-num">${vehHoverSpan(a.vehiculo.id, a.vehiculo.no_economico)}</td>
+            <td>${vehHoverSpan(a.vehiculo.id, a.vehiculo.placas)}</td>
+            <td>${badgeOrigen(a.vehiculo.origen)}</td>
+            <td>${badgeEstatus(a.vehiculo.estatus)}</td>
+            <td class="tbl-center">${a.reemplazos>0?`<span class="badge badge-blue">${a.reemplazos}</span>`:'—'}</td>
+            <td class="tbl-center">${a.resguardantesVehiculares>1?`<span class="badge badge-amber">${a.resguardantesVehiculares}</span>`:a.resguardantesVehiculares}</td>
+            <td class="tbl-center">${a.resguardantesTarjeta>1?`<span class="badge badge-amber">${a.resguardantesTarjeta}</span>`:a.resguardantesTarjeta}</td>
+            <td class="tbl-center">${a.confrontas}</td>
+            <td>${badgeVigenciaConfronta(a.vigenciaConfronta)}</td>
+            <td class="tbl-center"><span class="badge badge-gray" title="Módulo de mantenimientos pendiente de construir">— próx.</span></td>
+            <td>${badgeNivelAtencion(a.nivel)}</td>
+            <td><button class="btn btn-primary btn-xs" onclick="verRadiografia('${a.vehiculo.id}')">Ver Radiografía</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// Construye una línea de tiempo unificada con todos los eventos conocidos del vehículo
+function lineaDeTiempoVehiculo(vehiculoId){
+  const eventos = [];
+  REEMPLAZOS.filter(r=>r.vehiculo_id===vehiculoId).forEach(r=>{
+    eventos.push({fecha:r.fecha_reemplazo, tipo:'🔄 Reemplazo de unidad', detalle:`Placa ${r.placa_anterior||'—'} → ${r.placa_nueva}${r.comentarios?' — '+r.comentarios:''}`});
+  });
+  RESGUARDOS.filter(r=>r.vehiculo_id===vehiculoId).forEach(r=>{
+    eventos.push({fecha:r.fecha_resguardo, tipo:'📝 Resguardo (unidad)', detalle:`${r.titular_responsable||'(sin nombre)'}${r.reemplacado?' — reemplazado después':''}`});
+  });
+  TARJETAS_HISTORIAL.filter(h=>h.vehiculo_id===vehiculoId).forEach(h=>{
+    eventos.push({fecha:h.fecha_inicio, tipo:'💳 Resguardante de tarjeta', detalle:`${h.nombre||'(sin nombre)'}${h.fecha_fin && h.fecha_fin!==h.fecha_inicio ? ' (hasta '+fechaCorta(h.fecha_fin)+')' : ''}`});
+  });
+  confrontasDeVehiculo(vehiculoId).forEach(c=>{
+    if(!c.fecha) return; // omitimos las "NO REALIZADA" (sin fecha) de la línea de tiempo
+    eventos.push({fecha:c.fecha, tipo:'🔍 Confronta', detalle:`${c.motivo||''}${c.danos==='SI'?' — con daños reportados':''}`});
+  });
+  eventos.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  return eventos;
+}
+
+function verRadiografia(vehiculoId){
+  const v = vehiculoDe(vehiculoId);
+  const a = analisisDeVehiculos().find(x=>x.vehiculo.id===vehiculoId);
+  const vigente = RESGUARDOS.find(r=>r.vehiculo_id===vehiculoId && r.vigente);
+  const t = TARJETAS.find(x=>x.vehiculo_id===vehiculoId);
+  const eventos = lineaDeTiempoVehiculo(vehiculoId);
+
+  document.getElementById('modalRadiografiaBody').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:16px;padding:12px 14px;background:#f8fafc;border-radius:8px;">
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:var(--gd);">${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)} ${badgeOrigen(v.origen)}</div>
+        <div style="font-size:12.5px;color:var(--gray);margin-top:2px;">${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} ${v.modelo?'· '+escapeHtml(v.modelo):''} — ${escapeHtml(v.direccion)} › ${escapeHtml(v.subdireccion)} › ${escapeHtml(v.gerencia_unidad)}</div>
+      </div>
+      <div>${badgeEstatus(v.estatus)} ${badgeNivelAtencion(a.nivel)}</div>
+    </div>
+
+    <div class="kpi-grid" style="margin-bottom:16px;">
+      ${kpiCard('Reemplazos de placa', a.reemplazos, 'var(--blue)')}
+      ${kpiCard('Resguardantes vehiculares', a.resguardantesVehiculares, a.resguardantesVehiculares>1?'var(--amber)':'var(--gd)')}
+      ${kpiCard('Resguardantes de tarjeta', a.resguardantesTarjeta, a.resguardantesTarjeta>1?'var(--amber)':'var(--gd)')}
+      ${kpiCard('Confrontas realizadas', a.confrontas)}
+    </div>
+
+    <div style="margin-bottom:16px;font-size:12.5px;">
+      <strong>Resguardante vehicular vigente:</strong> ${vigente?escapeHtml(vigente.titular_responsable):'<span class="badge badge-gray">SIN TITULAR</span>'} &nbsp;·&nbsp;
+      <strong>Tarjeta:</strong> ${t?escapeHtml(t.no_tarjeta):'—'} &nbsp;·&nbsp;
+      <strong>Resguardante de tarjeta vigente:</strong> ${t&&t.ultimo_usuario_detectado?escapeHtml(t.ultimo_usuario_detectado):'—'} &nbsp;·&nbsp;
+      <strong>Confronta:</strong> ${badgeVigenciaConfronta(a.vigenciaConfronta)}
+    </div>
+
+    <h3 style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--gd);margin-bottom:10px;">📖 Línea de tiempo</h3>
+    <div style="max-height:340px;overflow-y:auto;">
+      ${eventos.length ? eventos.map(e=>`
+        <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div style="min-width:85px;font-size:11.5px;color:var(--gray);font-weight:600;">${fechaCorta(e.fecha)}</div>
+          <div style="font-size:12.5px;"><strong>${e.tipo}</strong><br>${escapeHtml(e.detalle)}</div>
+        </div>
+      `).join('') : '<div class="empty-state"><div class="icon">📖</div><p>Sin eventos registrados para este vehículo todavía.</p></div>'}
+    </div>
+  `;
+  openModal('modalRadiografia');
+}
+
+document.getElementById('filtroNivelAtencion').addEventListener('change', renderAnalisis);
+document.getElementById('buscarAnalisis').addEventListener('input', renderAnalisis);
 </script>
 </body>
 </html>
