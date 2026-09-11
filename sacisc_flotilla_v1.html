@@ -176,6 +176,7 @@ header{
 .btn-sm{padding:5px 10px;font-size:11px}
 .btn-xs{padding:3px 7px;font-size:10px}
 .btn-group{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.btn-group-nowrap{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;white-space:nowrap}
 
 /* ── TABLE ── */
 .tbl-wrap{overflow-x:auto}
@@ -1814,7 +1815,7 @@ function renderResguardos(){
             <td>${escapeHtml(r.cargo)}</td>
             <td>${fechaCorta(r.fecha_resguardo)}</td>
             <td class="tbl-center">${n>1 ? `<span class="badge badge-amber">${n} resguardos</span>` : `<span class="badge badge-gray">1</span>`}</td>
-            <td class="btn-group">
+            <td class="btn-group-nowrap">
               <button class="btn btn-outline btn-xs" onclick="verHistorialResguardo('${r._vehiculo.id}')">Historial</button>
               <button class="btn btn-outline btn-xs" onclick="abrirAsignarResguardante('${r._vehiculo.id}')">Reasignar</button>
               <button class="btn btn-primary btn-xs" onclick="generarResguardoPDF('${r.id}')">Formato</button>
@@ -3381,7 +3382,7 @@ function generarCartaResponsivaPDF(vehiculoId, fechaOverride){
   body{font-family:'Noto Sans',Arial,sans-serif;font-size:12px;color:#000;position:relative;}
   .membrete{position:absolute;top:0;left:0;width:8.5in;height:11in;z-index:-1;}
   /* Márgenes calcados del w:pgMar original: top .985in right .526in bottom (ajustado para no pisar el pie) left .394in */
-  .hoja{padding:0.985in 0.526in 1.15in 0.394in;box-sizing:border-box;min-height:11in;}
+  .hoja{padding:0.985in 0.526in 1.15in 0.394in;box-sizing:border-box;min-height:11in;display:flex;flex-direction:column;}
   .doc-fecha{text-align:right;font-size:12px;margin-bottom:14px;}
   .doc-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:16px;}
 
@@ -3402,7 +3403,7 @@ function generarCartaResponsivaPDF(vehiculoId, fechaOverride){
   .chk{display:inline-block;width:14px;height:12px;border:0.5pt solid #000;text-align:center;font-weight:700;margin:0 6px 0 4px;vertical-align:middle;line-height:12px;font-size:9px;}
   .parrafo{font-size:11px;text-align:justify;line-height:1.22;margin:0 0 8px 0;}
 
-  .cierre{page-break-inside:avoid;}
+  .cierre{page-break-inside:avoid;margin-top:auto;}
   .firma-tabla{width:3.6in;margin:6px auto 0 auto;border-collapse:collapse;text-align:center;font-size:11px;}
   .firma-tabla .titulo{font-weight:700;padding-bottom:9px;}
   .firma-tabla .nombre{font-weight:700;font-size:13px;border-bottom:0.5pt solid #000;padding-bottom:3px;}
@@ -3540,7 +3541,7 @@ function generarLiberacionPDF(vehiculoId){
   html,body{margin:0;padding:0;}
   body{font-family:'Noto Sans',Arial,sans-serif;font-size:11.5px;color:#000;position:relative;}
   .membrete{position:absolute;top:0;left:0;width:8.5in;height:11in;z-index:-1;}
-  .hoja{padding:0.985in 0.526in 1.15in 0.394in;box-sizing:border-box;min-height:11in;}
+  .hoja{padding:0.985in 0.526in 1.15in 0.394in;box-sizing:border-box;min-height:11in;display:flex;flex-direction:column;}
   .doc-fecha{text-align:right;font-size:12px;margin-bottom:14px;}
   .doc-title{text-align:center;font-size:16px;font-weight:700;margin-bottom:16px;}
 
@@ -3564,7 +3565,7 @@ function generarLiberacionPDF(vehiculoId){
      más espacio que la fuente de reemplazo usada en las pruebas) */
   .parrafo{font-size:13px;text-align:justify;line-height:1.25;margin:0 0 9px 0;}
 
-  .firmas{width:100%;border-collapse:collapse;margin-top:55px;text-align:center;font-size:13px;table-layout:fixed;page-break-inside:avoid;}
+  .firmas{width:100%;border-collapse:collapse;margin-top:auto;text-align:center;font-size:13px;table-layout:fixed;page-break-inside:avoid;}
   .firmas col.f1{width:44.5%;} .firmas col.f2{width:12.2%;} .firmas col.f3{width:43.3%;}
   .firmas td{vertical-align:top;padding:0 10px;}
   .firmas .rotulo{padding-bottom:44px;}
