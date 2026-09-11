@@ -692,6 +692,20 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="kpi-grid" id="kpiTarjetas"></div>
 
     <div class="card">
+      <div class="card-hdr"><h3>🔄 Actualizar Resguardantes vía Cartucho</h3></div>
+      <div class="card-body">
+        <p class="page-desc" style="margin-bottom:10px;">Sube el Cartucho BigData más reciente — se analiza en tu navegador (nada sale de aquí hasta que confirmes) y actualiza en Supabase el resguardante vigente de cada tarjeta, su departamento/combustible detectado, y reemplaza el historial completo de esa unidad por el que arroje este archivo.</p>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <input type="file" id="actTarjArchivo" accept=".xlsx,.xls" style="display:none" onchange="procesarCartuchoParaTarjetas(this)">
+          <button class="btn btn-primary" onclick="document.getElementById('actTarjArchivo').click()">📁 Seleccionar Cartucho .xlsx</button>
+          <span id="actTarjNombreArchivo" style="font-size:12.5px;color:var(--gray);"></span>
+        </div>
+        <div id="actTarjEstado" style="margin-top:14px;font-size:12.5px;color:var(--gray);"></div>
+        <div id="actTarjResumen" style="display:none;margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-hdr">
         <h3>💳 Tarjetas por vehículo</h3>
         <div class="btn-group">
@@ -2795,6 +2809,199 @@ document.getElementById('filtroCoincideTarjeta').addEventListener('change', rend
 document.getElementById('buscarTarjeta').addEventListener('input', renderTarjetas);
 
 // ═══ Conteo e Historial de resguardantes de TARJETA ═══════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// ═══ ACTUALIZAR RESGUARDANTES VÍA CARTUCHO (foto del cartucho → Supabase) ═
+// ═══════════════════════════════════════════════════════════════════════
+let RESULTADO_CARTUCHO_TARJETAS = null;
+
+function procesarCartuchoParaTarjetas(input){
+  const file = input.files[0];
+  if(!file) return;
+  document.getElementById('actTarjNombreArchivo').textContent = file.name;
+  document.getElementById('actTarjEstado').textContent = '⏳ Leyendo archivo… esto puede tardar unos segundos con archivos grandes.';
+  document.getElementById('actTarjResumen').style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    setTimeout(()=>{
+      try{
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array'});
+        const nombreHoja = wb.SheetNames.includes('Hoja1') ? 'Hoja1' : wb.SheetNames[0];
+        const ws = wb.Sheets[nombreHoja];
+        const filas = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null, blankrows:false});
+        document.getElementById('actTarjEstado').textContent = `⏳ Procesando ${filas.length.toLocaleString()} filas de "${nombreHoja}"…`;
+        setTimeout(()=>ejecutarAnalisisCartuchoTarjetas(filas), 30);
+      }catch(err){
+        console.error(err);
+        document.getElementById('actTarjEstado').textContent = '❌ No se pudo leer el archivo: '+err.message;
+      }
+    }, 30);
+  };
+  reader.onerror = function(){ document.getElementById('actTarjEstado').textContent = '❌ Error al leer el archivo.'; };
+  reader.readAsArrayBuffer(file);
+}
+
+function ejecutarAnalisisCartuchoTarjetas(filas){
+  const header = filas[0] || [];
+  const idx = (nombre, porDefecto) => header.indexOf(nombre) >= 0 ? header.indexOf(nombre) : porDefecto;
+  const IDX_TARJETA=0, IDX_FICHA=5, IDX_USUARIO=6, IDX_FECHA=7, IDX_PRODUCTO=9, IDX_INVENTARIO=32, IDX_ECONOMICO=33, IDX_AREA=39;
+  const iTarjeta=idx('Tarjeta',IDX_TARJETA), iFicha=idx('Ficha Trabajo',IDX_FICHA), iUsuario=idx('Usuario',IDX_USUARIO),
+        iFecha=idx('Fecha',IDX_FECHA), iProducto=idx('Producto',IDX_PRODUCTO), iInventario=idx('Inventario',IDX_INVENTARIO),
+        iEconomico=idx('Economico',IDX_ECONOMICO), iArea=idx('Area Usuaria',IDX_AREA);
+
+  // datosPorVehiculo[no_economico] = { usuarios:{nombreNorm:{nombreOriginal,fichas:Set,fechas:[]}}, tarjetas:Map, productos:Map, areas:Map }
+  const datosPorVehiculo = {};
+  const catalogoPorEconomico = {};
+  VEHICULOS.forEach(v=>{ if(v.no_economico) catalogoPorEconomico[String(v.no_economico).trim()] = v; });
+
+  const sumarConteo = (mapa, clave) => { if(!clave) return; mapa.set(clave, (mapa.get(clave)||0)+1); };
+
+  for(let i=1; i<filas.length; i++){
+    const row = filas[i];
+    if(!row) continue;
+    const usuario = row[iUsuario];
+    if(!usuario || !String(usuario).trim()) continue;
+    const nombreNorm = palabrasNombre(usuario);
+    if(!nombreNorm) continue;
+    const fichaOk = fichaValida(row[iFicha]);
+    const fechaVal = row[iFecha]; // objeto Date si SheetJS lo detectó, o texto/serial
+    const fecha = (fechaVal instanceof Date) ? fechaVal : null;
+    const tarjeta = row[iTarjeta] ? String(row[iTarjeta]).trim() : null;
+    const producto = row[iProducto] ? String(row[iProducto]).trim().toUpperCase() : null;
+    const area = row[iArea] ? String(row[iArea]).trim().toUpperCase() : null;
+
+    [row[iEconomico], row[iInventario]].forEach(val=>{
+      if(val===null || val===undefined) return;
+      const key = String(val).trim();
+      if(!key || key==='N/A' || key==='NA') return;
+      if(!catalogoPorEconomico[key]) return; // solo nos interesan vehículos de nuestro catálogo
+      const d = datosPorVehiculo[key] || (datosPorVehiculo[key] = {usuarios:{}, tarjetas:new Map(), productos:new Map(), areas:new Map()});
+      const u = d.usuarios[nombreNorm] || (d.usuarios[nombreNorm] = {nombreOriginal:String(usuario).trim(), fichas:new Set(), fechas:[]});
+      if(fichaOk) u.fichas.add(fichaOk);
+      if(fecha) u.fechas.push(fecha);
+      sumarConteo(d.tarjetas, tarjeta);
+      sumarConteo(d.productos, producto);
+      if(area && area!=='EXT.' && area!=='MANTTO.') sumarConteo(d.areas, area);
+    });
+  }
+
+  const masComun = (mapa) => { let top=null,max=0; mapa.forEach((c,k)=>{ if(c>max){max=c;top=k;} }); return top; };
+
+  const resultados = [];
+  Object.entries(datosPorVehiculo).forEach(([no_econ, d])=>{
+    const v = catalogoPorEconomico[no_econ];
+    const historial = Object.values(d.usuarios).map(u=>{
+      const fechas = u.fechas.slice().sort((a,b)=>a-b);
+      return {
+        nombre: u.nombreOriginal,
+        ficha: u.fichas.size ? [...u.fichas].sort()[0] : null,
+        fecha_inicio: fechas[0]||null, fecha_fin: fechas[fechas.length-1]||null,
+        num_transacciones: fechas.length,
+      };
+    }).sort((a,b)=>(a.fecha_inicio||0)-(b.fecha_inicio||0));
+    let actual = null;
+    historial.forEach(h=>{ if(!actual || (h.fecha_fin && (!actual.fecha_fin || h.fecha_fin>actual.fecha_fin))) actual = h; });
+    historial.forEach(h=>{ h.es_actual = actual && h===actual; });
+
+    resultados.push({
+      vehiculo_id: v.id, no_economico: no_econ,
+      no_tarjeta: masComun(d.tarjetas),
+      tipo_combustible: masComun(d.productos),
+      departamento: masComun(d.areas),
+      ultimo_usuario: actual ? actual.nombre : null,
+      ultimo_usuario_ficha: actual ? actual.ficha : null,
+      fecha_ultimo_uso: actual ? actual.fecha_fin : null,
+      historial,
+    });
+  });
+
+  RESULTADO_CARTUCHO_TARJETAS = resultados;
+  document.getElementById('actTarjEstado').textContent = `✅ Análisis completo — ${filas.length.toLocaleString()} filas procesadas, ${resultados.length} vehículos con datos.`;
+  mostrarResumenCartuchoTarjetas(resultados);
+}
+
+function mostrarResumenCartuchoTarjetas(resultados){
+  const cambios = resultados.filter(r=>{
+    const actual = TARJETAS.find(t=>t.vehiculo_id===r.vehiculo_id);
+    if(!actual) return true;
+    return palabrasNombre(actual.ultimo_usuario_detectado) !== palabrasNombre(r.ultimo_usuario);
+  });
+  const cont = document.getElementById('actTarjResumen');
+  cont.style.display = 'block';
+  cont.innerHTML = `
+    <div style="padding:12px 14px;background:#f0f9f6;border:1.5px solid #c3e0d6;border-radius:8px;font-size:12.5px;margin-bottom:12px;">
+      Se detectaron datos para <strong>${resultados.length} vehículos</strong>. De esos, <strong>${cambios.length}</strong> tendrían un cambio de resguardante vigente de tarjeta respecto a lo que hoy tiene el sistema.
+      Se reemplazará por completo el historial de tarjeta de estos ${resultados.length} vehículos con lo que arroja este archivo.
+    </div>
+    <button class="btn btn-primary" onclick="confirmarActualizacionCartuchoTarjetas()">✅ Confirmar y guardar en Supabase</button>
+    <button class="btn btn-outline" onclick="document.getElementById('actTarjResumen').style.display='none'; RESULTADO_CARTUCHO_TARJETAS=null;">Cancelar</button>
+  `;
+}
+
+async function confirmarActualizacionCartuchoTarjetas(){
+  const resultados = RESULTADO_CARTUCHO_TARJETAS;
+  if(!resultados || !resultados.length){ toast('No hay datos para guardar', 'warn'); return; }
+  const cont = document.getElementById('actTarjResumen');
+  cont.innerHTML = `<p style="font-size:12.5px;color:var(--gray);">⏳ Guardando en Supabase… (${resultados.length} vehículos)</p>`;
+
+  try{
+    // 1) Upsert de flotilla_tarjetas, vehículo por vehículo
+    for(const r of resultados){
+      const fechaStr = r.fecha_ultimo_uso ? r.fecha_ultimo_uso.toISOString().slice(0,10) : null;
+      const datos = {
+        no_tarjeta: r.no_tarjeta,
+        tipo_combustible_detectado: r.tipo_combustible,
+        departamento_detectado: r.departamento,
+        ultimo_usuario_detectado: r.ultimo_usuario,
+        ultimo_usuario_ficha: r.ultimo_usuario_ficha,
+        fecha_ultimo_uso: fechaStr,
+      };
+      const existente = TARJETAS.find(t=>t.vehiculo_id===r.vehiculo_id);
+      if(existente){
+        const actualizado = await sbUpdate('flotilla_tarjetas', `id=eq.${existente.id}`, datos);
+        const idx = TARJETAS.findIndex(t=>t.id===existente.id);
+        TARJETAS[idx] = actualizado[0];
+      }else{
+        datos.vehiculo_id = r.vehiculo_id;
+        const insertado = await sbInsert('flotilla_tarjetas', datos);
+        TARJETAS.push(insertado[0]);
+      }
+    }
+
+    // 2) Reemplazar el historial de estos vehículos: borrar y volver a insertar
+    const idsVehiculos = resultados.map(r=>r.vehiculo_id);
+    await sbDelete('flotilla_tarjetas_historial', `vehiculo_id=in.(${idsVehiculos.join(',')})`);
+    TARJETAS_HISTORIAL = TARJETAS_HISTORIAL.filter(h=>!idsVehiculos.includes(h.vehiculo_id));
+
+    const filasHistorial = [];
+    resultados.forEach(r=>{
+      r.historial.forEach(h=>{
+        filasHistorial.push({
+          vehiculo_id: r.vehiculo_id, tarjeta: r.no_tarjeta, nombre: h.nombre, ficha: h.ficha,
+          fecha_inicio: h.fecha_inicio ? h.fecha_inicio.toISOString().slice(0,10) : null,
+          fecha_fin: h.fecha_fin ? h.fecha_fin.toISOString().slice(0,10) : null,
+          num_transacciones: h.num_transacciones, es_actual: h.es_actual,
+        });
+      });
+    });
+    for(let i=0; i<filasHistorial.length; i+=500){
+      const lote = filasHistorial.slice(i, i+500);
+      const insertado = await sbInsert('flotilla_tarjetas_historial', lote);
+      TARJETAS_HISTORIAL.push(...insertado);
+    }
+
+    cont.innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Listo — ${resultados.length} vehículos actualizados y su historial reemplazado.</p></div>`;
+    RESULTADO_CARTUCHO_TARJETAS = null;
+    renderTarjetas();
+    toast('Resguardantes de tarjeta actualizados desde el Cartucho', 'ok');
+  }catch(e){
+    console.error(e);
+    cont.innerHTML = `<p style="color:var(--red);font-size:12.5px;">❌ Error al guardar: ${escapeHtml(e.message)}</p>`;
+    toast('Error al guardar: '+e.message, 'warn');
+  }
+}
+
 function conteoResguardantesTarjeta(vehiculoId){
   return TARJETAS_HISTORIAL.filter(h=>h.vehiculo_id===vehiculoId).length;
 }
@@ -2991,13 +3198,14 @@ function generarCartaResponsivaPDF(vehiculoId){
   if(!t){ toast('Este vehículo no tiene tarjeta detectada', 'warn'); return; }
 
   const nombreTitular = t.ultimo_usuario_detectado || '';
-  const fichaTitular = t.ultimo_usuario_ficha || '';
 
   // Buscar en Personal (por ficha primero, luego por nombre) para completar
-  // nivel, correo, extensión — datos que no vienen en flotilla_tarjetas
+  // ficha, nivel, correo, extensión — datos que no siempre vienen completos
+  // en flotilla_tarjetas
   let persona = null;
-  if(fichaTitular) persona = PERSONAL.find(p=>p.ficha===fichaTitular);
+  if(t.ultimo_usuario_ficha) persona = PERSONAL.find(p=>p.ficha===t.ultimo_usuario_ficha);
   if(!persona && nombreTitular) persona = PERSONAL.find(p=>palabrasNombre(p.nombre)===palabrasNombre(nombreTitular));
+  const fichaTitular = t.ultimo_usuario_ficha || (persona ? persona.ficha : '') || '';
 
   const hoy = new Date();
   const ciudad = v.ciudad || v.jurisdiccion || 'COATZACOALCOS, VER.';
@@ -3148,11 +3356,11 @@ function generarLiberacionPDF(vehiculoId){
   if(!t.ultimo_usuario_detectado){ toast('Esta tarjeta no tiene un resguardante vigente que liberar', 'warn'); return; }
 
   const nombreTitular = t.ultimo_usuario_detectado || '';
-  const fichaTitular = t.ultimo_usuario_ficha || '';
 
   let persona = null;
-  if(fichaTitular) persona = PERSONAL.find(p=>p.ficha===fichaTitular);
+  if(t.ultimo_usuario_ficha) persona = PERSONAL.find(p=>p.ficha===t.ultimo_usuario_ficha);
   if(!persona && nombreTitular) persona = PERSONAL.find(p=>palabrasNombre(p.nombre)===palabrasNombre(nombreTitular));
+  const fichaTitular = t.ultimo_usuario_ficha || (persona ? persona.ficha : '') || '';
 
   const ahora = new Date();
   const ciudad = v.ciudad || v.jurisdiccion || 'COATZACOALCOS, VER.';
@@ -3189,18 +3397,19 @@ function generarLiberacionPDF(vehiculoId){
   .campos .box-val{border:0.5pt solid #000;padding:3px 6px;}
 
   .chk{display:inline-block;width:14px;height:12px;border:0.5pt solid #000;text-align:center;font-weight:700;margin:0 6px 0 4px;vertical-align:middle;line-height:12px;font-size:9px;}
-  /* Párrafos legales y bloque Entrega/Recibe: en el Word original NO llevan
-     w:sz explícito, por lo que heredan el tamaño por defecto (12pt) —
-     distinto de la tabla de datos, que sí es 9pt explícito. */
-  .parrafo{font-size:16px;text-align:justify;line-height:1.3;margin:0 0 14px 0;}
+  /* Nota: el Word original hereda 12pt aquí (sin w:sz explícito), pero se
+     reduce un poco para garantizar que TODO quepa en una sola hoja al
+     imprimir desde el navegador real (con Noto Sans real, que ocupa algo
+     más espacio que la fuente de reemplazo usada en las pruebas) */
+  .parrafo{font-size:13px;text-align:justify;line-height:1.25;margin:0 0 9px 0;}
 
-  .firmas{width:100%;border-collapse:collapse;margin-top:18px;text-align:center;font-size:16px;table-layout:fixed;}
+  .firmas{width:100%;border-collapse:collapse;margin-top:10px;text-align:center;font-size:13px;table-layout:fixed;page-break-inside:avoid;}
   .firmas col.f1{width:44.5%;} .firmas col.f2{width:12.2%;} .firmas col.f3{width:43.3%;}
   .firmas td{vertical-align:top;padding:0 10px;}
-  .firmas .rotulo{padding-bottom:34px;}
+  .firmas .rotulo{padding-bottom:20px;}
   .firmas .nombre{font-weight:700;border-bottom:0.5pt solid #000;padding-bottom:3px;}
   .firmas .linea-vacia{border-bottom:0.5pt solid #000;height:1px;}
-  .firmas .sub{font-size:16px;padding-top:4px;}
+  .firmas .sub{font-size:13px;padding-top:4px;}
 </style>
 </head><body>
 
