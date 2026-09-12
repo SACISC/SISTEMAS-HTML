@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjYgMCA1MiA1OCI+Cjxwb2x5Z29uIHBvaW50cz0iMzIsMi42IDU2LDE1LjggNTYsNDIuMiAzMiw1NS40IDgsNDIuMiA4LDE1LjgiIGZpbGw9IiMxZTViNGYiLz4KPHBhdGggZD0iTTIyLjQgMjEuOCBDMjIuNCAyMS44IDQxLjYgMjEuOCA0MS42IDI5IEM0MS42IDM2LjIgMjIuNCAzMS40IDIyLjQgMzguNiBDMjIuNCA0NS44IDQxLjYgNDUuOCA0MS42IDQ1LjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -348,6 +348,61 @@ header{
 /* ── APP OCULTA HASTA SELECCIONAR ── */
 #app{display:none;flex-direction:column;min-height:100vh}
 
+/* ═══ LOGIN INSTITUCIONAL (patrón oficial SACISC) ═══ */
+#loginOverlay{
+  position:fixed;inset:0;
+  background:linear-gradient(135deg,#002f2a 0%,#1e5b4f 60%,#2d7a6a 100%);
+  z-index:99999;
+  display:none;align-items:center;justify-content:center;
+}
+#loginOverlay.active{display:flex;}
+.login-box{
+  background:#fff;border-radius:16px;
+  padding:40px 44px;width:100%;max-width:420px;
+  box-shadow:0 24px 70px rgba(0,0,0,.35);
+  text-align:center;
+}
+.login-logo{
+  width:150px;height:60px;border-radius:10px;
+  background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 18px;padding:8px 14px;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
+}
+.login-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:1.5rem;font-weight:800;color:#002f2a;
+  letter-spacing:.06em;text-transform:uppercase;
+  margin-bottom:4px;
+}
+.login-sub{font-size:.78rem;color:#888;margin-bottom:28px;}
+.login-field{display:flex;flex-direction:column;gap:5px;text-align:left;margin-bottom:14px;}
+.login-field label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#1e5b4f;}
+.login-field select,.login-field input{
+  border:1.5px solid #d0e8e3;border-radius:8px;
+  padding:10px 13px;
+  font-family:'Barlow',sans-serif;font-size:.9rem;color:#222;
+  background:#f7faf9;transition:border-color .18s;
+}
+.login-field select:focus,.login-field input:focus{
+  outline:none;border-color:#1e5b4f;
+  box-shadow:0 0 0 3px rgba(30,91,79,.11);
+}
+.login-btn{
+  width:100%;background:#1e5b4f;color:#fff;
+  border:none;border-radius:8px;padding:12px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:1rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  cursor:pointer;transition:background .18s;margin-top:6px;
+}
+.login-btn:hover{background:#002f2a;}
+.login-err{
+  color:#c0392b;font-size:.8rem;font-weight:600;margin-top:10px;
+  display:none;background:#fdecea;border-radius:6px;padding:7px 10px;
+}
+.login-footer{font-size:.65rem;color:#aaa;margin-top:18px;}
+
+
 /* ── PRINT ── */
 #print-container{display:none}
 @media print{
@@ -457,6 +512,30 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
 </div>
 
 <!-- ═══ APP PRINCIPAL ═══ -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">
+      <img id="loginLogoImg" src="" alt="PEMEX" style="max-width:100%;max-height:100%;object-fit:contain;">
+    </div>
+    <div class="login-title">SACISC · Parque Vehicular</div>
+    <div class="login-sub">Ingrese sus credenciales para continuar</div>
+    <div class="login-field">
+      <label>Área Usuaria</label>
+      <select id="loginArea">
+        <option value="">— Seleccionar área —</option>
+        <option value="SCAD">SCAD — Servicios Corporativos Agua Dulce</option>
+      </select>
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="••••" maxlength="10" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Ingresar al Sistema</button>
+    <div class="login-err" id="loginErr">⚠ Área o contraseña incorrectos.</div>
+    <div class="login-footer">Acceso restringido — Unidad Regional de Servicios Corporativos Sur</div>
+  </div>
+</div>
+
 <div id="app">
 
 <!-- HEADER — idéntico sistema SACISC de referencia -->
@@ -1469,23 +1548,70 @@ function irAConfrontaFiltrado(noEconomico){
 function volverASeleccion(){
   if(!confirm('¿Volver a la pantalla de selección de sistema?')) return;
   sessionStorage.removeItem('sacisc_flotilla_sistema');
+  sessionStorage.removeItem('sacisc_flotilla_login_ok');
   document.getElementById('app').style.display = 'none';
   document.getElementById('pantallaSeleccion').style.display = 'block';
 }
 
 function seleccionarSistema(sistema){
   sessionStorage.setItem('sacisc_flotilla_sistema','flotilla');
-  entrarApp();
+  mostrarLogin();
+}
+
+// ═══ LOGIN INSTITUCIONAL ═══════════════════════════════════════════════
+const AREA_PASSWORDS = { SCAD: '4849' };
+
+function mostrarLogin(){
+  document.getElementById('pantallaSeleccion').style.display = 'none';
+  document.getElementById('loginLogoImg').src = LOGO_PEMEX_B64;
+  document.getElementById('loginOverlay').classList.add('active');
+  document.getElementById('loginArea').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErr').style.display = 'none';
+}
+
+function doLogin(){
+  const area = document.getElementById('loginArea').value;
+  const pwd = document.getElementById('loginPass').value.trim();
+  const errEl = document.getElementById('loginErr');
+  const inputEl = document.getElementById('loginPass');
+
+  errEl.style.display = 'none';
+
+  if(!area){
+    errEl.textContent = '⚠ Selecciona un Área Usuaria para continuar.';
+    errEl.style.display = 'block';
+    document.getElementById('loginArea').focus();
+    return;
+  }
+
+  if(pwd === AREA_PASSWORDS[area]){
+    sessionStorage.setItem('sacisc_flotilla_login_ok', '1');
+    document.getElementById('loginOverlay').classList.remove('active');
+    entrarApp();
+  }else{
+    inputEl.value = '';
+    errEl.textContent = '⚠ Área o contraseña incorrectos. Intente de nuevo.';
+    errEl.style.display = 'block';
+    inputEl.focus();
+  }
 }
 
 function entrarApp(){
   document.getElementById('pantallaSeleccion').style.display = 'none';
+  document.getElementById('loginOverlay').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   cargarDesdeSB();
 }
 
 if(sessionStorage.getItem('sacisc_flotilla_sistema') === 'flotilla'){
-  document.addEventListener('DOMContentLoaded', entrarApp);
+  document.addEventListener('DOMContentLoaded', ()=>{
+    if(sessionStorage.getItem('sacisc_flotilla_login_ok') === '1'){
+      entrarApp();
+    }else{
+      mostrarLogin();
+    }
+  });
 }
 
 // ═══ CARGA DESDE SUPABASE ══════════════════════════════════════════════
@@ -5009,6 +5135,9 @@ let CHARTS_ANALISIS = {};
 function destruirChart(id){ if(CHARTS_ANALISIS[id]){ CHARTS_ANALISIS[id].destroy(); delete CHARTS_ANALISIS[id]; } }
 
 function renderAnalisis(){
+  const chartsDisponibles = typeof Chart !== 'undefined';
+  if(!chartsDisponibles) console.warn('Chart.js no cargó — se omiten las gráficas de Análisis, el resto de la app sigue funcionando normal.');
+
   const todos = analisisDeVehiculos();
   const lista = analisisFiltrado();
 
@@ -5045,12 +5174,14 @@ function renderAnalisis(){
   const porDepto = {};
   VEHICULOS.forEach(v=>{ const d=depatamentoDe(v); porDepto[d]=(porDepto[d]||0)+1; });
   const deptosOrdenados = Object.entries(porDepto).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  destruirChart('depto');
-  CHARTS_ANALISIS.depto = new Chart(document.getElementById('chartDepto'), {
-    type:'bar',
-    data:{ labels: deptosOrdenados.map(d=>d[0]), datasets:[{label:'Vehículos', data: deptosOrdenados.map(d=>d[1]), backgroundColor:'#2d9e7e'}] },
-    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
-  });
+  if(chartsDisponibles){
+    destruirChart('depto');
+    CHARTS_ANALISIS.depto = new Chart(document.getElementById('chartDepto'), {
+      type:'bar',
+      data:{ labels: deptosOrdenados.map(d=>d[0]), datasets:[{label:'Vehículos', data: deptosOrdenados.map(d=>d[1]), backgroundColor:'#2d9e7e'}] },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+    });
+  }
 
   // ── Gráfica 2: Vigencia de Confrontas por Departamento (apilada) ──
   const confPorDepto = {};
@@ -5064,19 +5195,21 @@ function renderAnalisis(){
     const totalB = Object.values(confPorDepto[b]).reduce((x,y)=>x+y,0);
     return totalB-totalA;
   }).slice(0,15);
-  destruirChart('confDepto');
-  CHARTS_ANALISIS.confDepto = new Chart(document.getElementById('chartConfrontaDepto'), {
-    type:'bar',
-    data:{
-      labels: deptosConf,
-      datasets:[
-        {label:'Al día', data: deptosConf.map(d=>confPorDepto[d]['AL DÍA']||0), backgroundColor:'#1b6b2b'},
-        {label:'Vencida', data: deptosConf.map(d=>confPorDepto[d]['VENCIDA']||0), backgroundColor:'#e53e3e'},
-        {label:'Nunca', data: deptosConf.map(d=>confPorDepto[d]['NUNCA']||0), backgroundColor:'#9ca3af'},
-      ]
-    },
-    options:{ responsive:true, scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}} }
-  });
+  if(chartsDisponibles){
+    destruirChart('confDepto');
+    CHARTS_ANALISIS.confDepto = new Chart(document.getElementById('chartConfrontaDepto'), {
+      type:'bar',
+      data:{
+        labels: deptosConf,
+        datasets:[
+          {label:'Al día', data: deptosConf.map(d=>confPorDepto[d]['AL DÍA']||0), backgroundColor:'#1b6b2b'},
+          {label:'Vencida', data: deptosConf.map(d=>confPorDepto[d]['VENCIDA']||0), backgroundColor:'#e53e3e'},
+          {label:'Nunca', data: deptosConf.map(d=>confPorDepto[d]['NUNCA']||0), backgroundColor:'#9ca3af'},
+        ]
+      },
+      options:{ responsive:true, scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}} }
+    });
+  }
 
   // ── Gráfica: Promedio de días desde la última confronta, por Departamento ──
   const diasPorDepto = {};
@@ -5091,12 +5224,14 @@ function renderAnalisis(){
   const deptosDias = Object.entries(diasPorDepto)
     .map(([d,arr])=>[d, arr.reduce((s,x)=>s+x,0)/arr.length])
     .sort((a,b)=>b[1]-a[1]).slice(0,15);
-  destruirChart('diasConfronta');
-  CHARTS_ANALISIS.diasConfronta = new Chart(document.getElementById('chartDiasConfrontaDepto'), {
-    type:'bar',
-    data:{ labels: deptosDias.map(d=>d[0]), datasets:[{label:'Días promedio desde la última confronta', data: deptosDias.map(d=>Math.round(d[1])), backgroundColor:'#c9820f'}] },
-    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
-  });
+  if(chartsDisponibles){
+    destruirChart('diasConfronta');
+    CHARTS_ANALISIS.diasConfronta = new Chart(document.getElementById('chartDiasConfrontaDepto'), {
+      type:'bar',
+      data:{ labels: deptosDias.map(d=>d[0]), datasets:[{label:'Días promedio desde la última confronta', data: deptosDias.map(d=>Math.round(d[1])), backgroundColor:'#c9820f'}] },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+    });
+  }
 
   // ── Tabla: Vehículos sin resguardante vigente, por Departamento ──
   const sinResguardanteVeh = VEHICULOS.filter(v=>!RESGUARDOS.some(r=>r.vehiculo_id===v.id && r.vigente));
@@ -5118,12 +5253,14 @@ function renderAnalisis(){
   // ── Gráfica: Antigüedad de la Flota ──
   const buckets = [[0,3,'0–3 años'],[4,6,'4–6 años'],[7,10,'7–10 años'],[11,15,'11–15 años'],[16,999,'16+ años']];
   const conteoBuckets = buckets.map(([min,max])=>edades.filter(e=>e>=min&&e<=max).length);
-  destruirChart('antiguedad');
-  CHARTS_ANALISIS.antiguedad = new Chart(document.getElementById('chartAntiguedad'), {
-    type:'bar',
-    data:{ labels: buckets.map(b=>b[2]), datasets:[{label:'Vehículos', data: conteoBuckets, backgroundColor:'#2b6cb0'}] },
-    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
-  });
+  if(chartsDisponibles){
+    destruirChart('antiguedad');
+    CHARTS_ANALISIS.antiguedad = new Chart(document.getElementById('chartAntiguedad'), {
+      type:'bar',
+      data:{ labels: buckets.map(b=>b[2]), datasets:[{label:'Vehículos', data: conteoBuckets, backgroundColor:'#2b6cb0'}] },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+    });
+  }
 
   // ── Tablas: Robados / Chocados ──
   const armarTablaEstatus = (contieneTexto) => {
@@ -5142,12 +5279,14 @@ function renderAnalisis(){
     porResguardante[r.titular_responsable] = (porResguardante[r.titular_responsable]||0)+1;
   });
   const topResguardantes = Object.entries(porResguardante).filter(([,n])=>n>1).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  destruirChart('resguardantes');
-  CHARTS_ANALISIS.resguardantes = new Chart(document.getElementById('chartResguardantes'), {
-    type:'bar',
-    data:{ labels: topResguardantes.map(d=>d[0]), datasets:[{label:'Vehículos asignados', data: topResguardantes.map(d=>d[1]), backgroundColor:'#c9820f'}] },
-    options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
-  });
+  if(chartsDisponibles){
+    destruirChart('resguardantes');
+    CHARTS_ANALISIS.resguardantes = new Chart(document.getElementById('chartResguardantes'), {
+      type:'bar',
+      data:{ labels: topResguardantes.map(d=>d[0]), datasets:[{label:'Vehículos asignados', data: topResguardantes.map(d=>d[1]), backgroundColor:'#c9820f'}] },
+      options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
+    });
+  }
 
   // ── Gráfica: Departamentos que más reasignan tarjetas (más historial = más rotación) ──
   const reasignPorDepto = {};
@@ -5158,22 +5297,26 @@ function renderAnalisis(){
     reasignPorDepto[d] = (reasignPorDepto[d]||0)+1;
   });
   const topReasigna = Object.entries(reasignPorDepto).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  destruirChart('reasignaTarjetas');
-  CHARTS_ANALISIS.reasignaTarjetas = new Chart(document.getElementById('chartReasignaTarjetas'), {
-    type:'bar',
-    data:{ labels: topReasigna.map(d=>d[0]), datasets:[{label:'Registros de resguardantes de tarjeta', data: topReasigna.map(d=>d[1]), backgroundColor:'#2b6cb0'}] },
-    options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
-  });
+  if(chartsDisponibles){
+    destruirChart('reasignaTarjetas');
+    CHARTS_ANALISIS.reasignaTarjetas = new Chart(document.getElementById('chartReasignaTarjetas'), {
+      type:'bar',
+      data:{ labels: topReasigna.map(d=>d[0]), datasets:[{label:'Registros de resguardantes de tarjeta', data: topReasigna.map(d=>d[1]), backgroundColor:'#2b6cb0'}] },
+      options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
+    });
+  }
 
   // ── Gráfica: Composición de la flota (Propios vs Arrendados) ──
   const propios = VEHICULOS.filter(v=>v.origen==='PROPIO').length;
   const arrendados = VEHICULOS.filter(v=>v.origen==='ARRENDADO').length;
-  destruirChart('origen');
-  CHARTS_ANALISIS.origen = new Chart(document.getElementById('chartOrigen'), {
-    type:'doughnut',
-    data:{ labels:['Propios','Arrendados'], datasets:[{data:[propios,arrendados], backgroundColor:['#1e5b4f','#c9820f']}] },
-    options:{ responsive:true, plugins:{legend:{position:'bottom'}} }
-  });
+  if(chartsDisponibles){
+    destruirChart('origen');
+    CHARTS_ANALISIS.origen = new Chart(document.getElementById('chartOrigen'), {
+      type:'doughnut',
+      data:{ labels:['Propios','Arrendados'], datasets:[{data:[propios,arrendados], backgroundColor:['#1e5b4f','#c9820f']}] },
+      options:{ responsive:true, plugins:{legend:{position:'bottom'}} }
+    });
+  }
 
   // ── Tabla detallada de Radiografía ──
   document.getElementById('emptyAnalisis').style.display = lista.length ? 'none' : 'block';
