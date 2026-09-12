@@ -5135,6 +5135,14 @@ let CHARTS_ANALISIS = {};
 function destruirChart(id){ if(CHARTS_ANALISIS[id]){ CHARTS_ANALISIS[id].destroy(); delete CHARTS_ANALISIS[id]; } }
 
 function renderAnalisis(){
+  try{
+    renderAnalisisInterno();
+  }catch(e){
+    console.error('Error en renderAnalisis (no afecta al resto de la app):', e);
+  }
+}
+
+function renderAnalisisInterno(){
   const chartsDisponibles = typeof Chart !== 'undefined';
   if(!chartsDisponibles) console.warn('Chart.js no cargó — se omiten las gráficas de Análisis, el resto de la app sigue funcionando normal.');
 
@@ -5212,10 +5220,11 @@ function renderAnalisis(){
   }
 
   // ── Gráfica: Promedio de días desde la última confronta, por Departamento ──
+  const confrontasPorVehLocal = confrontasPorVehiculo();
   const diasPorDepto = {};
   todos.forEach(a=>{
     if(!a.vigenciaConfronta || a.vigenciaConfronta==='NUNCA') return; // sin fecha real que promediar
-    const c = confrontasPorVeh.find(x=>x.vehiculo.id===a.vehiculo.id);
+    const c = confrontasPorVehLocal.find(x=>x.vehiculo.id===a.vehiculo.id);
     if(!c || c.dias===null || c.dias===undefined) return;
     const d = depatamentoDe(a.vehiculo);
     if(!diasPorDepto[d]) diasPorDepto[d] = [];
