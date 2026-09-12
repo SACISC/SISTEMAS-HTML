@@ -955,6 +955,7 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <div class="modal-body" id="modalVehiculoBody"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modalVehiculo')">Cerrar</button>
+      <button class="btn btn-primary" id="btnGuardarDetalleVehiculo" style="display:none;">Guardar Cambios</button>
     </div>
   </div>
 </div>
@@ -1311,12 +1312,12 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
           <div id="asigNombreAviso" style="display:none;margin-top:6px;font-size:11.5px;color:var(--red);"></div>
         </div>
         <div class="form-grid">
-          <div class="form-group"><label>Ficha *</label><input class="fc" id="asigFicha" placeholder="Ficha PEMEX" readonly style="background:#f8fafc;"></div>
-          <div class="form-group"><label>Cargo</label><input class="fc" id="asigCargo" placeholder="Cargo / puesto" readonly style="background:#f8fafc;"></div>
-          <div class="form-group"><label>Nivel del Asignatario</label><input class="fc" id="asigNivel" placeholder="Nivel" readonly style="background:#f8fafc;"></div>
-          <div class="form-group"><label>Correo Electrónico</label><input class="fc" id="asigCorreo" placeholder="correo@pemex.com" readonly style="background:#f8fafc;"></div>
-          <div class="form-group"><label>No. de Extensión</label><input class="fc" id="asigExtension" placeholder="Extensión" readonly style="background:#f8fafc;"></div>
-          <div class="form-group"><label>No. Celular</label><input class="fc" id="asigCelular" placeholder="Celular" readonly style="background:#f8fafc;"></div>
+          <div class="form-group"><label>Ficha *</label><input class="fc" id="asigFicha" placeholder="Ficha PEMEX" readonly style="background:#f8fafc;" ondblclick="editarPersonaDesdeResguardo()" title="Doble clic para editar a esta persona en Personal"></div>
+          <div class="form-group"><label>Cargo</label><input class="fc" id="asigCargo" placeholder="Cargo / puesto" readonly style="background:#f8fafc;" ondblclick="editarPersonaDesdeResguardo()" title="Doble clic para editar a esta persona en Personal"></div>
+          <div class="form-group"><label>Nivel del Asignatario</label><input class="fc" id="asigNivel" placeholder="Nivel" readonly style="background:#f8fafc;" ondblclick="editarPersonaDesdeResguardo()" title="Doble clic para editar a esta persona en Personal"></div>
+          <div class="form-group"><label>Correo Electrónico</label><input class="fc" id="asigCorreo" placeholder="correo@pemex.com" readonly style="background:#f8fafc;" ondblclick="editarPersonaDesdeResguardo()" title="Doble clic para editar a esta persona en Personal"></div>
+          <div class="form-group"><label>No. de Extensión</label><input class="fc" id="asigExtension" placeholder="Extensión" readonly style="background:#f8fafc;" ondblclick="editarPersonaDesdeResguardo()" title="Doble clic para editar a esta persona en Personal"></div>
+          <div class="form-group"><label>No. Celular</label><input class="fc" id="asigCelular" placeholder="Celular" readonly style="background:#f8fafc;" ondblclick="editarPersonaDesdeResguardo()" title="Doble clic para editar a esta persona en Personal"></div>
           <div class="form-group"><label>Fecha del Resguardo</label><input class="fc" type="date" id="asigFecha"></div>
         </div>
       </div>
@@ -1386,6 +1387,14 @@ function showPanel(id){
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('tab-'+id).classList.add('active');
+}
+
+// Atajo: doble clic en No. Económico/Placas de Resguardos Vigentes ->
+// salta directo al panel de Confrontas con ese vehículo ya buscado
+function irAConfrontaFiltrado(noEconomico){
+  showPanel('pan-confrontas');
+  document.getElementById('buscarConfronta').value = noEconomico;
+  renderConfrontas();
 }
 
 // ═══ PANTALLA DE SELECCIÓN ═════════════════════════════════════════════
@@ -1685,10 +1694,12 @@ function renderCatalogo(){
 function verDetalleVehiculo(id){
   const v = VEHICULOS.find(x=>x.id===id);
   if(!v){ toast('Vehículo no encontrado', 'warn'); return; }
+  const esPropio = v.origen === 'PROPIO';
+
   const filas = [
     ['No. Económico', v.no_economico], ['Placas', v.placas], ['No. de Serie', v.no_serie],
     ['Marca', v.marca], ['Submarca', v.submarca], ['Tipo', v.tipo_vehiculo],
-    ['Modelo', v.modelo], ['Color', v.color], ['Origen', v.origen], ['Estatus', v.estatus],
+    ['Origen', v.origen], ['Estatus', v.estatus],
     ['Empresa', v.empresa], ['Dirección', v.direccion], ['Subdirección', v.subdireccion],
     ['Gerencia / Unidad', v.gerencia_unidad], ['Coordinación / Área', v.coordinacion_area],
     ['Región', v.region], ['Jurisdicción', v.jurisdiccion], ['Ciudad', v.ciudad],
@@ -1701,12 +1712,48 @@ function verDetalleVehiculo(id){
 
   document.getElementById('modalVehiculoBody').innerHTML = `
     <div class="form-grid">
+      ${esPropio ? `
+        <div class="form-group"><label>Modelo (Año)</label><input class="fc" id="detModelo" value="${escapeHtml(v.modelo)||''}"></div>
+        <div class="form-group"><label>Color</label><input class="fc" id="detColor" value="${escapeHtml(v.color)||''}"></div>
+      ` : `
+        <div class="form-group"><label>Modelo</label><div class="fc" style="background:#f8fafc;">${escapeHtml(v.modelo)||'—'}</div></div>
+        <div class="form-group"><label>Color</label><div class="fc" style="background:#f8fafc;">${escapeHtml(v.color)||'—'}</div></div>
+      `}
       ${filas.map(([label,val])=>`
         <div class="form-group"><label>${label}</label><div class="fc" style="background:#f8fafc;">${escapeHtml(val)}</div></div>
       `).join('')}
     </div>
+    ${esPropio ? `<p style="font-size:11px;color:var(--gray);margin-top:10px;">Modelo (Año) y Color son editables para vehículos propios — el resto de los datos vienen del catálogo migrado.</p>` : ''}
   `;
+
+  const btnGuardar = document.getElementById('btnGuardarDetalleVehiculo');
+  if(esPropio){
+    btnGuardar.style.display = 'inline-flex';
+    btnGuardar.onclick = ()=>guardarDetalleVehiculo(v.id);
+  }else{
+    btnGuardar.style.display = 'none';
+  }
   openModal('modalVehiculo');
+}
+
+async function guardarDetalleVehiculo(vehiculoId){
+  const modelo = document.getElementById('detModelo').value.trim() || null;
+  const color = document.getElementById('detColor').value.trim() || null;
+  const btn = document.getElementById('btnGuardarDetalleVehiculo');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    const actualizado = await sbUpdate('flotilla_vehiculos', `id=eq.${vehiculoId}`, {modelo, color});
+    const idx = VEHICULOS.findIndex(x=>x.id===vehiculoId);
+    if(idx>=0) VEHICULOS[idx] = actualizado[0];
+    toast('Modelo y Color actualizados', 'ok');
+    closeModal('modalVehiculo');
+    renderCatalogo();
+  }catch(e){
+    console.error(e);
+    toast('Error al guardar: '+e.message, 'warn');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Guardar Cambios';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1921,8 +1968,8 @@ function renderResguardos(){
           const n = conteoResguardosPorVehiculo(r._vehiculo.id);
           return `
           <tr>
-            <td class="tbl-num">${vehHoverSpan(r._vehiculo.id, r._vehiculo.no_economico)}</td>
-            <td>${vehHoverSpan(r._vehiculo.id, r._vehiculo.placas)}</td>
+            <td class="tbl-num" ondblclick="irAConfrontaFiltrado('${r._vehiculo.no_economico}')" style="cursor:pointer;" title="Doble clic para buscarlo en Confrontas">${vehHoverSpan(r._vehiculo.id, r._vehiculo.no_economico)}</td>
+            <td ondblclick="irAConfrontaFiltrado('${r._vehiculo.no_economico}')" style="cursor:pointer;" title="Doble clic para buscarlo en Confrontas">${vehHoverSpan(r._vehiculo.id, r._vehiculo.placas)}</td>
             <td>${badgeOrigen(r._vehiculo.origen)}</td>
             <td>${r._vehiculo.siglas ? `<span class="badge badge-blue">${escapeHtml(r._vehiculo.siglas)}</span>` : '—'}</td>
             <td>${badgeEstatus(r._vehiculo.estatus)}</td>
@@ -2231,8 +2278,8 @@ function generarResguardoPropioPDF(r, v){
 
   .parrafo{font-size:10.5px;text-align:justify;line-height:1.35;margin:0 0 8px 0;}
   .parrafos-wrap{margin-top:34px;}
-  .cierre-title{text-align:center;font-weight:700;font-size:12px;margin:10px 0 4px 0;}
-  .cierre-txt{text-align:center;font-weight:700;font-size:12px;line-height:1.3;margin-bottom:14px;}
+  .cierre-title{text-align:right;font-weight:700;font-size:12px;margin:10px 0 4px 0;}
+  .cierre-txt{text-align:right;font-weight:700;font-size:12px;line-height:1.3;margin-bottom:14px;}
   /* Tabla Nombre/Firma calcada de las coordenadas reales del Word:
      w:tblInd=4395 (~40.8% del ancho útil) y w:tblW=6697 (~62.2% del ancho útil) —
      no ocupa toda la hoja, arranca pasada la mitad y el valor va justificado
@@ -2339,7 +2386,7 @@ function generarResguardoArrendadoPDF(r, v){
 
   .parrafo{font-size:10.5px;text-align:justify;line-height:1.35;margin:0 0 8px 0;}
   .parrafos-wrap{margin-top:32px;}
-  .cierre-title{text-align:center;font-size:12px;margin:14px 0 10px 0;}
+  .cierre-title{text-align:left;font-weight:700;font-size:12px;margin:14px 0 10px 0;}
   /* Tabla Nombre/Firma calcada de las coordenadas reales del Word:
      w:tblInd=354 (~3.3% del ancho útil) y w:tblW=5260 (~48.8% del ancho útil) */
   .firma-tabla2{width:48.8%;margin-left:3.3%;border-collapse:collapse;font-size:12px;margin-top:14px;}
@@ -2369,10 +2416,10 @@ function generarResguardoArrendadoPDF(r, v){
         <td class="lbl">Modelo:</td><td class="val">${escapeHtml(v.modelo)}</td></tr>
     <tr><td class="lbl">No. de serie:</td><td class="val">${escapeHtml(v.no_serie)}</td>
         <td class="lbl">Color:</td><td class="val">${escapeHtml(v.color)}</td></tr>
-    <tr><td class="lbl">Marca:</td><td class="val">${escapeHtml(v.marca)}</td>
-        <td class="lbl" style="vertical-align:top;">Tipo de uso:</td>
-        <td class="radio" style="border-bottom:none;">○ Servicio de funcionario<br>○ Operativo<br>○ Servicios Generales<br>○ Otro: _______________</td></tr>
-    <tr><td class="lbl">Submarca:</td><td class="val">${escapeHtml(v.submarca)}</td><td></td><td></td></tr>
+    <tr><td class="lbl" style="vertical-align:top;">Marca:</td><td class="val" style="vertical-align:top;">${escapeHtml(v.marca)}</td>
+        <td class="lbl" rowspan="2" style="vertical-align:top;">Tipo de uso:</td>
+        <td class="radio" rowspan="2" style="border-bottom:none;vertical-align:top;">○ Servicio de funcionario<br>○ Operativo<br>○ Servicios Generales<br>○ Otro: _______________</td></tr>
+    <tr><td class="lbl" style="vertical-align:top;">Submarca:</td><td class="val" style="vertical-align:top;">${escapeHtml(v.submarca)}</td></tr>
   </table>
 
   <table class="campos-cap">
@@ -2623,6 +2670,14 @@ async function eliminarPersonal(personaId){
 let ASIG_VEHICULO_ID = null;
 let EDIT_RESGUARDO_ID = null;
 let ASIG_PERSONA_ID = null;
+
+// Atajo: doble clic en cualquier campo de solo-lectura del resguardante
+// (Ficha, Cargo, Nivel, Correo, Extensión, Celular) abre a esa persona en
+// el modal de Editar Personal, para completar sus datos sin salir del flujo
+function editarPersonaDesdeResguardo(){
+  if(!ASIG_PERSONA_ID){ toast('Primero elige a la persona en "Nombre completo"', 'warn'); return; }
+  abrirFormPersonal(ASIG_PERSONA_ID);
+}
 
 function abrirAsignarResguardante(vehiculoIdPreseleccionado){
   ASIG_VEHICULO_ID = null;
@@ -3674,7 +3729,7 @@ function generarCartaResponsivaPDF(vehiculoId, fechaOverride){
   .campos .box-val{border:0.5pt solid #000;padding:3px 6px;}
 
   .chk{display:inline-block;width:14px;height:12px;border:0.5pt solid #000;text-align:center;font-weight:700;margin:0 6px 0 4px;vertical-align:middle;line-height:12px;font-size:9px;}
-  .parrafo{font-size:11px;text-align:justify;line-height:1.2;margin:0 0 7px 0;}
+  .parrafo{font-size:12.5px;text-align:justify;line-height:1.22;margin:0 0 7px 0;}
 
   .cierre{page-break-inside:avoid;margin-top:auto;}
   .firma-tabla{width:3.6in;margin:6px auto 0 auto;border-collapse:collapse;text-align:center;font-size:11px;}
@@ -3728,7 +3783,7 @@ function generarCartaResponsivaPDF(vehiculoId, fechaOverride){
       <tr>
         <td class="lbl">Dirección:</td><td class="val">${escapeHtml(v.direccion)}</td>
         <td class="sinlinea"></td>
-        <td class="lbl">No. de Motor:</td><td class="val"></td>
+        <td class="lbl">No. de Motor:</td><td class="val">HECHO EN MEXICO</td>
       </tr>
       <tr>
         <td class="lbl">Subdirección:</td><td class="val">${escapeHtml(v.subdireccion)}</td>
@@ -3741,7 +3796,7 @@ function generarCartaResponsivaPDF(vehiculoId, fechaOverride){
         <td class="lbl">Tipo de Vehículo o Equipo:</td><td class="val">${escapeHtml(v.tipo_vehiculo)}</td>
       </tr>
       <tr>
-        <td class="lbl">Área:</td><td class="val">${escapeHtml(v.coordinacion_area)}</td>
+        <td class="lbl">Área:</td><td class="val">${escapeHtml((persona&&persona.coordinacion_area)||v.coordinacion_area)}</td>
         <td class="sinlinea"></td>
         <td class="lbl sinlinea"></td><td class="val sinlinea"></td>
       </tr>
@@ -3966,7 +4021,7 @@ function generarCorresponsabilidadPDF(vehiculoId, corresponsables){
       <tr>
         <td class="lbl">Dirección:</td><td class="val">${escapeHtml(v.direccion)}</td>
         <td class="sinlinea"></td>
-        <td class="lbl">No. de Motor:</td><td class="val"></td>
+        <td class="lbl">No. de Motor:</td><td class="val">HECHO EN MEXICO</td>
       </tr>
       <tr>
         <td class="lbl">Subdirección:</td><td class="val">${escapeHtml(v.subdireccion)}</td>
@@ -3979,7 +4034,7 @@ function generarCorresponsabilidadPDF(vehiculoId, corresponsables){
         <td class="lbl">Tipo de Vehículo o Equipo:</td><td class="val">${escapeHtml(v.tipo_vehiculo)}</td>
       </tr>
       <tr>
-        <td class="lbl">Área:</td><td class="val">${escapeHtml(v.coordinacion_area)}</td>
+        <td class="lbl">Área:</td><td class="val">${escapeHtml((persona&&persona.coordinacion_area)||v.coordinacion_area)}</td>
         <td class="sinlinea"></td>
         <td class="lbl sinlinea"></td><td class="val sinlinea"></td>
       </tr>
@@ -4133,7 +4188,7 @@ function generarLiberacionPDF(vehiculoId){
       <tr>
         <td class="lbl">Dirección:</td><td class="val">${escapeHtml(v.direccion)}</td>
         <td class="sinlinea"></td>
-        <td class="lbl">No. de Motor:</td><td class="val"></td>
+        <td class="lbl">No. de Motor:</td><td class="val">HECHO EN MEXICO</td>
       </tr>
       <tr>
         <td class="lbl">Subdirección:</td><td class="val">${escapeHtml(v.subdireccion)}</td>
@@ -4146,7 +4201,7 @@ function generarLiberacionPDF(vehiculoId){
         <td class="lbl">Tipo de Vehículo o Equipo:</td><td class="val">${escapeHtml(v.tipo_vehiculo)}</td>
       </tr>
       <tr>
-        <td class="lbl">Área:</td><td class="val">${escapeHtml(v.coordinacion_area)}</td>
+        <td class="lbl">Área:</td><td class="val">${escapeHtml((persona&&persona.coordinacion_area)||v.coordinacion_area)}</td>
         <td class="sinlinea"></td>
         <td class="lbl sinlinea"></td><td class="val sinlinea"></td>
       </tr>
