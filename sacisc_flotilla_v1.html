@@ -8,6 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjYgMCA1MiA1OCI+Cjxwb2x5Z29uIHBvaW50cz0iMzIsMi42IDU2LDE1LjggNTYsNDIuMiAzMiw1NS40IDgsNDIuMiA4LDE1LjgiIGZpbGw9IiMxZTViNGYiLz4KPHBhdGggZD0iTTIyLjQgMjEuOCBDMjIuNCAyMS44IDQxLjYgMjEuOCA0MS42IDI5IEM0MS42IDM2LjIgMjIuNCAzMS40IDIyLjQgMzguNiBDMjIuNCA0NS44IDQxLjYgNDUuOCA0MS42IDQ1LjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -538,6 +539,11 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     <span class="nav-label">Confrontas</span>
     <span class="nav-sub">Verificación</span>
   </button>
+  <button class="nav-tab" data-panel="pan-mantenimiento" onclick="showPanel('pan-mantenimiento')" id="tab-pan-mantenimiento">
+    <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
+    <span class="nav-label">Mantenimiento</span>
+    <span class="nav-sub">Unidades de Renta</span>
+  </button>
   <button class="nav-tab" data-panel="pan-analisis" onclick="showPanel('pan-analisis')" id="tab-pan-analisis">
     <span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-2.8-2.8L7 14"/></svg></span>
     <span class="nav-label">Análisis</span>
@@ -774,26 +780,88 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
   </div>
 
-  <!-- ═══ PANEL: ANÁLISIS (Radiografía por vehículo) ═══ -->
+  <!-- ═══ PANEL: MANTENIMIENTO (unidades de renta — pendiente de construir) ═══ -->
+  <div class="panel" id="pan-mantenimiento">
+    <div class="page-eyebrow">Parque Vehicular</div>
+    <h1 class="page-title">Mantenimiento</h1>
+    <p class="page-desc">Mantenimientos a unidades de renta — cuántos ha tenido cada vehículo y cuántos días estuvo en taller.</p>
+    <div class="card">
+      <div class="card-hdr"><h3>🔧 Mantenimientos</h3></div>
+      <div class="card-body">
+        <div class="empty-state"><div class="icon">🔧</div><p>Módulo pendiente de construir — quedó agendado para la siguiente sesión. Cuando esté listo, se integrará también a la Radiografía y su línea de tiempo en Análisis.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PANEL: ANÁLISIS (Dashboard ejecutivo + Radiografía por vehículo) ═══ -->
   <div class="panel" id="pan-analisis">
     <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Análisis</h1>
-    <p class="page-desc">Radiografía completa de cada vehículo: reemplazos de placa, resguardantes (unidad y tarjeta), confrontas, y un nivel de atención calculado cruzando todo lo anterior.</p>
+    <p class="page-desc">Dashboard ejecutivo del Parque Vehicular: composición por departamento, confrontas, incidencias y rotación de resguardantes/tarjetas.</p>
 
     <div class="kpi-grid" id="kpiAnalisis"></div>
 
     <div class="card">
+      <div class="card-hdr"><h3>🏢 Vehículos por Departamento</h3></div>
+      <div class="card-body"><canvas id="chartDepto" height="90"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3>🔍 Vigencia de Confrontas por Departamento</h3></div>
+      <div class="card-body"><canvas id="chartConfrontaDepto" height="90"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3>📅 Promedio de Días desde la Última Confronta, por Departamento</h3></div>
+      <div class="card-body"><canvas id="chartDiasConfrontaDepto" height="90"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3>⚠️ Vehículos sin Resguardante Vigente, por Departamento</h3></div>
+      <div class="card-body"><div id="tablaSinResguardanteDepto"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3>🗓️ Antigüedad de la Flota</h3></div>
+      <div class="card-body"><canvas id="chartAntiguedad" height="90"></canvas></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="card">
+        <div class="card-hdr"><h3>🚨 Vehículos Robados</h3></div>
+        <div class="card-body"><div id="tablaRobados"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><h3>💥 Vehículos Chocados</h3></div>
+        <div class="card-body"><div id="tablaChocados"></div></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="card">
+        <div class="card-hdr"><h3>👤 Resguardantes con más vehículos asignados</h3></div>
+        <div class="card-body"><canvas id="chartResguardantes" height="140"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><h3>💳 Departamentos que más reasignan tarjetas</h3></div>
+        <div class="card-body"><canvas id="chartReasignaTarjetas" height="140"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr"><h3>🧩 Composición de la Flota</h3></div>
+      <div class="card-body" style="max-width:340px;margin:0 auto;"><canvas id="chartOrigen"></canvas></div>
+    </div>
+
+    <div class="card">
       <div class="card-hdr">
         <h3>🩻 Radiografía por vehículo</h3>
-        <button class="btn btn-outline btn-sm" onclick="exportarExcel(analisisFiltrado().map(a=>({no_economico:a.vehiculo.no_economico, placas:a.vehiculo.placas, origen:a.vehiculo.origen, estatus:a.vehiculo.estatus, reemplazos_placa:a.reemplazos, resguardantes_vehiculares:a.resguardantesVehiculares, resguardantes_tarjeta:a.resguardantesTarjeta, confrontas_realizadas:a.confrontas, vigencia_confronta:a.vigenciaConfronta, nivel_atencion:a.nivel})), 'analisis_radiografia')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
+        <button class="btn btn-outline btn-sm" onclick="exportarExcel(analisisFiltrado().map(a=>({no_economico:a.vehiculo.no_economico, placas:a.vehiculo.placas, origen:a.vehiculo.origen, estatus:a.vehiculo.estatus, departamento:a.vehiculo.siglas, reemplazos_placa:a.reemplazos, resguardantes_vehiculares:a.resguardantesVehiculares, resguardantes_tarjeta:a.resguardantesTarjeta, confrontas_realizadas:a.confrontas, vigencia_confronta:a.vigenciaConfronta})), 'analisis_radiografia')"><svg width="15" height="15" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:2px;"><rect x="4" y="4" width="40" height="40" rx="6" fill="#1D6F42"/><path d="M14 14h9.5l4.7 7.4 4.7-7.4H42v6.2h-5.3l-5 7.8 5 7.8H42V40H32.9l-4.7-7.4L23.5 40H14v-6.2h5.3l5-7.8-5-7.8H14V14z" fill="none"/><text x="24" y="32" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">X</text></svg> Exportar Excel</button>
       </div>
       <div class="card-body">
         <div class="filter-bar">
-          <select class="filter-sel" id="filtroNivelAtencion">
-            <option value="">Todos los niveles</option>
-            <option value="ALTA">🚨 Atención alta</option>
-            <option value="MEDIA">⚠️ Atención media</option>
-            <option value="BAJA">✅ Atención baja</option>
+          <select class="filter-sel" id="filtroEstatusAnalisis">
+            <option value="">Todos los estatus</option>
           </select>
           <input class="search-inp" id="buscarAnalisis" placeholder="Buscar por placa o económico…">
         </div>
@@ -1534,6 +1602,17 @@ function vehHoverSpan(vehiculoId, texto){
   return `<span class="veh-hover" data-vid="${vehiculoId}">${escapeHtml(texto)}</span>`;
 }
 
+// ═══ Etiqueta de Corresponsabilidad con tooltip (quiénes son) ══════════
+function corrHoverBadge(t){
+  if(!t || !t.corresponsable1_nombre) return '';
+  const nombres = [
+    `${escapeHtml(t.corresponsable1_nombre)}${t.corresponsable1_ficha?' (ficha '+escapeHtml(t.corresponsable1_ficha)+')':''}`,
+  ];
+  if(t.corresponsable2_nombre) nombres.push(`${escapeHtml(t.corresponsable2_nombre)}${t.corresponsable2_ficha?' (ficha '+escapeHtml(t.corresponsable2_ficha)+')':''}`);
+  const tt = `<div class="veh-tt-title">👥 Corresponsabilidad</div>${nombres.map(n=>`<div class="veh-tt-row"><span>${n}</span></div>`).join('')}`;
+  return `<span class="badge badge-blue corr-hover" data-tt="${tt.replace(/"/g,'&quot;')}" style="cursor:help;">👥 Corresponsabilidad</span>`;
+}
+
 (function(){
   const tt = document.getElementById('vehTooltip');
   let vidActual = null;
@@ -1561,6 +1640,14 @@ function vehHoverSpan(vehiculoId, texto){
 
   document.addEventListener('mouseover', e=>{
     const el = e.target.closest('.veh-hover');
+    const elCorr = e.target.closest('.corr-hover');
+    if(elCorr){
+      tt.innerHTML = elCorr.dataset.tt;
+      posicionar(e.clientX, e.clientY);
+      tt.classList.add('show');
+      vidActual = 'corr';
+      return;
+    }
     if(!el) return;
     const vid = el.dataset.vid;
     const v = vehiculoDe(vid);
@@ -1577,9 +1664,9 @@ function vehHoverSpan(vehiculoId, texto){
   });
 
   document.addEventListener('mouseout', e=>{
-    const el = e.target.closest('.veh-hover');
+    const el = e.target.closest('.veh-hover') || e.target.closest('.corr-hover');
     if(!el) return;
-    if(e.relatedTarget && e.relatedTarget.closest('.veh-hover')===el) return;
+    if(e.relatedTarget && e.relatedTarget.closest('.veh-hover, .corr-hover')===el) return;
     vidActual = null;
     tt.classList.remove('show');
   });
@@ -3184,7 +3271,7 @@ function renderTarjetas(){
             <tr${t.coincide==='NO'?' style="background:#fdecea;"':(nHist>1?' style="background:#fff8e1;"':'')}>
               <td class="tbl-num">${vehHoverSpan(t.vehiculo.id, t.vehiculo.no_economico)}</td>
               <td>${vehHoverSpan(t.vehiculo.id, t.vehiculo.placas)}</td>
-              <td class="tbl-num">${escapeHtml(t.no_tarjeta)} ${nHist>1?`<span class="badge badge-amber" title="Esta tarjeta ha tenido ${nHist} resguardantes distintos">🕓 ${nHist}</span>`:''}</td>
+              <td class="tbl-num">${escapeHtml(t.no_tarjeta)} ${nHist>1?`<span class="badge badge-amber" title="Esta tarjeta ha tenido ${nHist} resguardantes distintos">🕓 ${nHist}</span>`:''} ${corrHoverBadge(t)}</td>
               <td>${escapeHtml(t.tipo_combustible_detectado)||'—'}</td>
               <td>${t.departamento_detectado?`<span class="badge badge-blue">${escapeHtml(t.departamento_detectado)}</span>`:'—'}</td>
               <td>${escapeHtml(t.resguardanteSistema)||'<span class="badge badge-gray">SIN RESGUARDANTE</span>'}</td>
@@ -3908,7 +3995,7 @@ function seleccionarCorresponsable(num, personaId){
   if(num===1) CORR_PERSONA_1 = p; else CORR_PERSONA_2 = p;
 }
 
-function generarDesdeCorresponsables(){
+async function generarDesdeCorresponsables(){
   if(!CORR_VEHICULO_ID){ toast('Vehículo no encontrado', 'warn'); return; }
   if(!CORR_PERSONA_1){
     const aviso = document.getElementById('corrAviso1');
@@ -3922,6 +4009,22 @@ function generarDesdeCorresponsables(){
     {nombre: CORR_PERSONA_1.nombre, ficha: CORR_PERSONA_1.ficha},
   ];
   if(CORR_PERSONA_2) corresponsables.push({nombre: CORR_PERSONA_2.nombre, ficha: CORR_PERSONA_2.ficha});
+
+  // Guardamos el estado ACTUAL de corresponsables en la tarjeta (sin historial,
+  // solo para poder mostrar la etiqueta en la tabla de Tarjetas)
+  const t = TARJETAS.find(x=>x.vehiculo_id===CORR_VEHICULO_ID);
+  if(t){
+    try{
+      const datos = {
+        corresponsable1_nombre: corresponsables[0].nombre, corresponsable1_ficha: corresponsables[0].ficha||null,
+        corresponsable2_nombre: corresponsables[1]?corresponsables[1].nombre:null, corresponsable2_ficha: corresponsables[1]?(corresponsables[1].ficha||null):null,
+      };
+      const actualizado = await sbUpdate('flotilla_tarjetas', `id=eq.${t.id}`, datos);
+      const idx = TARJETAS.findIndex(x=>x.id===t.id);
+      if(idx>=0) TARJETAS[idx] = actualizado[0];
+      renderTarjetas();
+    }catch(e){ console.error(e); toast('No se pudo guardar el estado de corresponsables: '+e.message, 'warn'); }
+  }
 
   closeModal('modalCorresponsables');
   generarCorresponsabilidadPDF(CORR_VEHICULO_ID, corresponsables);
@@ -4870,26 +4973,8 @@ document.getElementById('filtroEstatusConfronta').addEventListener('change', ren
 document.getElementById('buscarConfronta').addEventListener('input', renderConfrontas);
 
 // ═══════════════════════════════════════════════════════════════════════
-// ═══ ANÁLISIS — Radiografía completa por vehículo ══════════════════════
+// ═══ ANÁLISIS — Dashboard ejecutivo + Radiografía por vehículo ═════════
 // ═══════════════════════════════════════════════════════════════════════
-function nivelAtencion(vehiculoId){
-  const vigente = RESGUARDOS.find(r=>r.vehiculo_id===vehiculoId && r.vigente);
-  const sinResguardante = !vigente;
-  const c = confrontasPorVehiculo().find(x=>x.vehiculo.id===vehiculoId);
-  const confrontaMal = c && (c.estatusVigencia==='VENCIDA' || c.estatusVigencia==='NUNCA');
-  if(sinResguardante && confrontaMal) return 'ALTA';
-  if(sinResguardante || confrontaMal) return 'MEDIA';
-  return 'BAJA';
-}
-
-function badgeNivelAtencion(nivel){
-  return ({
-    'ALTA': '<span class="badge badge-red">🚨 ALTA</span>',
-    'MEDIA': '<span class="badge badge-amber">⚠️ MEDIA</span>',
-    'BAJA': '<span class="badge badge-green">✅ BAJA</span>',
-  })[nivel];
-}
-
 function analisisDeVehiculos(){
   const confrontasPorVeh = confrontasPorVehiculo();
   return VEHICULOS.map(v=>{
@@ -4901,16 +4986,15 @@ function analisisDeVehiculos(){
       resguardantesTarjeta: conteoResguardantesTarjeta(v.id),
       confrontas: confrontaInfo ? confrontaInfo.historial.length : 0,
       vigenciaConfronta: confrontaInfo ? confrontaInfo.estatusVigencia : 'NUNCA',
-      nivel: nivelAtencion(v.id),
     };
   });
 }
 
 function analisisFiltrado(){
-  const nivelSel = document.getElementById('filtroNivelAtencion').value;
+  const estatusSel = document.getElementById('filtroEstatusAnalisis').value;
   const q = (document.getElementById('buscarAnalisis').value||'').trim().toLowerCase();
   return analisisDeVehiculos().filter(a=>{
-    if(nivelSel && a.nivel!==nivelSel) return false;
+    if(estatusSel && a.vehiculo.estatus!==estatusSel) return false;
     if(q){
       const campos = [a.vehiculo.no_economico, a.vehiculo.placas].map(x=>(x||'').toLowerCase());
       if(!campos.some(c=>c.includes(q))) return false;
@@ -4919,43 +5003,200 @@ function analisisFiltrado(){
   });
 }
 
+function depatamentoDe(v){ return v.siglas || 'SIN DEPARTAMENTO'; }
+
+let CHARTS_ANALISIS = {};
+function destruirChart(id){ if(CHARTS_ANALISIS[id]){ CHARTS_ANALISIS[id].destroy(); delete CHARTS_ANALISIS[id]; } }
+
 function renderAnalisis(){
   const todos = analisisDeVehiculos();
   const lista = analisisFiltrado();
 
-  const alta = todos.filter(a=>a.nivel==='ALTA').length;
-  const media = todos.filter(a=>a.nivel==='MEDIA').length;
-  const baja = todos.filter(a=>a.nivel==='BAJA').length;
-  const conReemplazoPlaca = todos.filter(a=>a.reemplazos>0).length;
+  // ── KPIs ejecutivos ──
+  const totalVeh = todos.length;
+  const confrontados = todos.filter(a=>a.vigenciaConfronta==='AL DÍA').length;
+  const robados = VEHICULOS.filter(v=>(v.estatus||'').toUpperCase().includes('ROBAD')).length;
+  const chocados = VEHICULOS.filter(v=>(v.estatus||'').toUpperCase().includes('CHOCAD')).length;
+  const sinResguardante = VEHICULOS.filter(v=>!RESGUARDOS.some(r=>r.vehiculo_id===v.id && r.vigente)).length;
+
+  const anioActual = new Date().getFullYear();
+  const edades = VEHICULOS.map(v=>parseInt(v.modelo)).filter(a=>a && a>1990 && a<=anioActual).map(a=>anioActual-a);
+  const antiguedadProm = edades.length ? (edades.reduce((s,a)=>s+a,0)/edades.length) : null;
 
   document.getElementById('kpiAnalisis').innerHTML =
-    kpiCard('Total vehículos', todos.length) +
-    kpiCard('🚨 Atención alta', alta, 'var(--red)') +
-    kpiCard('⚠️ Atención media', media, 'var(--amber)') +
-    kpiCard('✅ Atención baja', baja, '#1b6b2b') +
-    kpiCard('🔄 Con cambio de placa', conReemplazoPlaca, 'var(--blue)');
+    kpiCard('Total vehículos', totalVeh) +
+    kpiCard('🔍 Confrontados (al día)', confrontados, '#1b6b2b') +
+    kpiCard('🚨 Robados', robados, 'var(--red)') +
+    kpiCard('💥 Chocados', chocados, 'var(--amber)') +
+    kpiCard('⚠️ Sin resguardante vigente', sinResguardante, 'var(--gray)') +
+    kpiCard('🗓️ Antigüedad promedio', antiguedadProm!==null?antiguedadProm.toFixed(1)+' años':'—', 'var(--blue)');
 
+  // ── Poblar filtro de estatus dinámicamente ──
+  const selEstatus = document.getElementById('filtroEstatusAnalisis');
+  if(selEstatus.options.length<=1){
+    const estatusUnicos = [...new Set(VEHICULOS.map(v=>v.estatus).filter(Boolean))].sort();
+    estatusUnicos.forEach(e=>{
+      const opt = document.createElement('option'); opt.value=e; opt.textContent=e;
+      selEstatus.appendChild(opt);
+    });
+  }
+
+  // ── Gráfica 1: Vehículos por Departamento ──
+  const porDepto = {};
+  VEHICULOS.forEach(v=>{ const d=depatamentoDe(v); porDepto[d]=(porDepto[d]||0)+1; });
+  const deptosOrdenados = Object.entries(porDepto).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  destruirChart('depto');
+  CHARTS_ANALISIS.depto = new Chart(document.getElementById('chartDepto'), {
+    type:'bar',
+    data:{ labels: deptosOrdenados.map(d=>d[0]), datasets:[{label:'Vehículos', data: deptosOrdenados.map(d=>d[1]), backgroundColor:'#2d9e7e'}] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+  });
+
+  // ── Gráfica 2: Vigencia de Confrontas por Departamento (apilada) ──
+  const confPorDepto = {};
+  todos.forEach(a=>{
+    const d = depatamentoDe(a.vehiculo);
+    if(!confPorDepto[d]) confPorDepto[d] = {'AL DÍA':0,'VENCIDA':0,'NUNCA':0};
+    confPorDepto[d][a.vigenciaConfronta] = (confPorDepto[d][a.vigenciaConfronta]||0)+1;
+  });
+  const deptosConf = Object.keys(confPorDepto).sort((a,b)=>{
+    const totalA = Object.values(confPorDepto[a]).reduce((x,y)=>x+y,0);
+    const totalB = Object.values(confPorDepto[b]).reduce((x,y)=>x+y,0);
+    return totalB-totalA;
+  }).slice(0,15);
+  destruirChart('confDepto');
+  CHARTS_ANALISIS.confDepto = new Chart(document.getElementById('chartConfrontaDepto'), {
+    type:'bar',
+    data:{
+      labels: deptosConf,
+      datasets:[
+        {label:'Al día', data: deptosConf.map(d=>confPorDepto[d]['AL DÍA']||0), backgroundColor:'#1b6b2b'},
+        {label:'Vencida', data: deptosConf.map(d=>confPorDepto[d]['VENCIDA']||0), backgroundColor:'#e53e3e'},
+        {label:'Nunca', data: deptosConf.map(d=>confPorDepto[d]['NUNCA']||0), backgroundColor:'#9ca3af'},
+      ]
+    },
+    options:{ responsive:true, scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}} }
+  });
+
+  // ── Gráfica: Promedio de días desde la última confronta, por Departamento ──
+  const diasPorDepto = {};
+  todos.forEach(a=>{
+    if(!a.vigenciaConfronta || a.vigenciaConfronta==='NUNCA') return; // sin fecha real que promediar
+    const c = confrontasPorVeh.find(x=>x.vehiculo.id===a.vehiculo.id);
+    if(!c || c.dias===null || c.dias===undefined) return;
+    const d = depatamentoDe(a.vehiculo);
+    if(!diasPorDepto[d]) diasPorDepto[d] = [];
+    diasPorDepto[d].push(c.dias);
+  });
+  const deptosDias = Object.entries(diasPorDepto)
+    .map(([d,arr])=>[d, arr.reduce((s,x)=>s+x,0)/arr.length])
+    .sort((a,b)=>b[1]-a[1]).slice(0,15);
+  destruirChart('diasConfronta');
+  CHARTS_ANALISIS.diasConfronta = new Chart(document.getElementById('chartDiasConfrontaDepto'), {
+    type:'bar',
+    data:{ labels: deptosDias.map(d=>d[0]), datasets:[{label:'Días promedio desde la última confronta', data: deptosDias.map(d=>Math.round(d[1])), backgroundColor:'#c9820f'}] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+  });
+
+  // ── Tabla: Vehículos sin resguardante vigente, por Departamento ──
+  const sinResguardanteVeh = VEHICULOS.filter(v=>!RESGUARDOS.some(r=>r.vehiculo_id===v.id && r.vigente));
+  if(!sinResguardanteVeh.length){
+    document.getElementById('tablaSinResguardanteDepto').innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Todos los vehículos tienen resguardante vigente.</p></div>`;
+  }else{
+    const porDeptoSR = {};
+    sinResguardanteVeh.forEach(v=>{ const d=depatamentoDe(v); (porDeptoSR[d]=porDeptoSR[d]||[]).push(v); });
+    document.getElementById('tablaSinResguardanteDepto').innerHTML = `
+      <table class="tbl"><thead><tr><th>Departamento</th><th>Vehículos sin resguardante</th><th>Detalle</th></tr></thead><tbody>
+        ${Object.entries(porDeptoSR).sort((a,b)=>b[1].length-a[1].length).map(([d,vs])=>`
+          <tr><td><span class="badge badge-blue">${escapeHtml(d)}</span></td>
+              <td class="tbl-center"><span class="badge badge-amber">${vs.length}</span></td>
+              <td>${vs.map(v=>vehHoverSpan(v.id, v.no_economico)).join(', ')}</td></tr>
+        `).join('')}
+      </tbody></table>`;
+  }
+
+  // ── Gráfica: Antigüedad de la Flota ──
+  const buckets = [[0,3,'0–3 años'],[4,6,'4–6 años'],[7,10,'7–10 años'],[11,15,'11–15 años'],[16,999,'16+ años']];
+  const conteoBuckets = buckets.map(([min,max])=>edades.filter(e=>e>=min&&e<=max).length);
+  destruirChart('antiguedad');
+  CHARTS_ANALISIS.antiguedad = new Chart(document.getElementById('chartAntiguedad'), {
+    type:'bar',
+    data:{ labels: buckets.map(b=>b[2]), datasets:[{label:'Vehículos', data: conteoBuckets, backgroundColor:'#2b6cb0'}] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+  });
+
+  // ── Tablas: Robados / Chocados ──
+  const armarTablaEstatus = (contieneTexto) => {
+    const veh = VEHICULOS.filter(v=>(v.estatus||'').toUpperCase().includes(contieneTexto));
+    if(!veh.length) return `<div class="empty-state"><div class="icon">✅</div><p>Ninguno actualmente.</p></div>`;
+    return `<table class="tbl"><thead><tr><th>No. Económico</th><th>Placas</th><th>Departamento</th></tr></thead><tbody>
+      ${veh.map(v=>`<tr><td class="tbl-num">${vehHoverSpan(v.id,v.no_economico)}</td><td>${vehHoverSpan(v.id,v.placas)}</td><td>${v.siglas?`<span class="badge badge-blue">${escapeHtml(v.siglas)}</span>`:'—'}</td></tr>`).join('')}
+    </tbody></table>`;
+  };
+  document.getElementById('tablaRobados').innerHTML = armarTablaEstatus('ROBAD');
+  document.getElementById('tablaChocados').innerHTML = armarTablaEstatus('CHOCAD');
+
+  // ── Gráfica: Resguardantes con más vehículos asignados (top 10) ──
+  const porResguardante = {};
+  RESGUARDOS.filter(r=>r.vigente && r.titular_responsable).forEach(r=>{
+    porResguardante[r.titular_responsable] = (porResguardante[r.titular_responsable]||0)+1;
+  });
+  const topResguardantes = Object.entries(porResguardante).filter(([,n])=>n>1).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  destruirChart('resguardantes');
+  CHARTS_ANALISIS.resguardantes = new Chart(document.getElementById('chartResguardantes'), {
+    type:'bar',
+    data:{ labels: topResguardantes.map(d=>d[0]), datasets:[{label:'Vehículos asignados', data: topResguardantes.map(d=>d[1]), backgroundColor:'#c9820f'}] },
+    options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
+  });
+
+  // ── Gráfica: Departamentos que más reasignan tarjetas (más historial = más rotación) ──
+  const reasignPorDepto = {};
+  TARJETAS_HISTORIAL.forEach(h=>{
+    const t = TARJETAS.find(x=>x.vehiculo_id===h.vehiculo_id);
+    const v = vehiculoDe(h.vehiculo_id);
+    const d = (t&&t.departamento_detectado) || (v&&v.siglas) || 'SIN DEPARTAMENTO';
+    reasignPorDepto[d] = (reasignPorDepto[d]||0)+1;
+  });
+  const topReasigna = Object.entries(reasignPorDepto).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  destruirChart('reasignaTarjetas');
+  CHARTS_ANALISIS.reasignaTarjetas = new Chart(document.getElementById('chartReasignaTarjetas'), {
+    type:'bar',
+    data:{ labels: topReasigna.map(d=>d[0]), datasets:[{label:'Registros de resguardantes de tarjeta', data: topReasigna.map(d=>d[1]), backgroundColor:'#2b6cb0'}] },
+    options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
+  });
+
+  // ── Gráfica: Composición de la flota (Propios vs Arrendados) ──
+  const propios = VEHICULOS.filter(v=>v.origen==='PROPIO').length;
+  const arrendados = VEHICULOS.filter(v=>v.origen==='ARRENDADO').length;
+  destruirChart('origen');
+  CHARTS_ANALISIS.origen = new Chart(document.getElementById('chartOrigen'), {
+    type:'doughnut',
+    data:{ labels:['Propios','Arrendados'], datasets:[{data:[propios,arrendados], backgroundColor:['#1e5b4f','#c9820f']}] },
+    options:{ responsive:true, plugins:{legend:{position:'bottom'}} }
+  });
+
+  // ── Tabla detallada de Radiografía ──
   document.getElementById('emptyAnalisis').style.display = lista.length ? 'none' : 'block';
   document.getElementById('emptyAnalisis').querySelector('p').textContent =
     todos.length ? 'No hay vehículos que coincidan con el filtro.' : 'No se encontraron vehículos.';
 
   if(!lista.length){ document.getElementById('tablaAnalisis').innerHTML = ''; return; }
 
-  const orden = {'ALTA':0,'MEDIA':1,'BAJA':2};
-  lista.sort((a,b)=>orden[a.nivel]-orden[b.nivel] || a.vehiculo.no_economico.localeCompare(b.vehiculo.no_economico));
+  lista.sort((a,b)=>a.vehiculo.no_economico.localeCompare(b.vehiculo.no_economico));
 
   document.getElementById('tablaAnalisis').innerHTML = `
     <table class="tbl">
       <thead><tr>
-        <th>No. Económico</th><th>Placas</th><th>Origen</th><th>Estatus</th>
+        <th>No. Económico</th><th>Placas</th><th>Departamento</th><th>Origen</th><th>Estatus</th>
         <th>Reemplazos de Placa</th><th>Resguardantes Vehiculares</th><th>Resguardantes Tarjeta</th>
-        <th>Confrontas</th><th>Vigencia Confronta</th><th>Mantenimientos</th><th>Nivel de Atención</th><th>Acciones</th>
+        <th>Confrontas</th><th>Vigencia Confronta</th><th>Mantenimientos</th><th>Acciones</th>
       </tr></thead>
       <tbody>
         ${lista.map(a=>`
-          <tr${a.nivel==='ALTA'?' style="background:#fdecea;"':a.nivel==='MEDIA'?' style="background:#fff8e1;"':''}>
+          <tr>
             <td class="tbl-num">${vehHoverSpan(a.vehiculo.id, a.vehiculo.no_economico)}</td>
             <td>${vehHoverSpan(a.vehiculo.id, a.vehiculo.placas)}</td>
+            <td>${a.vehiculo.siglas?`<span class="badge badge-blue">${escapeHtml(a.vehiculo.siglas)}</span>`:'—'}</td>
             <td>${badgeOrigen(a.vehiculo.origen)}</td>
             <td>${badgeEstatus(a.vehiculo.estatus)}</td>
             <td class="tbl-center">${a.reemplazos>0?`<span class="badge badge-blue">${a.reemplazos}</span>`:'—'}</td>
@@ -4964,7 +5205,6 @@ function renderAnalisis(){
             <td class="tbl-center">${a.confrontas}</td>
             <td>${badgeVigenciaConfronta(a.vigenciaConfronta)}</td>
             <td class="tbl-center"><span class="badge badge-gray" title="Módulo de mantenimientos pendiente de construir">— próx.</span></td>
-            <td>${badgeNivelAtencion(a.nivel)}</td>
             <td><button class="btn btn-primary btn-xs" onclick="verRadiografia('${a.vehiculo.id}')">Ver Radiografía</button></td>
           </tr>
         `).join('')}
@@ -5013,7 +5253,7 @@ function verRadiografia(vehiculoId){
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:var(--gd);">${escapeHtml(v.no_economico)} · ${escapeHtml(v.placas)} ${badgeOrigen(v.origen)}</div>
         <div style="font-size:12.5px;color:var(--gray);margin-top:2px;">${escapeHtml(v.marca)} ${escapeHtml(v.submarca||'')} ${v.modelo?'· '+escapeHtml(v.modelo):''} — ${escapeHtml(v.direccion)} › ${escapeHtml(v.subdireccion)} › ${escapeHtml(v.gerencia_unidad)}</div>
       </div>
-      <div>${badgeEstatus(v.estatus)} ${badgeNivelAtencion(a.nivel)}</div>
+      <div>${badgeEstatus(v.estatus)}</div>
     </div>
 
     <div class="kpi-grid" style="margin-bottom:16px;">
@@ -5043,7 +5283,7 @@ function verRadiografia(vehiculoId){
   openModal('modalRadiografia');
 }
 
-document.getElementById('filtroNivelAtencion').addEventListener('change', renderAnalisis);
+document.getElementById('filtroEstatusAnalisis').addEventListener('change', renderAnalisis);
 document.getElementById('buscarAnalisis').addEventListener('input', renderAnalisis);
 </script>
 </body>
