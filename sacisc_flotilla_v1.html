@@ -8,7 +8,6 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjYgMCA1MiA1OCI+Cjxwb2x5Z29uIHBvaW50cz0iMzIsMi42IDU2LDE1LjggNTYsNDIuMiAzMiw1NS40IDgsNDIuMiA4LDE1LjgiIGZpbGw9IiMxZTViNGYiLz4KPHBhdGggZD0iTTIyLjQgMjEuOCBDMjIuNCAyMS44IDQxLjYgMjEuOCA0MS42IDI5IEM0MS42IDM2LjIgMjIuNCAzMS40IDIyLjQgMzguNiBDMjIuNCA0NS44IDQxLjYgNDUuOCA0MS42IDQ1LjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -872,65 +871,11 @@ footer { background: var(--green-dark); color: rgba(255,255,255,0.7); padding: 2
     </div>
   </div>
 
-  <!-- ═══ PANEL: ANÁLISIS (Dashboard ejecutivo + Radiografía por vehículo) ═══ -->
+  <!-- ═══ PANEL: ANÁLISIS (Radiografía por vehículo) ═══ -->
   <div class="panel" id="pan-analisis">
     <div class="page-eyebrow">Parque Vehicular</div>
     <h1 class="page-title">Análisis</h1>
-    <p class="page-desc">Dashboard ejecutivo del Parque Vehicular: composición por departamento, confrontas, incidencias y rotación de resguardantes/tarjetas.</p>
-
-    <div class="kpi-grid" id="kpiAnalisis"></div>
-
-    <div class="card">
-      <div class="card-hdr"><h3>🏢 Vehículos por Departamento</h3></div>
-      <div class="card-body"><canvas id="chartDepto" height="90"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-hdr"><h3>🔍 Vigencia de Confrontas por Departamento</h3></div>
-      <div class="card-body"><canvas id="chartConfrontaDepto" height="90"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-hdr"><h3>📅 Promedio de Días desde la Última Confronta, por Departamento</h3></div>
-      <div class="card-body"><canvas id="chartDiasConfrontaDepto" height="90"></canvas></div>
-    </div>
-
-    <div class="card">
-      <div class="card-hdr"><h3>⚠️ Vehículos sin Resguardante Vigente, por Departamento</h3></div>
-      <div class="card-body"><div id="tablaSinResguardanteDepto"></div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-hdr"><h3>🗓️ Antigüedad de la Flota</h3></div>
-      <div class="card-body"><canvas id="chartAntiguedad" height="90"></canvas></div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-      <div class="card">
-        <div class="card-hdr"><h3>🚨 Vehículos Robados</h3></div>
-        <div class="card-body"><div id="tablaRobados"></div></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><h3>💥 Vehículos Chocados</h3></div>
-        <div class="card-body"><div id="tablaChocados"></div></div>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-      <div class="card">
-        <div class="card-hdr"><h3>👤 Resguardantes con más vehículos asignados</h3></div>
-        <div class="card-body"><canvas id="chartResguardantes" height="140"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hdr"><h3>💳 Departamentos que más reasignan tarjetas</h3></div>
-        <div class="card-body"><canvas id="chartReasignaTarjetas" height="140"></canvas></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-hdr"><h3>🧩 Composición de la Flota</h3></div>
-      <div class="card-body" style="max-width:340px;margin:0 auto;"><canvas id="chartOrigen"></canvas></div>
-    </div>
+    <p class="page-desc">Radiografía completa de cada vehículo: reemplazos de placa, resguardantes (unidad y tarjeta) y confrontas.</p>
 
     <div class="card">
       <div class="card-hdr">
@@ -5129,11 +5074,6 @@ function analisisFiltrado(){
   });
 }
 
-function depatamentoDe(v){ return v.siglas || 'SIN DEPARTAMENTO'; }
-
-let CHARTS_ANALISIS = {};
-function destruirChart(id){ if(CHARTS_ANALISIS[id]){ CHARTS_ANALISIS[id].destroy(); delete CHARTS_ANALISIS[id]; } }
-
 function renderAnalisis(){
   try{
     renderAnalisisInterno();
@@ -5143,30 +5083,8 @@ function renderAnalisis(){
 }
 
 function renderAnalisisInterno(){
-  const chartsDisponibles = typeof Chart !== 'undefined';
-  if(!chartsDisponibles) console.warn('Chart.js no cargó — se omiten las gráficas de Análisis, el resto de la app sigue funcionando normal.');
-
   const todos = analisisDeVehiculos();
   const lista = analisisFiltrado();
-
-  // ── KPIs ejecutivos ──
-  const totalVeh = todos.length;
-  const confrontados = todos.filter(a=>a.vigenciaConfronta==='AL DÍA').length;
-  const robados = VEHICULOS.filter(v=>(v.estatus||'').toUpperCase().includes('ROBAD')).length;
-  const chocados = VEHICULOS.filter(v=>(v.estatus||'').toUpperCase().includes('CHOCAD')).length;
-  const sinResguardante = VEHICULOS.filter(v=>!RESGUARDOS.some(r=>r.vehiculo_id===v.id && r.vigente)).length;
-
-  const anioActual = new Date().getFullYear();
-  const edades = VEHICULOS.map(v=>parseInt(v.modelo)).filter(a=>a && a>1990 && a<=anioActual).map(a=>anioActual-a);
-  const antiguedadProm = edades.length ? (edades.reduce((s,a)=>s+a,0)/edades.length) : null;
-
-  document.getElementById('kpiAnalisis').innerHTML =
-    kpiCard('Total vehículos', totalVeh) +
-    kpiCard('🔍 Confrontados (al día)', confrontados, '#1b6b2b') +
-    kpiCard('🚨 Robados', robados, 'var(--red)') +
-    kpiCard('💥 Chocados', chocados, 'var(--amber)') +
-    kpiCard('⚠️ Sin resguardante vigente', sinResguardante, 'var(--gray)') +
-    kpiCard('🗓️ Antigüedad promedio', antiguedadProm!==null?antiguedadProm.toFixed(1)+' años':'—', 'var(--blue)');
 
   // ── Poblar filtro de estatus dinámicamente ──
   const selEstatus = document.getElementById('filtroEstatusAnalisis');
@@ -5178,156 +5096,6 @@ function renderAnalisisInterno(){
     });
   }
 
-  // ── Gráfica 1: Vehículos por Departamento ──
-  const porDepto = {};
-  VEHICULOS.forEach(v=>{ const d=depatamentoDe(v); porDepto[d]=(porDepto[d]||0)+1; });
-  const deptosOrdenados = Object.entries(porDepto).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  if(chartsDisponibles){
-    destruirChart('depto');
-    CHARTS_ANALISIS.depto = new Chart(document.getElementById('chartDepto'), {
-      type:'bar',
-      data:{ labels: deptosOrdenados.map(d=>d[0]), datasets:[{label:'Vehículos', data: deptosOrdenados.map(d=>d[1]), backgroundColor:'#2d9e7e'}] },
-      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
-    });
-  }
-
-  // ── Gráfica 2: Vigencia de Confrontas por Departamento (apilada) ──
-  const confPorDepto = {};
-  todos.forEach(a=>{
-    const d = depatamentoDe(a.vehiculo);
-    if(!confPorDepto[d]) confPorDepto[d] = {'AL DÍA':0,'VENCIDA':0,'NUNCA':0};
-    confPorDepto[d][a.vigenciaConfronta] = (confPorDepto[d][a.vigenciaConfronta]||0)+1;
-  });
-  const deptosConf = Object.keys(confPorDepto).sort((a,b)=>{
-    const totalA = Object.values(confPorDepto[a]).reduce((x,y)=>x+y,0);
-    const totalB = Object.values(confPorDepto[b]).reduce((x,y)=>x+y,0);
-    return totalB-totalA;
-  }).slice(0,15);
-  if(chartsDisponibles){
-    destruirChart('confDepto');
-    CHARTS_ANALISIS.confDepto = new Chart(document.getElementById('chartConfrontaDepto'), {
-      type:'bar',
-      data:{
-        labels: deptosConf,
-        datasets:[
-          {label:'Al día', data: deptosConf.map(d=>confPorDepto[d]['AL DÍA']||0), backgroundColor:'#1b6b2b'},
-          {label:'Vencida', data: deptosConf.map(d=>confPorDepto[d]['VENCIDA']||0), backgroundColor:'#e53e3e'},
-          {label:'Nunca', data: deptosConf.map(d=>confPorDepto[d]['NUNCA']||0), backgroundColor:'#9ca3af'},
-        ]
-      },
-      options:{ responsive:true, scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}} }
-    });
-  }
-
-  // ── Gráfica: Promedio de días desde la última confronta, por Departamento ──
-  const confrontasPorVehLocal = confrontasPorVehiculo();
-  const diasPorDepto = {};
-  todos.forEach(a=>{
-    if(!a.vigenciaConfronta || a.vigenciaConfronta==='NUNCA') return; // sin fecha real que promediar
-    const c = confrontasPorVehLocal.find(x=>x.vehiculo.id===a.vehiculo.id);
-    if(!c || c.dias===null || c.dias===undefined) return;
-    const d = depatamentoDe(a.vehiculo);
-    if(!diasPorDepto[d]) diasPorDepto[d] = [];
-    diasPorDepto[d].push(c.dias);
-  });
-  const deptosDias = Object.entries(diasPorDepto)
-    .map(([d,arr])=>[d, arr.reduce((s,x)=>s+x,0)/arr.length])
-    .sort((a,b)=>b[1]-a[1]).slice(0,15);
-  if(chartsDisponibles){
-    destruirChart('diasConfronta');
-    CHARTS_ANALISIS.diasConfronta = new Chart(document.getElementById('chartDiasConfrontaDepto'), {
-      type:'bar',
-      data:{ labels: deptosDias.map(d=>d[0]), datasets:[{label:'Días promedio desde la última confronta', data: deptosDias.map(d=>Math.round(d[1])), backgroundColor:'#c9820f'}] },
-      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
-    });
-  }
-
-  // ── Tabla: Vehículos sin resguardante vigente, por Departamento ──
-  const sinResguardanteVeh = VEHICULOS.filter(v=>!RESGUARDOS.some(r=>r.vehiculo_id===v.id && r.vigente));
-  if(!sinResguardanteVeh.length){
-    document.getElementById('tablaSinResguardanteDepto').innerHTML = `<div class="empty-state"><div class="icon">✅</div><p>Todos los vehículos tienen resguardante vigente.</p></div>`;
-  }else{
-    const porDeptoSR = {};
-    sinResguardanteVeh.forEach(v=>{ const d=depatamentoDe(v); (porDeptoSR[d]=porDeptoSR[d]||[]).push(v); });
-    document.getElementById('tablaSinResguardanteDepto').innerHTML = `
-      <table class="tbl"><thead><tr><th>Departamento</th><th>Vehículos sin resguardante</th><th>Detalle</th></tr></thead><tbody>
-        ${Object.entries(porDeptoSR).sort((a,b)=>b[1].length-a[1].length).map(([d,vs])=>`
-          <tr><td><span class="badge badge-blue">${escapeHtml(d)}</span></td>
-              <td class="tbl-center"><span class="badge badge-amber">${vs.length}</span></td>
-              <td>${vs.map(v=>vehHoverSpan(v.id, v.no_economico)).join(', ')}</td></tr>
-        `).join('')}
-      </tbody></table>`;
-  }
-
-  // ── Gráfica: Antigüedad de la Flota ──
-  const buckets = [[0,3,'0–3 años'],[4,6,'4–6 años'],[7,10,'7–10 años'],[11,15,'11–15 años'],[16,999,'16+ años']];
-  const conteoBuckets = buckets.map(([min,max])=>edades.filter(e=>e>=min&&e<=max).length);
-  if(chartsDisponibles){
-    destruirChart('antiguedad');
-    CHARTS_ANALISIS.antiguedad = new Chart(document.getElementById('chartAntiguedad'), {
-      type:'bar',
-      data:{ labels: buckets.map(b=>b[2]), datasets:[{label:'Vehículos', data: conteoBuckets, backgroundColor:'#2b6cb0'}] },
-      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
-    });
-  }
-
-  // ── Tablas: Robados / Chocados ──
-  const armarTablaEstatus = (contieneTexto) => {
-    const veh = VEHICULOS.filter(v=>(v.estatus||'').toUpperCase().includes(contieneTexto));
-    if(!veh.length) return `<div class="empty-state"><div class="icon">✅</div><p>Ninguno actualmente.</p></div>`;
-    return `<table class="tbl"><thead><tr><th>No. Económico</th><th>Placas</th><th>Departamento</th></tr></thead><tbody>
-      ${veh.map(v=>`<tr><td class="tbl-num">${vehHoverSpan(v.id,v.no_economico)}</td><td>${vehHoverSpan(v.id,v.placas)}</td><td>${v.siglas?`<span class="badge badge-blue">${escapeHtml(v.siglas)}</span>`:'—'}</td></tr>`).join('')}
-    </tbody></table>`;
-  };
-  document.getElementById('tablaRobados').innerHTML = armarTablaEstatus('ROBAD');
-  document.getElementById('tablaChocados').innerHTML = armarTablaEstatus('CHOCAD');
-
-  // ── Gráfica: Resguardantes con más vehículos asignados (top 10) ──
-  const porResguardante = {};
-  RESGUARDOS.filter(r=>r.vigente && r.titular_responsable).forEach(r=>{
-    porResguardante[r.titular_responsable] = (porResguardante[r.titular_responsable]||0)+1;
-  });
-  const topResguardantes = Object.entries(porResguardante).filter(([,n])=>n>1).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  if(chartsDisponibles){
-    destruirChart('resguardantes');
-    CHARTS_ANALISIS.resguardantes = new Chart(document.getElementById('chartResguardantes'), {
-      type:'bar',
-      data:{ labels: topResguardantes.map(d=>d[0]), datasets:[{label:'Vehículos asignados', data: topResguardantes.map(d=>d[1]), backgroundColor:'#c9820f'}] },
-      options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
-    });
-  }
-
-  // ── Gráfica: Departamentos que más reasignan tarjetas (más historial = más rotación) ──
-  const reasignPorDepto = {};
-  TARJETAS_HISTORIAL.forEach(h=>{
-    const t = TARJETAS.find(x=>x.vehiculo_id===h.vehiculo_id);
-    const v = vehiculoDe(h.vehiculo_id);
-    const d = (t&&t.departamento_detectado) || (v&&v.siglas) || 'SIN DEPARTAMENTO';
-    reasignPorDepto[d] = (reasignPorDepto[d]||0)+1;
-  });
-  const topReasigna = Object.entries(reasignPorDepto).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  if(chartsDisponibles){
-    destruirChart('reasignaTarjetas');
-    CHARTS_ANALISIS.reasignaTarjetas = new Chart(document.getElementById('chartReasignaTarjetas'), {
-      type:'bar',
-      data:{ labels: topReasigna.map(d=>d[0]), datasets:[{label:'Registros de resguardantes de tarjeta', data: topReasigna.map(d=>d[1]), backgroundColor:'#2b6cb0'}] },
-      options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
-    });
-  }
-
-  // ── Gráfica: Composición de la flota (Propios vs Arrendados) ──
-  const propios = VEHICULOS.filter(v=>v.origen==='PROPIO').length;
-  const arrendados = VEHICULOS.filter(v=>v.origen==='ARRENDADO').length;
-  if(chartsDisponibles){
-    destruirChart('origen');
-    CHARTS_ANALISIS.origen = new Chart(document.getElementById('chartOrigen'), {
-      type:'doughnut',
-      data:{ labels:['Propios','Arrendados'], datasets:[{data:[propios,arrendados], backgroundColor:['#1e5b4f','#c9820f']}] },
-      options:{ responsive:true, plugins:{legend:{position:'bottom'}} }
-    });
-  }
-
-  // ── Tabla detallada de Radiografía ──
   document.getElementById('emptyAnalisis').style.display = lista.length ? 'none' : 'block';
   document.getElementById('emptyAnalisis').querySelector('p').textContent =
     todos.length ? 'No hay vehículos que coincidan con el filtro.' : 'No se encontraron vehículos.';
